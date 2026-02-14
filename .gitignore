@@ -54,6 +54,7 @@ apps/miniprogram/miniprogram_npm
 .cache
 .temp
 .tmp
+.sisyphus/
 
 # OS
 Thumbs.db
