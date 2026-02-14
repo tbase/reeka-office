@@ -1,0 +1,12 @@
+{
+  "description": "miniprogram workspace",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true
+  },
+  "appid": "touristappid",
+  "projectname": "reeka-miniprogram"
+}
