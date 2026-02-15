@@ -1,35 +1,35 @@
 export {
-  CreateServiceCategoryCommand,
-  CreateServiceItemCommand,
-  UpdateServiceCategoryCommand,
-  DeleteServiceCategoryCommand,
-  UpdateServiceItemCommand,
-  DeleteServiceItemCommand
+  CreateCategoryCommand,
+  CreateContentCommand,
+  UpdateCategoryCommand,
+  DeleteCategoryCommand,
+  UpdateContentCommand,
+  DeleteContentCommand
 } from "./commands";
 export {
-  GetServiceCategoryQuery,
-  GetServiceItemQuery,
-  ListServiceCategoriesQuery,
-  ListServiceItemsByCategoryQuery,
-  ListServiceItemsQuery
+  GetCategoryQuery,
+  GetContentQuery,
+  ListCategoriesQuery,
+  ListContentsByCategoryQuery,
+  ListContentsQuery
 } from "./queries";
 export { close, setup, type SetupOptions } from "./context";
 export type {
-  CreateServiceCategoryInput,
-  CreateServiceItemInput,
-  UpdateServiceCategoryInput,
-  DeleteServiceCategoryInput,
-  UpdateServiceItemInput,
-  DeleteServiceItemInput
+  CreateCategoryInput,
+  CreateContentInput,
+  UpdateCategoryInput,
+  DeleteCategoryInput,
+  UpdateContentInput,
+  DeleteContentInput
 } from "./commands";
 export type {
-  GetServiceCategoryInput,
-  GetServiceItemInput,
-  ListServiceItemsByCategoryInput
+  GetCategoryInput,
+  GetContentInput,
+  ListContentsByCategoryInput
 } from "./queries";
 export type {
-  NewServiceCategoryRow,
-  NewServiceItemRow,
-  ServiceCategoryRow,
-  ServiceItemRow
+  NewCategoryRow,
+  NewContentRow,
+  CategoryRow,
+  ContentRow
 } from "./schema";

@@ -2,60 +2,60 @@
 
 import { revalidatePath } from "next/cache"
 import {
-  ListServiceCategoriesQuery,
-  ListServiceItemsQuery,
-  CreateServiceCategoryCommand,
-  UpdateServiceCategoryCommand,
-  DeleteServiceCategoryCommand,
-  CreateServiceItemCommand,
-  UpdateServiceItemCommand,
-  DeleteServiceItemCommand,
-  type CreateServiceItemInput,
-  type UpdateServiceItemInput,
+  ListCategoriesQuery,
+  ListContentsQuery,
+  CreateCategoryCommand,
+  UpdateCategoryCommand,
+  DeleteCategoryCommand,
+  CreateContentCommand,
+  UpdateContentCommand,
+  DeleteContentCommand,
+  type CreateContentInput,
+  type UpdateContentInput,
 } from "@reeka-office/domain-cms"
 
 const PATH = "/cms/services"
 
 export async function listCategories() {
-  return new ListServiceCategoriesQuery().query()
+  return new ListCategoriesQuery().query()
 }
 
-export async function listServiceItems() {
-  return new ListServiceItemsQuery().query()
+export async function listContents() {
+  return new ListContentsQuery().query()
 }
 
 export async function createCategory(name: string) {
-  const id = await new CreateServiceCategoryCommand({ name }).execute()
+  const id = await new CreateCategoryCommand({ name }).execute()
   revalidatePath(PATH)
   return id
 }
 
 export async function updateCategory(id: number, name: string) {
-  const ok = await new UpdateServiceCategoryCommand({ id, name }).execute()
+  const ok = await new UpdateCategoryCommand({ id, name }).execute()
   revalidatePath(PATH)
   return ok
 }
 
 export async function deleteCategory(id: number) {
-  const ok = await new DeleteServiceCategoryCommand({ id }).execute()
+  const ok = await new DeleteCategoryCommand({ id }).execute()
   revalidatePath(PATH)
   return ok
 }
 
-export async function createServiceItem(input: CreateServiceItemInput) {
-  const id = await new CreateServiceItemCommand(input).execute()
+export async function createContent(input: CreateContentInput) {
+  const id = await new CreateContentCommand(input).execute()
   revalidatePath(PATH)
   return id
 }
 
-export async function updateServiceItem(input: UpdateServiceItemInput) {
-  const ok = await new UpdateServiceItemCommand(input).execute()
+export async function updateContent(input: UpdateContentInput) {
+  const ok = await new UpdateContentCommand(input).execute()
   revalidatePath(PATH)
   return ok
 }
 
-export async function deleteServiceItem(id: number) {
-  const ok = await new DeleteServiceItemCommand({ id }).execute()
+export async function deleteContent(id: number) {
+  const ok = await new DeleteContentCommand({ id }).execute()
   revalidatePath(PATH)
   return ok
 }

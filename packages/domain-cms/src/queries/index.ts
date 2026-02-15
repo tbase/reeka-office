@@ -1,5 +1,4 @@
-export { GetServiceCategoryQuery, type GetServiceCategoryInput } from "./get-service-category";
-export { GetServiceItemQuery, type GetServiceItemInput  } from "./get-service-item";
-export { ListServiceCategoriesQuery } from "./list-service-categories";
-export { ListServiceItemsQuery, ListServiceItemsByCategoryQuery, type ListServiceItemsByCategoryInput } from "./list-service-items";
-
+export { GetCategoryQuery, type GetCategoryInput } from "./get-category";
+export { GetContentQuery, type GetContentInput } from "./get-content";
+export { ListCategoriesQuery } from "./list-categories";
+export { ListContentsQuery, ListContentsByCategoryQuery, type ListContentsByCategoryInput } from "./list-contents";

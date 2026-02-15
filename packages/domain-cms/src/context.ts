@@ -1,11 +1,11 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { serviceCategories, serviceItems } from "./schema";
+import { categories, contents } from "./db/schema";
 
 export type CmsSchema = {
-  serviceCategories: typeof serviceCategories;
-  serviceItems: typeof serviceItems;
+  categories: typeof categories;
+  contents: typeof contents;
 };
 
 export interface DBConfig {
@@ -32,7 +32,7 @@ function createContext({ dbConfig }: SetupOptions) {
   });
 
   const db: DB = drizzle(pool, {
-    schema: { serviceCategories, serviceItems },
+    schema: { categories, contents },
     mode: "default",
   });
 

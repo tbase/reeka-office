@@ -98,7 +98,7 @@ If you add tests, also add:
 
 - React component names: PascalCase (`CmsServicesClient`, `AppSidebar`).
 - UI file names: kebab-case (`app-sidebar.tsx`, `button.tsx`).
-- Domain classes: PascalCase + suffix (`CreateServiceItemCommand`, `ListServiceItemsQuery`).
+- Domain classes: PascalCase + suffix (`CreateContentCommand`, `ListContentsQuery`).
 - Functions/variables: camelCase.
 - Stable constants: UPPER_SNAKE_CASE where already established (`PATH`, `GLOBAL_KEY`).
 

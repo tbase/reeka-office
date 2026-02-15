@@ -1,22 +1,22 @@
 import { eq } from "drizzle-orm";
 import { getDb, type DB } from "../context";
-import { serviceCategories, serviceItems } from "../schema";
+import { categories, contents } from "../schema";
 
-export interface DeleteServiceCategoryInput {
+export interface DeleteCategoryInput {
   id: number;
 }
 
-export class DeleteServiceCategoryCommand {
+export class DeleteCategoryCommand {
   private readonly db: DB;
-  constructor(private readonly input: DeleteServiceCategoryInput) {
+  constructor(private readonly input: DeleteCategoryInput) {
     this.db = getDb();
   }
 
   async execute(): Promise<boolean> {
     const existingItems = await this.db
-      .select({ id: serviceItems.id })
-      .from(serviceItems)
-      .where(eq(serviceItems.categoryId, this.input.id))
+      .select({ id: contents.id })
+      .from(contents)
+      .where(eq(contents.categoryId, this.input.id))
       .limit(1);
 
     if (existingItems.length > 0) {
@@ -24,8 +24,8 @@ export class DeleteServiceCategoryCommand {
     }
 
     const [result] = await this.db
-      .delete(serviceCategories)
-      .where(eq(serviceCategories.id, this.input.id));
+      .delete(categories)
+      .where(eq(categories.id, this.input.id));
 
     return result.affectedRows > 0;
   }

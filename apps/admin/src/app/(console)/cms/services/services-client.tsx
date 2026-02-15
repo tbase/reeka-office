@@ -8,7 +8,7 @@ import {
   Settings2Icon,
   TrashIcon,
 } from "lucide-react"
-import type { ServiceCategoryRow, ServiceItemRow } from "@reeka-office/domain-cms"
+import type { CategoryRow, ContentRow } from "@reeka-office/domain-cms"
 import { parseAsInteger, useQueryState } from "nuqs"
 
 import {
@@ -52,36 +52,28 @@ import { Textarea } from "@/components/ui/textarea"
 
 import {
   createCategory,
-  createServiceItem,
+  createContent,
   deleteCategory,
-  deleteServiceItem,
+  deleteContent,
   updateCategory,
-  updateServiceItem,
+  updateContent,
 } from "./actions"
 
 interface CmsServicesClientProps {
-  categories: ServiceCategoryRow[]
-  items: ServiceItemRow[]
+  categories: CategoryRow[]
+  items: ContentRow[]
 }
 
 interface ItemFormState {
   name: string
   categoryId: number
   content: string
-  wechatId: string
-  wechatQrCode: string
-  contactName: string
-  contactPhone: string
 }
 
 const defaultFormState: ItemFormState = {
   name: "",
   categoryId: 0,
   content: "",
-  wechatId: "",
-  wechatQrCode: "",
-  contactName: "",
-  contactPhone: "",
 }
 
 export function CmsServicesClient({ categories, items }: CmsServicesClientProps) {
@@ -113,7 +105,7 @@ export function CmsServicesClient({ categories, items }: CmsServicesClientProps)
   const renameCategoryInputRef = useRef<HTMLInputElement>(null)
 
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<ServiceItemRow | null>(null)
+  const [editingItem, setEditingItem] = useState<ContentRow | null>(null)
   const [itemForm, setItemForm] = useState<ItemFormState>(defaultFormState)
 
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -191,7 +183,7 @@ export function CmsServicesClient({ categories, items }: CmsServicesClientProps)
           await setActiveCategoryId(0)
         }
       } else {
-        await deleteServiceItem(deleteTarget.id)
+        await deleteContent(deleteTarget.id)
       }
       setDeleteTarget(null)
     })
@@ -206,16 +198,12 @@ export function CmsServicesClient({ categories, items }: CmsServicesClientProps)
     setSheetOpen(true)
   }
 
-  function openEditItemSheet(item: ServiceItemRow) {
+  function openEditItemSheet(item: ContentRow) {
     setEditingItem(item)
     setItemForm({
       name: item.name,
       categoryId: item.categoryId,
       content: item.content,
-      wechatId: item.wechatId ?? "",
-      wechatQrCode: item.wechatQrCode ?? "",
-      contactName: item.contactName ?? "",
-      contactPhone: item.contactPhone ?? "",
     })
     setSheetOpen(true)
   }
@@ -233,16 +221,13 @@ export function CmsServicesClient({ categories, items }: CmsServicesClientProps)
         categoryId: itemForm.categoryId,
         name,
         content,
-        wechatId: itemForm.wechatId.trim() || null,
-        wechatQrCode: itemForm.wechatQrCode.trim() || null,
-        contactName: itemForm.contactName.trim() || null,
-        contactPhone: itemForm.contactPhone.trim() || null,
+        fields: {},
       }
 
       if (editingItem) {
-        await updateServiceItem({ id: editingItem.id, ...payload })
+        await updateContent({ id: editingItem.id, ...payload })
       } else {
-        await createServiceItem(payload)
+        await createContent(payload)
       }
 
       setSheetOpen(false)
@@ -334,26 +319,7 @@ export function CmsServicesClient({ categories, items }: CmsServicesClientProps)
                 </DropdownMenu>
               </div>
 
-              <dl className="mt-3 space-y-2 text-sm text-muted-foreground">
-                {item.wechatId ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>微信号</dt>
-                    <dd className="font-medium text-foreground">{item.wechatId}</dd>
-                  </div>
-                ) : null}
-                {item.contactName ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>联系人</dt>
-                    <dd className="font-medium text-foreground">{item.contactName}</dd>
-                  </div>
-                ) : null}
-                {item.contactPhone ? (
-                  <div className="flex items-center justify-between gap-4">
-                    <dt>联系电话</dt>
-                    <dd className="font-medium text-foreground">{item.contactPhone}</dd>
-                  </div>
-                ) : null}
-              </dl>
+              <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">{item.content}</p>
             </article>
           ))}
 
@@ -535,41 +501,6 @@ export function CmsServicesClient({ categories, items }: CmsServicesClientProps)
                 />
               </Field>
 
-              <Field>
-                <FieldLabel>微信号</FieldLabel>
-                <Input
-                  value={itemForm.wechatId}
-                  onChange={(event) => setItemForm((prev) => ({ ...prev, wechatId: event.target.value }))}
-                  placeholder="选填"
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel>微信二维码地址</FieldLabel>
-                <Input
-                  value={itemForm.wechatQrCode}
-                  onChange={(event) => setItemForm((prev) => ({ ...prev, wechatQrCode: event.target.value }))}
-                  placeholder="选填"
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel>联系人</FieldLabel>
-                <Input
-                  value={itemForm.contactName}
-                  onChange={(event) => setItemForm((prev) => ({ ...prev, contactName: event.target.value }))}
-                  placeholder="选填"
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel>联系电话</FieldLabel>
-                <Input
-                  value={itemForm.contactPhone}
-                  onChange={(event) => setItemForm((prev) => ({ ...prev, contactPhone: event.target.value }))}
-                  placeholder="选填"
-                />
-              </Field>
             </FieldGroup>
           </div>
 

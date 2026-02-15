@@ -1,6 +1,6 @@
-export { CreateServiceCategoryCommand, type CreateServiceCategoryInput } from "./create-service-category";
-export { CreateServiceItemCommand, type CreateServiceItemInput } from "./create-service-item";
-export { UpdateServiceCategoryCommand, type UpdateServiceCategoryInput } from "./update-service-category";
-export { DeleteServiceCategoryCommand, type DeleteServiceCategoryInput } from "./delete-service-category";
-export { UpdateServiceItemCommand, type UpdateServiceItemInput } from "./update-service-item";
-export { DeleteServiceItemCommand, type DeleteServiceItemInput } from "./delete-service-item";
+export { CreateCategoryCommand, type CreateCategoryInput } from "./create-category";
+export { CreateContentCommand, type CreateContentInput } from "./create-content";
+export { UpdateCategoryCommand, type UpdateCategoryInput } from "./update-category";
+export { DeleteCategoryCommand, type DeleteCategoryInput } from "./delete-category";
+export { UpdateContentCommand, type UpdateContentInput } from "./update-content";
+export { DeleteContentCommand, type DeleteContentInput } from "./delete-content";
