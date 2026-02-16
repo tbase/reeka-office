@@ -1,0 +1,56 @@
+# Build stage
+FROM node:22-alpine AS builder
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
+
+# Copy admin app package.json
+COPY apps/admin/package.json ./apps/admin/
+
+# Copy workspace packages package.json files (needed for workspace dependencies)
+COPY packages/*/package.json ./packages/*/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY apps/admin ./apps/admin
+COPY packages ./packages
+
+# Build the application
+RUN pnpm --filter admin build
+
+# Production stage
+FROM node:22-alpine AS runner
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy workspace configuration and production dependencies
+COPY pnpm-workspace.yaml package.json ./
+
+# Copy only necessary files
+COPY --from=builder /app/apps/admin/.next/standalone ./
+COPY --from=builder /app/apps/admin/.next/static ./.next/static
+COPY --from=builder /app/apps/admin/public ./public
+
+# Copy workspace packages (needed for runtime)
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/admin/node_modules ./apps/admin/node_modules
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
