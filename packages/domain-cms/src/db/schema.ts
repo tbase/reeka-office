@@ -11,7 +11,7 @@ export type FieldSchemaItem = {
 
 export type ContentFields = Record<string, unknown>;
 
-export const categories = mysqlTable("categories", {
+export const categories = mysqlTable("cms_categories", {
   id: int("id").autoincrement().primaryKey(),
   slug: varchar("slug", { length: 100 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -21,7 +21,7 @@ export const categories = mysqlTable("categories", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull()
 });
 
-export const contents = mysqlTable("contents", {
+export const contents = mysqlTable("cms_contents", {
   id: int("id").autoincrement().primaryKey(),
   categoryId: int("category_id")
     .notNull()

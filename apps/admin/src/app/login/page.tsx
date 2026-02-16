@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { ShieldCheckIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { LinkButton } from "@/components/ui/link-button"
 
 export default function LoginPage() {
   return (
@@ -42,16 +42,16 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="text-muted-foreground justify-center text-xs">
-          当前仅实现页面结构，接口联调后可接入真实登录逻辑。
+          请输入账号密码登录后继续操作。
         </CardFooter>
       </Card>
-      <Button
+      <LinkButton
+        href="/dashboard"
         variant="link"
         className="fixed right-4 bottom-4"
-        render={<Link href="/dashboard" />}
       >
         直接查看管理端
-      </Button>
+      </LinkButton>
     </main>
   )
 }

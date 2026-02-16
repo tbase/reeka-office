@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BlocksIcon, LayoutGridIcon, LogInIcon } from "lucide-react"
+import { LayoutGridIcon, LogInIcon } from "lucide-react"
 
 import {
   Sidebar,
@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { FolderTreeIcon, FileTextIcon } from "lucide-react"
 
 const menuGroups = [
   {
@@ -33,9 +34,14 @@ const menuGroups = [
     title: "CMS",
     items: [
       {
-        title: "服务管理",
-        url: "/cms/services",
-        icon: BlocksIcon,
+        title: "分类管理",
+        url: "/cms/categories",
+        icon: FolderTreeIcon,
+      },
+      {
+        title: "内容管理",
+        url: "/cms/contents",
+        icon: FileTextIcon,
       },
     ],
   },

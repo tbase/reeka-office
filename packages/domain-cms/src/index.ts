@@ -25,6 +25,9 @@ export type {
 export type {
   GetCategoryInput,
   GetContentInput,
+  ListContentsInput,
+  ListContentItem,
+  ListContentsResult,
   ListContentsByCategoryInput
 } from "./queries";
 export type {
