@@ -13,10 +13,12 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/admin/package.json ./apps/admin/
 
 # Copy workspace packages package.json files (needed for workspace dependencies)
-COPY packages/*/package.json ./packages/*/
+COPY packages/domain-cms/package.json ./packages/domain-cms/
+COPY packages/domain-user/package.json ./packages/domain-user/
+COPY packages/jsonrpc/package.json ./packages/jsonrpc/
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/admin ./apps/admin
