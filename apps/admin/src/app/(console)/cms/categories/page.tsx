@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { ListCategoriesQuery } from "@reeka-office/domain-cms"
 import { PlusIcon } from "lucide-react"
 

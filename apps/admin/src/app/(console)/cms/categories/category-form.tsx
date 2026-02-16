@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react"
 import { useForm } from "@tanstack/react-form"
-import Link from "next/link"
 
 import { FieldSchemaEditor, type FieldSchemaItem } from "@/components/cms/field-schema-editor"
 import { Button } from "@/components/ui/button"
@@ -57,7 +56,7 @@ export function CategoryForm({
     },
   })
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     event.stopPropagation()
 
