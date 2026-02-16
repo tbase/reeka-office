@@ -24,6 +24,9 @@ RUN pnpm install --frozen-lockfile
 COPY apps/admin ./apps/admin
 COPY packages ./packages
 
+# Ensure public folder exists (create if missing/empty to prevent COPY errors)
+RUN mkdir -p /app/apps/admin/public && touch /app/apps/admin/public/.gitkeep
+
 # Build the application
 RUN pnpm --filter admin build
 
@@ -43,7 +46,7 @@ COPY --from=builder /app/apps/admin/.next/standalone/node_modules ./node_modules
 # Copy static files
 COPY --from=builder /app/apps/admin/.next/static ./.next/static
 
-# Copy public folder (not included in standalone)
+# Copy public folder (including .gitkeep ensures directory is not empty)
 COPY --from=builder /app/apps/admin/public ./public
 
 EXPOSE 3000
