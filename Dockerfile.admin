@@ -43,7 +43,6 @@ COPY pnpm-workspace.yaml package.json ./
 # Copy only necessary files
 COPY --from=builder /app/apps/admin/.next/standalone ./
 COPY --from=builder /app/apps/admin/.next/static ./.next/static
-COPY --from=builder /app/apps/admin/public ./public
 
 # Copy workspace packages (needed for runtime)
 COPY --from=builder /app/packages ./packages
