@@ -37,21 +37,17 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy standalone app files (server.js is in apps/admin subdirectory due to monorepo structure)
-COPY --from=builder /app/apps/admin/.next/standalone/apps/admin ./
-
-# Copy standalone node_modules
-COPY --from=builder /app/apps/admin/.next/standalone/node_modules ./node_modules
+# Copy entire standalone output preserving directory structure
+# (this preserves symlinks in node_modules)
+COPY --from=builder /app/apps/admin/.next/standalone ./
 
 # Copy static files
-COPY --from=builder /app/apps/admin/.next/static ./.next/static
-
-# Copy public folder (including .gitkeep ensures directory is not empty)
-COPY --from=builder /app/apps/admin/public ./public
+COPY --from=builder /app/apps/admin/.next/static ./apps/admin/.next/static
 
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# server.js is located at apps/admin/server.js due to monorepo structure
+CMD ["node", "apps/admin/server.js"]
