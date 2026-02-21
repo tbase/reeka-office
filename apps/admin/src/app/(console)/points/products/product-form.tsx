@@ -10,17 +10,11 @@ import { LinkButton } from "@/components/ui/link-button"
 import { SubmitButton } from "@/components/ui/submit-button"
 import { Textarea } from "@/components/ui/textarea"
 
-function toDatetimeLocal(value: Date | null): string {
-  if (!value) {
-    return ""
-  }
-
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, "0")
-  const day = String(value.getDate()).padStart(2, "0")
-  const hours = String(value.getHours()).padStart(2, "0")
-  const minutes = String(value.getMinutes()).padStart(2, "0")
-  return `${year}-${month}-${day}T${hours}:${minutes}`
+type ProductFormProps = {
+  action: (formData: FormData) => void | Promise<void>
+  submitLabel: string
+  cancelHref: string
+  value?: RedemptionProductRow
 }
 
 export function ProductForm({
@@ -28,12 +22,7 @@ export function ProductForm({
   submitLabel,
   cancelHref,
   value,
-}: {
-  action: (formData: FormData) => void | Promise<void>
-  submitLabel: string
-  cancelHref: string
-  value?: RedemptionProductRow
-}) {
+}: ProductFormProps): JSX.Element {
   const [imageUrl, setImageUrl] = useState(value?.imageUrl ?? "")
 
   return (
@@ -78,13 +67,17 @@ export function ProductForm({
 
       <Field>
         <FieldContent>
-          <FieldLabel htmlFor="validUntil">有效期至</FieldLabel>
+          <FieldLabel htmlFor="validPeriodMonths">有效期（月）</FieldLabel>
           <Input
-            id="validUntil"
-            name="validUntil"
-            type="datetime-local"
-            defaultValue={toDatetimeLocal(value?.validUntil ?? null)}
+            id="validPeriodMonths"
+            name="validPeriodMonths"
+            type="number"
+            min={1}
+            step={1}
+            defaultValue={value?.validPeriodMonths ?? ""}
+            placeholder="留空表示不限"
           />
+          <FieldDescription>填写后表示自发布起生效月数；留空表示不限。</FieldDescription>
         </FieldContent>
       </Field>
 

@@ -14,19 +14,31 @@ import {
 
 type ProductStatus = "draft" | "published" | "off_shelf"
 
-function getStatusText(status: ProductStatus) {
+function getStatusText(status: ProductStatus): string {
   if (status === "draft") return "草稿"
   if (status === "published") return "已发布"
   return "已下架"
 }
 
-function getStatusVariant(status: ProductStatus) {
+function getStatusVariant(status: ProductStatus): "default" | "secondary" | "outline" {
   if (status === "published") return "default" as const
   if (status === "off_shelf") return "secondary" as const
   return "outline" as const
 }
 
-export async function ProductList({ status }: { status?: ProductStatus }) {
+function formatValidPeriod(months: number | null): string {
+  if (months === null) {
+    return "不限"
+  }
+
+  return `${months}个月`
+}
+
+type ProductListProps = {
+  status?: ProductStatus
+}
+
+export async function ProductList({ status }: ProductListProps): Promise<JSX.Element> {
   const products = await new ListRedemptionProductsQuery({ status }).query()
 
   if (products.length === 0) {
@@ -53,7 +65,7 @@ export async function ProductList({ status }: { status?: ProductStatus }) {
               <p>积分：{product.redeemPoints}</p>
               <p>库存：{product.stock}</p>
               <p>每人上限：{product.maxRedeemPerAgent}</p>
-              <p>有效期：{product.validUntil ? product.validUntil.toLocaleString() : "不限"}</p>
+              <p>有效期：{formatValidPeriod(product.validPeriodMonths)}</p>
             </div>
 
             <div className="flex flex-wrap justify-end gap-2">

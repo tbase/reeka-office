@@ -45,80 +45,80 @@ function parsePositiveInt(value: FormDataEntryValue | null, label: string): numb
   return num
 }
 
-function parseValidUntil(value: FormDataEntryValue | null): Date | null {
+function parseOptionalPositiveInt(value: FormDataEntryValue | null, label: string): number | null {
   const raw = String(value ?? "").trim()
   if (!raw) {
     return null
   }
 
-  const date = new Date(raw)
-  if (Number.isNaN(date.getTime())) {
-    throw new Error("有效期格式不正确")
-  }
-
-  return date
+  return parsePositiveInt(raw, label)
 }
 
-function revalidateProducts() {
+function parseOptionalText(value: FormDataEntryValue | null): string | null {
+  const text = String(value ?? "").trim()
+  return text || null
+}
+
+function revalidateProducts(): void {
   revalidatePath("/points/products")
 }
 
-export async function createProductAction(formData: FormData) {
+export async function createProductAction(formData: FormData): Promise<void> {
   const redeemCategory = parseRequiredText(formData.get("redeemCategory"), "兑换类别")
   const title = parseRequiredText(formData.get("title"), "兑换标题")
-  const description = String(formData.get("description") ?? "").trim()
-  const notice = String(formData.get("notice") ?? "").trim()
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim()
+  const description = parseOptionalText(formData.get("description"))
+  const notice = parseOptionalText(formData.get("notice"))
+  const imageUrl = parseOptionalText(formData.get("imageUrl"))
   const stock = parseNonNegativeInt(formData.get("stock"), "库存")
   const redeemPoints = parsePositiveInt(formData.get("redeemPoints"), "兑换积分")
   const maxRedeemPerAgent = parsePositiveInt(formData.get("maxRedeemPerAgent"), "每人可兑换次数")
-  const validUntil = parseValidUntil(formData.get("validUntil"))
+  const validPeriodMonths = parseOptionalPositiveInt(formData.get("validPeriodMonths"), "有效期（月）")
 
   await new CreateRedemptionProductCommand({
     redeemCategory,
     title,
-    description: description || null,
-    notice: notice || null,
-    imageUrl: imageUrl || null,
+    description,
+    notice,
+    imageUrl,
     stock,
     redeemPoints,
     maxRedeemPerAgent,
-    validUntil,
+    validPeriodMonths,
     createdBy: DEFAULT_OPERATOR_ID,
   }).execute()
 
   revalidateProducts()
 }
 
-export async function updateProductAction(formData: FormData) {
+export async function updateProductAction(formData: FormData): Promise<void> {
   const id = parseId(formData.get("id"))
   const redeemCategory = parseRequiredText(formData.get("redeemCategory"), "兑换类别")
   const title = parseRequiredText(formData.get("title"), "兑换标题")
-  const description = String(formData.get("description") ?? "").trim()
-  const notice = String(formData.get("notice") ?? "").trim()
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim()
+  const description = parseOptionalText(formData.get("description"))
+  const notice = parseOptionalText(formData.get("notice"))
+  const imageUrl = parseOptionalText(formData.get("imageUrl"))
   const stock = parseNonNegativeInt(formData.get("stock"), "库存")
   const redeemPoints = parsePositiveInt(formData.get("redeemPoints"), "兑换积分")
   const maxRedeemPerAgent = parsePositiveInt(formData.get("maxRedeemPerAgent"), "每人可兑换次数")
-  const validUntil = parseValidUntil(formData.get("validUntil"))
+  const validPeriodMonths = parseOptionalPositiveInt(formData.get("validPeriodMonths"), "有效期（月）")
 
   await new UpdateRedemptionProductCommand({
     id,
     redeemCategory,
     title,
-    description: description || null,
-    notice: notice || null,
-    imageUrl: imageUrl || null,
+    description,
+    notice,
+    imageUrl,
     stock,
     redeemPoints,
     maxRedeemPerAgent,
-    validUntil,
+    validPeriodMonths,
   }).execute()
 
   revalidateProducts()
 }
 
-export async function deleteProductAction(formData: FormData) {
+export async function deleteProductAction(formData: FormData): Promise<void> {
   const id = parseId(formData.get("id"))
   const ok = await new DeleteRedemptionProductCommand({ id }).execute()
   if (!ok) {
@@ -128,7 +128,7 @@ export async function deleteProductAction(formData: FormData) {
   revalidateProducts()
 }
 
-export async function publishProductAction(formData: FormData) {
+export async function publishProductAction(formData: FormData): Promise<void> {
   const id = parseId(formData.get("id"))
   const ok = await new PublishRedemptionProductCommand({ id }).execute()
   if (!ok) {
@@ -138,7 +138,7 @@ export async function publishProductAction(formData: FormData) {
   revalidateProducts()
 }
 
-export async function offShelfProductAction(formData: FormData) {
+export async function offShelfProductAction(formData: FormData): Promise<void> {
   const id = parseId(formData.get("id"))
   const ok = await new OffShelfRedemptionProductCommand({ id }).execute()
   if (!ok) {
