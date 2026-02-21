@@ -1,16 +1,13 @@
 import { config } from "dotenv";
 import { and, eq } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
+import { formatISO9075 } from "date-fns";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
 import { closeDB, getDB } from "../src/db";
 import * as schema from "../src/db/schema";
 import { auth } from "../src/lib/auth";
-
-function toMysqlDateTime(value: Date): string {
-  return value.toISOString().slice(0, 19).replace("T", " ");
-}
 
 async function promptHidden(question: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -116,7 +113,7 @@ async function initAdmin(): Promise<void> {
     .update(schema.adminAccount)
     .set({
       password: passwordHash,
-      updatedAt: toMysqlDateTime(new Date()),
+      updatedAt: formatISO9075(new Date()),
     })
     .where(
       and(
