@@ -1,4 +1,4 @@
-import { and, count, eq, gte, gt, isNull, or, sql } from 'drizzle-orm'
+import { and, count, eq, gte, gt, sql } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agentPointBalances, redemptionProducts, redemptionRecords } from '../schema'
 
@@ -15,6 +15,16 @@ export class RedeemProductCommand {
     this.db = getDb()
   }
 
+  private resolveExpiryAt(publishedAt: Date | null, validPeriodMonths: number | null): Date | null {
+    if (!publishedAt || !validPeriodMonths) {
+      return null
+    }
+
+    const expiryAt = new Date(publishedAt)
+    expiryAt.setMonth(expiryAt.getMonth() + validPeriodMonths)
+    return expiryAt
+  }
+
   async execute(): Promise<number | null> {
     return this.db.transaction(async (tx) => {
       const productRows = await tx
@@ -24,7 +34,8 @@ export class RedeemProductCommand {
           stock: redemptionProducts.stock,
           redeemPoints: redemptionProducts.redeemPoints,
           maxRedeemPerAgent: redemptionProducts.maxRedeemPerAgent,
-          validUntil: redemptionProducts.validUntil,
+          publishedAt: redemptionProducts.publishedAt,
+          validPeriodMonths: redemptionProducts.validPeriodMonths,
         })
         .from(redemptionProducts)
         .where(eq(redemptionProducts.id, this.input.productId))
@@ -39,7 +50,8 @@ export class RedeemProductCommand {
         throw new Error('Redemption product is not published')
       }
 
-      if (product.validUntil && product.validUntil.getTime() < Date.now()) {
+      const expiryAt = this.resolveExpiryAt(product.publishedAt, product.validPeriodMonths)
+      if (expiryAt && expiryAt.getTime() < Date.now()) {
         throw new Error('Redemption product is expired')
       }
 
@@ -81,7 +93,6 @@ export class RedeemProductCommand {
             eq(redemptionProducts.id, this.input.productId),
             gt(redemptionProducts.stock, 0),
             eq(redemptionProducts.status, 'published'),
-            or(isNull(redemptionProducts.validUntil), gte(redemptionProducts.validUntil, new Date())),
           ),
         )
 

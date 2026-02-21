@@ -10,7 +10,7 @@ export interface CreateRedemptionProductInput {
   stock: number
   redeemPoints: number
   maxRedeemPerAgent?: number
-  validUntil?: Date | null
+  validPeriodMonths?: number | null
   createdBy: number
 }
 
@@ -30,6 +30,10 @@ export class CreateRedemptionProductCommand {
       throw new Error('Redeem points must be a positive number')
     }
 
+    if (this.input.validPeriodMonths != null && this.input.validPeriodMonths <= 0) {
+      throw new Error('Valid period months must be a positive number')
+    }
+
     const values: NewRedemptionProductRow = {
       redeemCategory: this.input.redeemCategory,
       title: this.input.title,
@@ -39,7 +43,7 @@ export class CreateRedemptionProductCommand {
       stock: this.input.stock,
       redeemPoints: this.input.redeemPoints,
       maxRedeemPerAgent: this.input.maxRedeemPerAgent ?? 1,
-      validUntil: this.input.validUntil ?? null,
+      validPeriodMonths: this.input.validPeriodMonths ?? null,
       createdBy: this.input.createdBy,
       status: 'draft',
       publishedAt: null,

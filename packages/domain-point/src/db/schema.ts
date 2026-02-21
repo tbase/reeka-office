@@ -59,7 +59,7 @@ export const redemptionProducts = mysqlTable('redemption_products', {
   stock: int('stock').notNull().default(0),
   redeemPoints: int('redeem_points').notNull(),
   maxRedeemPerAgent: int('max_redeem_per_agent').notNull().default(1),
-  validUntil: datetime('valid_until'),
+  validPeriodMonths: int('valid_period_months'),
   publishedAt: datetime('published_at'),
   offShelfAt: datetime('off_shelf_at'),
   createdBy: int('created_by').notNull(),
@@ -67,7 +67,7 @@ export const redemptionProducts = mysqlTable('redemption_products', {
   updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
 }, (t) => [
   index('redemption_products_status_idx').on(t.status),
-  index('redemption_products_valid_until_idx').on(t.validUntil),
+  index('redemption_products_valid_period_months_idx').on(t.validPeriodMonths),
 ])
 
 export const redemptionRecords = mysqlTable('redemption_records', {

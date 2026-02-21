@@ -12,7 +12,7 @@ export interface UpdateRedemptionProductInput {
   stock?: number
   redeemPoints?: number
   maxRedeemPerAgent?: number
-  validUntil?: Date | null
+  validPeriodMonths?: number | null
 }
 
 export class UpdateRedemptionProductCommand {
@@ -50,6 +50,10 @@ export class UpdateRedemptionProductCommand {
       throw new Error('Max redeem per agent must be a positive number')
     }
 
+    if (this.input.validPeriodMonths != null && this.input.validPeriodMonths <= 0) {
+      throw new Error('Valid period months must be a positive number')
+    }
+
     const values: Partial<NewRedemptionProductRow> = {
       redeemCategory: this.input.redeemCategory,
       title: this.input.title,
@@ -59,7 +63,7 @@ export class UpdateRedemptionProductCommand {
       stock: this.input.stock,
       redeemPoints: this.input.redeemPoints,
       maxRedeemPerAgent: this.input.maxRedeemPerAgent,
-      validUntil: this.input.validUntil,
+      validPeriodMonths: this.input.validPeriodMonths,
     }
 
     const [result] = await this.db
