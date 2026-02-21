@@ -1,14 +1,15 @@
 import { ListAgentRedemptionRecordsQuery } from "@reeka-office/domain-point"
 
 import { Badge } from "@/components/ui/badge"
+import { formatDateTime } from "@/lib/datetime"
 
-import { formatDateTime } from "./utils"
+type PointRedemptionRecordsProps = {
+  agentCode: string
+}
 
 export async function PointRedemptionRecords({
   agentCode,
-}: {
-  agentCode: string
-}) {
+}: PointRedemptionRecordsProps): Promise<JSX.Element> {
   const redemptionResult = await new ListAgentRedemptionRecordsQuery({ agentCode }).query()
 
   if (redemptionResult.records.length === 0) {

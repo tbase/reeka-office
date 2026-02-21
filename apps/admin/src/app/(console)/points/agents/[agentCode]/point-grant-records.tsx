@@ -1,10 +1,13 @@
 import { ListAgentPointRecordsQuery } from "@reeka-office/domain-point"
 
 import { Badge } from "@/components/ui/badge"
+import { formatDateTime } from "@/lib/datetime"
 
-import { formatDateTime } from "./utils"
+type PointGrantRecordsProps = {
+  agentCode: string
+}
 
-export async function PointGrantRecords({ agentCode }: { agentCode: string }) {
+export async function PointGrantRecords({ agentCode }: PointGrantRecordsProps): Promise<JSX.Element> {
   const pointResult = await new ListAgentPointRecordsQuery({ agentCode }).query()
 
   if (pointResult.records.length === 0) {

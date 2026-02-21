@@ -7,6 +7,7 @@ import {
 } from "@reeka-office/domain-point"
 import { ArrowLeftIcon, PlusIcon } from "lucide-react"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import { LinkButton } from "@/components/ui/link-button"
 
@@ -25,13 +26,21 @@ function parseRecordTab(value: string | undefined): RecordTab {
   return "grants"
 }
 
+function RecordsLoadingFallback(): JSX.Element {
+  return (
+    <div className="text-muted-foreground rounded-md border border-dashed px-4 py-8 text-center text-sm">
+      记录加载中...
+    </div>
+  )
+}
+
 export default async function AgentPointDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ agentCode: string }>
   searchParams: Promise<{ tab?: string }>
-}) {
+}): Promise<JSX.Element> {
   const [{ agentCode: raw }, { tab }] = await Promise.all([params, searchParams])
   const agentCode = raw.toUpperCase()
   const activeTab = parseRecordTab(tab)
@@ -49,6 +58,9 @@ export default async function AgentPointDetailPage({
   if (!balance) {
     notFound()
   }
+
+  const recordsSection =
+    activeTab === "grants" ? <PointGrantRecords agentCode={agentCode} /> : <PointRedemptionRecords agentCode={agentCode} />
 
   return (
     <div className="space-y-6">
@@ -95,11 +107,9 @@ export default async function AgentPointDetailPage({
       <div className="space-y-2">
         <RecordTabs activeTab={activeTab} />
 
-        {activeTab === "grants" ? (
-          <PointGrantRecords agentCode={agentCode} />
-        ) : (
-          <PointRedemptionRecords agentCode={agentCode} />
-        )}
+        <Suspense fallback={<RecordsLoadingFallback />}>
+          {recordsSection}
+        </Suspense>
       </div>
     </div>
   )
