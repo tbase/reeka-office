@@ -9,7 +9,7 @@ type PointRedemptionRecordsProps = {
 
 export async function PointRedemptionRecords({
   agentCode,
-}: PointRedemptionRecordsProps): Promise<JSX.Element> {
+}: PointRedemptionRecordsProps) {
   const redemptionResult = await new ListAgentRedemptionRecordsQuery({ agentCode }).query()
 
   if (redemptionResult.records.length === 0) {

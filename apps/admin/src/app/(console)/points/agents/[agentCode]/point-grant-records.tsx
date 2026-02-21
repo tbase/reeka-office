@@ -7,7 +7,7 @@ type PointGrantRecordsProps = {
   agentCode: string
 }
 
-export async function PointGrantRecords({ agentCode }: PointGrantRecordsProps): Promise<JSX.Element> {
+export async function PointGrantRecords({ agentCode }: PointGrantRecordsProps) {
   const pointResult = await new ListAgentPointRecordsQuery({ agentCode }).query()
 
   if (pointResult.records.length === 0) {

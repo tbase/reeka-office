@@ -22,7 +22,7 @@ export function ProductForm({
   submitLabel,
   cancelHref,
   value,
-}: ProductFormProps): JSX.Element {
+}: ProductFormProps) {
   const [imageUrl, setImageUrl] = useState(value?.imageUrl ?? "")
 
   return (

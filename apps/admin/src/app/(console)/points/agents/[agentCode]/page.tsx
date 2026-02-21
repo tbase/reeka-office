@@ -26,7 +26,7 @@ function parseRecordTab(value: string | undefined): RecordTab {
   return "grants"
 }
 
-function RecordsLoadingFallback(): JSX.Element {
+function RecordsLoadingFallback() {
   return (
     <div className="text-muted-foreground rounded-md border border-dashed px-4 py-8 text-center text-sm">
       记录加载中...
@@ -40,7 +40,7 @@ export default async function AgentPointDetailPage({
 }: {
   params: Promise<{ agentCode: string }>
   searchParams: Promise<{ tab?: string }>
-}): Promise<JSX.Element> {
+}) {
   const [{ agentCode: raw }, { tab }] = await Promise.all([params, searchParams])
   const agentCode = raw.toUpperCase()
   const activeTab = parseRecordTab(tab)

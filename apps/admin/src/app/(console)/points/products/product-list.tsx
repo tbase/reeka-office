@@ -38,7 +38,7 @@ type ProductListProps = {
   status?: ProductStatus
 }
 
-export async function ProductList({ status }: ProductListProps): Promise<JSX.Element> {
+export async function ProductList({ status }: ProductListProps) {
   const products = await new ListRedemptionProductsQuery({ status }).query()
 
   if (products.length === 0) {
