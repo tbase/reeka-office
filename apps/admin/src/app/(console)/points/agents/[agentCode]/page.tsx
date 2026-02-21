@@ -8,27 +8,33 @@ import {
 import { ArrowLeftIcon, PlusIcon } from "lucide-react"
 import { notFound } from "next/navigation"
 
-import { Badge } from "@/components/ui/badge"
 import { LinkButton } from "@/components/ui/link-button"
+
+import { PointGrantRecords } from "./point-grant-records"
+import { PointRedemptionRecords } from "./point-redemption-records"
+import { RecordTabs } from "./record-tabs"
 
 const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/
 
-function formatDateTime(date: Date): string {
-  const y = date.getFullYear()
-  const mo = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  const h = String(date.getHours()).padStart(2, "0")
-  const mi = String(date.getMinutes()).padStart(2, "0")
-  return `${y}-${mo}-${d} ${h}:${mi}`
+type RecordTab = "grants" | "redemptions"
+
+function parseRecordTab(value: string | undefined): RecordTab {
+  if (value === "redemptions") {
+    return "redemptions"
+  }
+  return "grants"
 }
 
 export default async function AgentPointDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ agentCode: string }>
+  searchParams: Promise<{ tab?: string }>
 }) {
-  const { agentCode: raw } = await params
+  const [{ agentCode: raw }, { tab }] = await Promise.all([params, searchParams])
   const agentCode = raw.toUpperCase()
+  const activeTab = parseRecordTab(tab)
 
   if (!AGENT_CODE_REGEX.test(agentCode)) {
     notFound()
@@ -87,88 +93,12 @@ export default async function AgentPointDetailPage({
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-base font-semibold">积分发放记录</h2>
-        {pointResult.records.length === 0 ? (
-          <div className="text-muted-foreground rounded-md border border-dashed px-4 py-8 text-center text-sm">
-            暂无发放记录。
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-2.5 text-left font-medium">积分事项</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">类别</th>
-                  <th className="px-4 py-2.5 text-right font-medium">积分</th>
-                  <th className="px-4 py-2.5 text-center font-medium text-muted-foreground">年份</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">发放时间</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">备注</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pointResult.records.map((record) => (
-                  <tr key={record.id} className="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium">{record.pointItemName}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{record.pointItemCategory}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Badge variant="secondary">+{record.points}</Badge>
-                    </td>
-                    <td className="px-4 py-2.5 text-center text-muted-foreground">{record.occurredYear}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs tabular-nums">
-                      {formatDateTime(record.createdAt)}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{record.remark || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        <RecordTabs activeTab={activeTab} />
 
-      <div className="space-y-2">
-        <h2 className="text-base font-semibold">积分兑换记录</h2>
-        {redemptionResult.records.length === 0 ? (
-          <div className="text-muted-foreground rounded-md border border-dashed px-4 py-8 text-center text-sm">
-            暂无兑换记录。
-          </div>
+        {activeTab === "grants" ? (
+          <PointGrantRecords agentCode={agentCode} />
         ) : (
-          <div className="overflow-hidden rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-2.5 text-left font-medium">兑换商品</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">类别</th>
-                  <th className="px-4 py-2.5 text-right font-medium">消耗积分</th>
-                  <th className="px-4 py-2.5 text-center font-medium text-muted-foreground">状态</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">兑换时间</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">备注</th>
-                </tr>
-              </thead>
-              <tbody>
-                {redemptionResult.records.map((record) => (
-                  <tr key={record.id} className="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium">{record.productTitle}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{record.redeemCategory}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Badge variant="outline">-{record.pointsCost}</Badge>
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      {record.status === "success" ? (
-                        <Badge variant="secondary">成功</Badge>
-                      ) : (
-                        <Badge variant="destructive">已取消</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs tabular-nums">
-                      {formatDateTime(record.redeemedAt)}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{record.remark || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PointRedemptionRecords agentCode={agentCode} />
         )}
       </div>
     </div>
