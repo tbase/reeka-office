@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import { int, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core";
-import mysql from "mysql2/promise";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -13,13 +12,17 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
-export function createUserRepository(connectionUri: string) {
-  const pool = mysql.createPool({
-    uri: connectionUri,
-    connectionLimit: 10
-  });
+export type UserSchema = {
+  users: typeof users;
+};
 
-  const db = drizzle(pool, { schema: { users }, mode: "default" });
+export const userSchema: UserSchema = {
+  users,
+};
+
+export type UserDB = MySql2Database<UserSchema>;
+
+export function createUserRepository(db: UserDB) {
 
   return {
     db,
@@ -35,7 +38,7 @@ export function createUserRepository(connectionUri: string) {
       return rows[0] ?? null;
     },
     async close() {
-      await pool.end();
+      return;
     }
   };
 }

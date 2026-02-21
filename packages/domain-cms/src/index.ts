@@ -13,7 +13,7 @@ export {
   ListContentsByCategoryQuery,
   ListContentsQuery
 } from "./queries";
-export { close, setup, type SetupOptions } from "./context";
+export { cmsSchema, close, setup, type SetupOptions, type DB as CmsDB, type CmsSchema } from "./context";
 export type {
   CreateCategoryInput,
   CreateContentInput,

@@ -18,6 +18,25 @@ interface DBConfig {
 let pool: mysql.Pool | null = null;
 let db: AdminDB | null = null;
 
+function ensurePool(): mysql.Pool {
+  if (pool) {
+    return pool;
+  }
+
+  const config = getDBConfig();
+  pool = mysql.createPool({
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    password: config.password,
+    database: config.database,
+    waitForConnections: true,
+    connectionLimit: 10,
+  });
+
+  return pool;
+}
+
 export function getDBConfig(): DBConfig {
   return {
     host: process.env.DB_HOST,
@@ -33,23 +52,16 @@ export function initDB(): AdminDB {
     return db;
   }
 
-  const config = getDBConfig();
-  pool = mysql.createPool({
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    password: config.password,
-    database: config.database,
-    waitForConnections: true,
-    connectionLimit: 10,
-  });
-
-  db = drizzle(pool, {
-    schema,
-    mode: "default",
-  });
+  db = createDb(schema);
 
   return db;
+}
+
+export function createDb<TSchema extends Record<string, unknown>>(dbSchema: TSchema): MySql2Database<TSchema> {
+  return drizzle(ensurePool(), {
+    schema: dbSchema,
+    mode: "default",
+  });
 }
 
 export function getDB(): AdminDB {

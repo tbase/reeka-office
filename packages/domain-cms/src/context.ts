@@ -1,6 +1,4 @@
-import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
 import { categories, contents } from "./db/schema";
 
 export type CmsSchema = {
@@ -8,39 +6,20 @@ export type CmsSchema = {
   contents: typeof contents;
 };
 
-export interface DBConfig {
-  host: string;
-  port: number;
-  user: string;
-  password: string;
-  database: string;
-}
+export const cmsSchema: CmsSchema = {
+  categories,
+  contents,
+};
 
 export type DB = MySql2Database<CmsSchema>;
 
 export interface SetupOptions {
-  dbConfig: DBConfig;
+  db: DB;
 }
 
-function createContext({ dbConfig }: SetupOptions) {
-  const pool = mysql.createPool({
-    host: dbConfig.host,
-    port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    database: dbConfig.database,
-  });
-
-  const db: DB = drizzle(pool, {
-    schema: { categories, contents },
-    mode: "default",
-  });
-
+function createContext({ db }: SetupOptions) {
   return {
     db,
-    async close() {
-      await pool.end();
-    },
   };
 }
 
@@ -72,7 +51,7 @@ export function setup(options: SetupOptions) {
 export function getDb(): DB {
   const ctx = getContext();
   if (!ctx) {
-    throw new Error("CMS is not setup. Call setup({ dbURL }) first.");
+    throw new Error("CMS is not setup. Call setup({ db }) first.");
   }
 
   return ctx.db;
@@ -85,5 +64,4 @@ export async function close() {
   }
 
   setContext(null);
-  await ctx.close();
 }
