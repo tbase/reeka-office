@@ -1,4 +1,6 @@
 export { CreatePointItemCommand, type CreatePointItemInput } from './create-point-item'
+export { UpdatePointItemCommand, type UpdatePointItemInput } from './update-point-item'
+export { DeletePointItemCommand, type DeletePointItemInput } from './delete-point-item'
 export { CreatePointRecordCommand, type CreatePointRecordInput } from './create-point-record'
 export {
   CreateRedemptionProductCommand,

@@ -2,6 +2,7 @@ export {
   GetAgentPointBalanceQuery,
   type GetAgentPointBalanceInput,
 } from './get-agent-point-balance'
+export { ListAgentPointBalancesQuery } from './list-agent-point-balances'
 export { ListPointItemsQuery, type ListPointItemsInput } from './list-point-items'
 export {
   ListAgentPointRecordsQuery,

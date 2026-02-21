@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  datetime,
   index,
   int,
   json,
@@ -58,9 +59,9 @@ export const redemptionProducts = mysqlTable('redemption_products', {
   stock: int('stock').notNull().default(0),
   redeemPoints: int('redeem_points').notNull(),
   maxRedeemPerAgent: int('max_redeem_per_agent').notNull().default(1),
-  validUntil: timestamp('valid_until'),
-  publishedAt: timestamp('published_at'),
-  offShelfAt: timestamp('off_shelf_at'),
+  validUntil: datetime('valid_until'),
+  publishedAt: datetime('published_at'),
+  offShelfAt: datetime('off_shelf_at'),
   createdBy: int('created_by').notNull(),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),

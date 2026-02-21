@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutGridIcon, LogInIcon } from "lucide-react"
+import { GiftIcon, LayoutGridIcon, LogInIcon, ScrollTextIcon, TicketPlusIcon } from "lucide-react"
 
 import {
   Sidebar,
@@ -42,6 +42,26 @@ const menuGroups = [
         title: "内容管理",
         url: "/cms/contents",
         icon: FileTextIcon,
+      },
+    ],
+  },
+  {
+    title: "积分管理",
+    items: [
+      {
+        title: "代理人积分",
+        url: "/points/agents",
+        icon: TicketPlusIcon,
+      },
+      {
+        title: "积分事项",
+        url: "/points/items",
+        icon: ScrollTextIcon,
+      },
+      {
+        title: "兑换商品",
+        url: "/points/products",
+        icon: GiftIcon,
       },
     ],
   },
