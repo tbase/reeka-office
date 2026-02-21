@@ -69,60 +69,58 @@ export function CategoryForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl space-y-4">
       {value?.id ? <input type="hidden" name="id" value={String(value.id)} /> : null}
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <form.Field
-          name="name"
-          validators={{
-            onSubmit: ({ value: fieldValue }) =>
-              fieldValue.trim().length > 0 ? undefined : "分类名称不能为空",
-          }}
-        >
-          {(field) => {
-            const hasError = field.state.meta.errors.length > 0
-            return (
-              <Field data-invalid={hasError || undefined}>
-                <FieldContent>
-                  <FieldLabel htmlFor={field.name}>分类名称</FieldLabel>
-                  <Input
-                    id={field.name}
-                    name="name"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="分类名称"
-                    required
-                  />
-                  <FieldError>
-                    {hasError ? String(field.state.meta.errors[0]) : null}
-                  </FieldError>
-                </FieldContent>
-              </Field>
-            )
-          }}
-        </form.Field>
-
-        <form.Field name="slug">
-          {(field) => (
-            <Field>
+      <form.Field
+        name="name"
+        validators={{
+          onSubmit: ({ value: fieldValue }) =>
+            fieldValue.trim().length > 0 ? undefined : "分类名称不能为空",
+        }}
+      >
+        {(field) => {
+          const hasError = field.state.meta.errors.length > 0
+          return (
+            <Field data-invalid={hasError || undefined}>
               <FieldContent>
-                <FieldLabel htmlFor={field.name}>Slug</FieldLabel>
+                <FieldLabel htmlFor={field.name}>分类名称</FieldLabel>
                 <Input
                   id={field.name}
-                  name="slug"
+                  name="name"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="slug（可选）"
+                  placeholder="分类名称"
+                  required
                 />
-                <FieldDescription>可留空，系统将按规则处理。</FieldDescription>
+                <FieldError>
+                  {hasError ? String(field.state.meta.errors[0]) : null}
+                </FieldError>
               </FieldContent>
             </Field>
-          )}
-        </form.Field>
-      </div>
+          )
+        }}
+      </form.Field>
+
+      <form.Field name="slug">
+        {(field) => (
+          <Field>
+            <FieldContent>
+              <FieldLabel htmlFor={field.name}>Slug</FieldLabel>
+              <Input
+                id={field.name}
+                name="slug"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="slug（可选）"
+              />
+              <FieldDescription>可留空，系统将按规则处理。</FieldDescription>
+            </FieldContent>
+          </Field>
+        )}
+      </form.Field>
 
       <form.Field name="description">
         {(field) => (

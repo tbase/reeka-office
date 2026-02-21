@@ -3,6 +3,7 @@ import { PlusIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmAction } from "@/components/ui/confirm-action"
 import { LinkButton } from "@/components/ui/link-button"
 
 import { deleteContentAction } from "./actions"
@@ -50,10 +51,15 @@ export async function ContentsCardList({
                   <span className="text-muted-foreground text-xs">ID #{item.id}</span>
                   <div className="flex gap-2">
                     <LinkButton href={`/cms/contents/${item.id}/edit`} size="sm" variant="outline">编辑</LinkButton>
-                    <form action={deleteContentAction}>
-                      <input type="hidden" name="id" value={String(item.id)} />
-                      <Button type="submit" size="sm" variant="destructive">删除</Button>
-                    </form>
+                    <ConfirmAction
+                      action={deleteContentAction}
+                      hiddenFields={{ id: item.id }}
+                      title={`删除「${item.name}」？`}
+                      description="此操作不可撤销，内容将被永久删除。"
+                      confirmLabel="确认删除"
+                    >
+                      <Button size="sm" variant="destructive">删除</Button>
+                    </ConfirmAction>
                   </div>
                 </div>
               </CardContent>

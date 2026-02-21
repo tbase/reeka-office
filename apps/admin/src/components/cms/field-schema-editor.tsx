@@ -7,13 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { SimpleSelect } from "@/components/ui/simple-select"
 import {
   Sheet,
   SheetClose,
@@ -120,6 +114,7 @@ export function FieldSchemaEditor({
         </div>
         <Button
           type="button"
+          variant="outline"
           size="sm"
           onClick={() => {
             const row = createFieldRow(EMPTY_FIELD)
@@ -236,7 +231,8 @@ export function FieldSchemaEditor({
                 <Field>
                   <FieldContent>
                     <FieldLabel>字段类型</FieldLabel>
-                    <Select
+                    <SimpleSelect
+                      placeholder="请选择字段类型"
                       value={editingRow.field.type}
                       onValueChange={(value) => {
                         const nextType = value as FieldType
@@ -246,18 +242,8 @@ export function FieldSchemaEditor({
                           options: nextType === "select" ? field.options ?? [] : undefined,
                         }))
                       }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="请选择字段类型" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FIELD_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {FIELD_TYPE_LABEL[type]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      items={FIELD_TYPES.map((type) => ({ value: type, label: FIELD_TYPE_LABEL[type] }))}
+                    />
                   </FieldContent>
                 </Field>
 

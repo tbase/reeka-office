@@ -82,7 +82,7 @@ export function ContentForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl space-y-4">
       {value?.id ? <input type="hidden" name="id" value={String(value.id)} /> : null}
 
       <form.Field

@@ -6,6 +6,7 @@ import { PlusIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmAction } from "@/components/ui/confirm-action"
 import { LinkButton } from "@/components/ui/link-button"
 
 import { deleteCategoryAction } from "./actions"
@@ -50,10 +51,15 @@ export default async function CmsCategoriesPage() {
                   <p className="text-muted-foreground text-sm line-clamp-2">{category.description || "-"}</p>
                   <div className="flex justify-end gap-2">
                     <LinkButton href={`/cms/categories/${category.id}/edit`} variant="outline" size="sm">编辑</LinkButton>
-                    <form action={deleteCategoryAction}>
-                      <input type="hidden" name="id" value={String(category.id)} />
-                      <Button type="submit" size="sm" variant="destructive">删除</Button>
-                    </form>
+                    <ConfirmAction
+                      action={deleteCategoryAction}
+                      hiddenFields={{ id: category.id }}
+                      title={`删除「${category.name}」？`}
+                      description="此操作不可撤销，分类将被永久删除。"
+                      confirmLabel="确认删除"
+                    >
+                      <Button size="sm" variant="destructive">删除</Button>
+                    </ConfirmAction>
                   </div>
                 </CardContent>
               </Card>
