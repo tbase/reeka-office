@@ -6,6 +6,7 @@ config({ path: '.env.local' })
 export default defineConfig({
   schema: [
     "./src/db/schema.ts",
+    "../../packages/domain-user/src/db/schema.ts",
     "../../packages/domain-cms/src/db/schema.ts",
     "../../packages/domain-point/src/db/schema.ts",
   ],
