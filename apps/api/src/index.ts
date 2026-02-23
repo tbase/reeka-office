@@ -1,8 +1,15 @@
-import { config } from "@/config"
-import { handleRPC, RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
-import { cmsRegistry } from "@/rpc/cms";
+import { handleRPC, RpcError, RpcErrorCode, type RpcMethod } from "@reeka-office/jsonrpc";
 
-const createContext = (req: Request) => {
+import { config } from "@/config"
+import { cmsRegistry } from "@/rpc/cms";
+import { userRegistry } from "@/rpc/user";
+
+type RequestContext = {
+  openid: string;
+  envid: string;
+};
+
+function createContext(req: Request): RequestContext {
   const openid = req.headers.get("x-wx-openid");
   const envid = req.headers.get("x-wx-env");
 
@@ -14,6 +21,24 @@ const createContext = (req: Request) => {
   }
 
   return { openid, envid };
+}
+
+function prefixRegistry(
+  prefix: string,
+  methods: Record<string, RpcMethod<unknown>>,
+): Record<string, RpcMethod<unknown>> {
+  const result: Record<string, RpcMethod<unknown>> = {};
+
+  for (const [key, method] of Object.entries(methods)) {
+    result[`${prefix}/${key}`] = method;
+  }
+
+  return result;
+}
+
+const registry: Record<string, RpcMethod<unknown>> = {
+  ...prefixRegistry("cms", cmsRegistry),
+  ...prefixRegistry("user", userRegistry),
 };
 
 const server = Bun.serve({
@@ -21,8 +46,8 @@ const server = Bun.serve({
   hostname: config.server.hostname,
 
   routes: {
-    "/rpc/cms": {
-      POST: handleRPC(cmsRegistry, { createContext }),
+    "/rpc": {
+      POST: handleRPC(registry, { createContext }),
     },
   },
 });
