@@ -85,6 +85,7 @@ export function useQuery<M extends RpcMethodName>(
 
     const rpcMethod = rpc as (method: M, params?: RpcInput<M>) => Promise<RpcResult<TOutput>>
     const result = await rpcMethod(method, params)
+    console.trace('result', result)
 
     loading.value = false
 

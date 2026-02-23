@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "weapp-vite-best-practices": {
+      "source": "weapp-vite/weapp-vite",
+      "sourceType": "github",
+      "computedHash": "c6a6319ee9141b6c5f4cc7138cb24d45c4b999ff34bca060e76b43620d3bfc67"
+    },
+    "weapp-vite-vue-sfc-best-practices": {
+      "source": "weapp-vite/weapp-vite",
+      "sourceType": "github",
+      "computedHash": "8bf390a0cfb05c8d71b2bed0bd1ed70b99aa8816ab485d09df8d6603bee9e2a0"
+    },
+    "wevu-best-practices": {
+      "source": "weapp-vite/weapp-vite",
+      "sourceType": "github",
+      "computedHash": "a0ff9b51f37c3eea9a42a9e1ed22f7184e2b979cab6064e095d7c675487799c7"
+    }
+  }
+}

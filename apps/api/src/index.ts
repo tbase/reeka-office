@@ -1,4 +1,5 @@
 import { handleRPC, RpcError, RpcErrorCode, type RpcMethod } from "@reeka-office/jsonrpc";
+import { GetUserQuery, type User } from "@reeka-office/domain-user";
 
 import { config } from "@/config"
 import { cmsRegistry } from "@/rpc/cms";
@@ -7,9 +8,10 @@ import { userRegistry } from "@/rpc/user";
 type RequestContext = {
   openid: string;
   envid: string;
+  user: User;
 };
 
-function createContext(req: Request): RequestContext {
+async function createContext(req: Request): Promise<RequestContext> {
   const openid = req.headers.get("x-wx-openid");
   const envid = req.headers.get("x-wx-env");
 
@@ -20,7 +22,12 @@ function createContext(req: Request): RequestContext {
     throw new RpcError(RpcErrorCode.INVALID_REQUEST, "缺少 openid");
   }
 
-  return { openid, envid };
+  const user = await new GetUserQuery({ openid }).query();
+  if (!user?.agentCode) {
+    throw new RpcError(RpcErrorCode.FORBIDDEN, "非代理人，无访问权限");
+  }
+
+  return { openid, envid, user };
 }
 
 function prefixRegistry(

@@ -31,6 +31,13 @@ export const RpcErrorCode = {
   NETWORK_ERROR: -32000,
 } as const
 
+type RpcGlobalErrorHandler = (error: RpcError, method: RpcMethodName) => void
+let globalRpcErrorHandler: RpcGlobalErrorHandler | undefined
+
+export function setRpcErrorHandler(handler: RpcGlobalErrorHandler): void {
+  globalRpcErrorHandler = handler
+}
+
 // 共享 HTTP 配置
 const RPC_CONFIG = {
   path: "/rpc",
@@ -40,6 +47,25 @@ const RPC_CONFIG = {
     "Content-Type": "application/json",
   },
 }
+
+const CLOUD_ENV = 'prod-5gnkpz4fe2b43d19'
+const CLOUD_APPID = 'wxb1526d775ae0d63e'
+
+let cloudInstance: WxCloud | undefined = undefined
+export const getInstance = async (): Promise<WxCloud> => {
+  if (cloudInstance) {
+    return cloudInstance
+  }
+  // @ts-ignore
+  const instance = new wx.cloud.Cloud({
+    resourceAppid: CLOUD_APPID,
+    resourceEnv: CLOUD_ENV,
+  });
+  await instance.init()
+  cloudInstance = instance
+  return instance
+}
+
 
 function createRpcError(
   message: string,
@@ -87,7 +113,8 @@ export async function rpc<M extends RpcMethodName>(
   const params = args[0]
 
   try {
-    const res = await wx.cloud.callContainer({
+    const instance = await getInstance()
+    const res = await instance.callContainer({
       ...RPC_CONFIG,
       data: {
         jsonrpc: "2.0",
@@ -105,13 +132,16 @@ export async function rpc<M extends RpcMethodName>(
     }
 
     const response = res.data as JsonRpcResponse<RpcOutput<M>>
-    return parseResponse(response)
+    const result = parseResponse(response)
+    if (!result.success) {
+      globalRpcErrorHandler?.(result.error, method)
+    }
+    return result
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "网络错误"
-    return {
-      success: false,
-      error: createRpcError(message, RpcErrorCode.NETWORK_ERROR),
-    }
+    const rpcError = createRpcError(message, RpcErrorCode.NETWORK_ERROR)
+    globalRpcErrorHandler?.(rpcError, method)
+    return { success: false, error: rpcError }
   }
 }
 
@@ -154,7 +184,8 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
   }))
 
   try {
-    const res = await wx.cloud.callContainer({
+    const instance = await getInstance()
+    const res = await instance.callContainer({
       ...RPC_CONFIG,
       data: requestData,
     })

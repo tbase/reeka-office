@@ -1,22 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agents, users } from '../db/schema'
+import { User } from '../types'
 
 export interface GetUserInput {
   openid: string
 }
 
-export interface GetUserResult {
-  id: number
-  openid: string
-  nickname: string | null
-  avatar: string | null
-  role: 'agent' | 'admin'
-  agentCode: string | null
-  agentName: string | null
-  createdAt: Date | null
-  updatedAt: Date | null
-}
+export type GetUserResult = User | null
 
 export class GetUserQuery {
   private readonly db: DB

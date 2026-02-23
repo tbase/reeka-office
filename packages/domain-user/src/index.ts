@@ -9,4 +9,4 @@ export {
 } from './context'
 export * from './commands'
 export * from './queries'
-export * from './schema'
+export type { User } from './types'

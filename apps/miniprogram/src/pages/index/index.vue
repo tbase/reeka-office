@@ -1,7 +1,17 @@
 <script setup lang="ts">
+import { useQuery } from '@/hooks/useQuery'
+import { watchEffect } from 'wevu'
+
 definePageJson({
   navigationBarTitleText: '首页',
   backgroundColor: '#f6f7fb',
+})
+
+const { data } = useQuery({
+  queryKey: ['cms/listServiceCategories', { envid: '123' }],
+})
+watchEffect(() => {
+  console.log(data.value)
 })
 </script>
 
