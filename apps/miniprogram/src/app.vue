@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onHide, onLaunch, onShow } from 'wevu'
+// biome-ignore lint/correctness/noUnusedImports: used in template
+import AgentAuthGuard from '@/components/AgentAuthGuard.vue'
 
 defineAppJson({
   pages: [
@@ -70,6 +72,12 @@ onLaunch(() => {
   console.log('[weapp-vite-wevu-template] app launch')
 })
 </script>
+
+<template>
+  <AgentAuthGuard>
+    <slot />
+  </AgentAuthGuard>
+</template>
 
 <style>
 @tailwind base;
