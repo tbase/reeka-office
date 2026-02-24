@@ -17,6 +17,7 @@ type RequestContext = {
 };
 
 async function createContext(req: Request): Promise<RequestContext> {
+  console.log("createContext", req.headers);
   const openid = req.headers.get("x-wx-openid");
   const envid = req.headers.get("x-wx-env");
 
