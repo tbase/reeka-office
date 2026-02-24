@@ -1,0 +1,43 @@
+# Build stage
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY pnpm-workspace.yaml package.json ./
+
+# Copy api app package.json
+COPY apps/api/package.json ./apps/api/
+
+# Copy workspace packages package.json files (needed for workspace dependencies)
+COPY packages/domain-cms/package.json ./packages/domain-cms/
+COPY packages/domain-user/package.json ./packages/domain-user/
+COPY packages/jsonrpc/package.json ./packages/jsonrpc/
+
+# Install dependencies (bun reads pnpm-workspace.yaml for workspace resolution)
+RUN bun install
+
+# Copy source code
+COPY apps/api ./apps/api
+COPY packages ./packages
+
+# Build the api (bun build src/index.ts --outdir dist --target bun)
+RUN bun --filter api run build
+
+# Production image
+FROM oven/bun:1 AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install ca-certificates for 微信云托管开放接口服务 HTTPS 支持
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# 微信云托管开放接口服务证书配置 (Bun/Node.js 运行时)
+ENV NODE_EXTRA_CA_CERTS=/app/cert/certificate.crt
+
+COPY --from=builder /app/apps/api/dist ./dist
+
+EXPOSE 3000
+CMD ["bun", "run", "dist/index.js"]
