@@ -8,11 +8,8 @@ COPY pnpm-workspace.yaml package.json ./
 COPY apps/api ./apps/api
 COPY packages ./packages
 
-# Install dependencies (bun reads pnpm-workspace.yaml for workspace resolution)
-RUN bun install
-
 # Build the api (bun build src/index.ts --outdir dist --target bun)
-RUN cd apps/api && bun run build
+RUN cd apps/api && bun install && bun run build
 
 # Production image
 FROM oven/bun:1 AS runner
