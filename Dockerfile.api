@@ -22,7 +22,7 @@ COPY apps/api ./apps/api
 COPY packages ./packages
 
 # Build the api (bun build src/index.ts --outdir dist --target bun)
-RUN bun --filter api run build
+RUN cd apps/api && bun run build
 
 # Production image
 FROM oven/bun:1 AS runner
