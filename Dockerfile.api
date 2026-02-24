@@ -3,23 +3,13 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-# Copy workspace configuration
+# Copy workspace configuration and all source code
 COPY pnpm-workspace.yaml package.json ./
-
-# Copy api app package.json
-COPY apps/api/package.json ./apps/api/
-
-# Copy workspace packages package.json files (needed for workspace dependencies)
-COPY packages/domain-cms/package.json ./packages/domain-cms/
-COPY packages/domain-user/package.json ./packages/domain-user/
-COPY packages/jsonrpc/package.json ./packages/jsonrpc/
+COPY apps/api ./apps/api
+COPY packages ./packages
 
 # Install dependencies (bun reads pnpm-workspace.yaml for workspace resolution)
 RUN bun install
-
-# Copy source code
-COPY apps/api ./apps/api
-COPY packages ./packages
 
 # Build the api (bun build src/index.ts --outdir dist --target bun)
 RUN cd apps/api && bun run build
