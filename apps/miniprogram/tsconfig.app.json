@@ -23,7 +23,7 @@
         "./node_modules/tdesign-miniprogram/miniprogram_dist/*"
       ],
       "@rpc-types": [
-        "../api/src/rpc-types.d.ts"
+        "../api/rpc-types.d.ts"
       ]
     },
     "resolveJsonModule": true,
@@ -65,6 +65,6 @@
     "env.d.ts",
     "components.d.ts",
     "typed-components.d.ts",
-    "../api/src/rpc-types.d.ts"
+    "../api/rpc-types.d.ts"
   ]
 }

@@ -1,4 +1,6 @@
-import type { RpcMethodName, RpcInput, RpcOutput } from "@rpc-types"
+import type { RpcInput, RpcMethodName, RpcOutput } from "@rpc-types"
+import { config } from "./config"
+
 
 interface JsonRpcResponse<T> {
   jsonrpc: "2.0"
@@ -34,22 +36,14 @@ export const RpcErrorCode = {
 type RpcGlobalErrorHandler = (error: RpcError, method: RpcMethodName) => void
 let globalRpcErrorHandler: RpcGlobalErrorHandler | undefined
 
+interface RpcTransportResponse {
+  statusCode: number
+  data: unknown
+}
+
 export function setRpcErrorHandler(handler: RpcGlobalErrorHandler): void {
   globalRpcErrorHandler = handler
 }
-
-// 共享 HTTP 配置
-const RPC_CONFIG = {
-  path: "/rpc",
-  method: "POST" as const,
-  header: {
-    "X-WX-SERVICE": "reeka-office-api",
-    "Content-Type": "application/json",
-  },
-}
-
-const CLOUD_ENV = 'prod-5gnkpz4fe2b43d19'
-const CLOUD_APPID = 'wxb1526d775ae0d63e'
 
 let cloudInstance: WxCloud | undefined = undefined
 export const getInstance = async (): Promise<WxCloud> => {
@@ -58,8 +52,8 @@ export const getInstance = async (): Promise<WxCloud> => {
   }
   // @ts-ignore
   const instance = new wx.cloud.Cloud({
-    resourceAppid: CLOUD_APPID,
-    resourceEnv: CLOUD_ENV,
+    resourceAppid: config.CLOUD_APPID,
+    resourceEnv: config.CLOUD_ENV,
   });
   await instance.init()
   cloudInstance = instance
@@ -113,17 +107,7 @@ export async function rpc<M extends RpcMethodName>(
   const params = args[0]
 
   try {
-    const instance = await getInstance()
-    const res = await instance.callContainer({
-      ...RPC_CONFIG,
-      data: {
-        jsonrpc: "2.0",
-        method,
-        params,
-        id: Date.now(),
-      },
-    })
-
+    const res = await _call(method, params)
     if (res.statusCode !== 200) {
       return {
         success: false,
@@ -143,6 +127,56 @@ export async function rpc<M extends RpcMethodName>(
     globalRpcErrorHandler?.(rpcError, method)
     return { success: false, error: rpcError }
   }
+}
+
+const _call = async (method: string, params: unknown) => {
+  const payload = { jsonrpc: "2.0", method, params, id: Date.now() }
+  return requestRpc(payload)
+}
+
+const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
+  if (config.RPC_CALL_MODE === "local") {
+    return requestLocalRpc(data)
+  }
+
+  const instance = await getInstance()
+  const res = await instance.callContainer({
+    path: "/rpc",
+    method: "POST" as const,
+    header: {
+      "X-WX-SERVICE": config.SERVICE_NAME,
+      "Content-Type": "application/json",
+    },
+    data,
+  })
+
+  return { statusCode: res.statusCode, data: res.data }
+}
+
+const requestLocalRpc = (data: unknown): Promise<RpcTransportResponse> => {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${config.LOCAL_API_BASE}/rpc`,
+      method: "POST",
+      header: {
+        "Content-Type": "application/json",
+        "X-WX-OPENID": config.LOCAL_MOCK_OPENID,
+        "X-WX-ENV": config.LOCAL_MOCK_ENVID,
+        "X-WX-SERVICE": config.SERVICE_NAME,
+      },
+      data: JSON.stringify(data),
+      success: (res) => {
+        resolve({ statusCode: res.statusCode, data: res.data })
+      },
+      fail: (error) => {
+        reject(error)
+      },
+    })
+  })
+}
+
+const _callBatch = async (data: unknown) => {
+  return requestRpc(data)
 }
 
 /**
@@ -172,8 +206,8 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
   calls: Calls
 ): Promise<{
   [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
-    ? BatchRpcResult<RpcOutput<M>>
-    : never
+  ? BatchRpcResult<RpcOutput<M>>
+  : never
 }> {
   const timestamp = Date.now()
   const requestData = calls.map((call, index) => ({
@@ -184,18 +218,14 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
   }))
 
   try {
-    const instance = await getInstance()
-    const res = await instance.callContainer({
-      ...RPC_CONFIG,
-      data: requestData,
-    })
+    const res = await _callBatch(requestData)
 
     if (res.statusCode !== 200) {
       const error = createRpcError(`HTTP ${res.statusCode}`, RpcErrorCode.INTERNAL_ERROR)
       return calls.map(() => ({ success: false as const, error })) as {
         [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
-          ? BatchRpcResult<RpcOutput<M>>
-          : never
+        ? BatchRpcResult<RpcOutput<M>>
+        : never
       }
     }
 
@@ -232,20 +262,20 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
 
       return { success: true as const, data: response.result }
     }) as {
-      [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
+        [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
         ? BatchRpcResult<RpcOutput<M>>
         : never
-    }
+      }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "网络错误"
     const rpcError = createRpcError(message, RpcErrorCode.NETWORK_ERROR)
     return calls.map(() => ({ success: false as const, error: rpcError })) as {
       [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
-        ? BatchRpcResult<RpcOutput<M>>
-        : never
+      ? BatchRpcResult<RpcOutput<M>>
+      : never
     }
   }
 }
 
 // 重新导出类型，方便使用
-export type { RpcMethodName, RpcInput, RpcOutput } from "@rpc-types"
+export type { RpcInput, RpcMethodName, RpcOutput } from "@rpc-types"

@@ -8,7 +8,7 @@ definePageJson({
 })
 
 const { data } = useQuery({
-  queryKey: ['cms/listServiceCategories', { envid: '123' }],
+  queryKey: ['cms/listServiceCategories', { page: 1 }],
 })
 watchEffect(() => {
   console.log(data.value)

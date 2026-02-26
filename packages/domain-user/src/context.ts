@@ -14,7 +14,7 @@ export const userSchema: UserSchema = {
 export type DB = MySql2Database<UserSchema>
 
 export interface SetupOptions {
-  db: DB
+  db: MySql2Database<UserSchema>
 }
 
 type UserContext = {

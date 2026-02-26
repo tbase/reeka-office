@@ -9,11 +9,8 @@ Guidance for autonomous coding agents in `reeka-office`.
 - Apps:
   - `apps/api` (Bun + TypeScript JSON-RPC API)
   - `apps/admin` (Next.js 16 + React 19)
-  - `apps/miniprogram` (placeholder only)
-- Packages:
-  - `@reeka-office/domain-cms`
-  - `@reeka-office/domain-user`
-  - `@reeka-office/jsonrpc`
+  - `apps/miniprogram` (weapp-vite + Vue 3 + TDesign)
+- Packages: `@reeka-office/domain-cms`, `@reeka-office/domain-user`, `@reeka-office/domain-point`, `@reeka-office/jsonrpc`
 
 ## Setup
 
@@ -25,6 +22,7 @@ Guidance for autonomous coding agents in `reeka-office`.
 
 - `pnpm dev:api` -> `pnpm --filter api dev`
 - `pnpm dev:admin` -> `pnpm --filter admin dev`
+- `pnpm tabicon` -> `pnpm --filter reeka-office-miniprogram tabicon`
 - `pnpm build` -> `pnpm -r --if-present build`
 - `pnpm typecheck` -> `pnpm -r --if-present typecheck`
 
@@ -41,30 +39,29 @@ Guidance for autonomous coding agents in `reeka-office`.
 - `pnpm --filter admin build` -> `next build`
 - `pnpm --filter admin start` -> `next start`
 - `pnpm --filter admin lint` -> `eslint`
+- `pnpm --filter admin db:generate` -> `drizzle-kit generate`
+- `pnpm --filter admin db:migrate` -> `drizzle-kit migrate`
+- `pnpm --filter admin db:push` -> `drizzle-kit push`
+
+### apps/miniprogram
+
+- `pnpm --filter reeka-office-miniprogram dev` -> `weapp-vite dev`
+- `pnpm --filter reeka-office-miniprogram build` -> `weapp-vite build`
+- `pnpm --filter reeka-office-miniprogram typecheck` -> `vue-tsc --noEmit -p tsconfig.app.json`
+- `pnpm --filter reeka-office-miniprogram open` -> `weapp-vite open` (open devtools)
 
 ### packages
 
-- `pnpm --filter @reeka-office/domain-cms build` -> `tsc -p tsconfig.json`
-- `pnpm --filter @reeka-office/domain-cms typecheck` -> `tsc --noEmit`
-- `pnpm --filter @reeka-office/domain-user build` -> `tsc -p tsconfig.json`
-- `pnpm --filter @reeka-office/domain-user typecheck` -> `tsc --noEmit`
-- `pnpm --filter @reeka-office/jsonrpc build` -> `tsc -p tsconfig.json`
-- `pnpm --filter @reeka-office/jsonrpc typecheck` -> `tsc --noEmit`
+- `pnpm --filter @reeka-office/<name> build` -> `tsc -p tsconfig.json`
+- `pnpm --filter @reeka-office/<name> typecheck` -> `tsc --noEmit`
 
 ## Test + Single-Test Status
 
 - No `test` script exists at root or in workspaces.
-- No test runner is currently wired (no valid single-test command today).
-- `apps/miniprogram` has no build/lint/test scripts.
+- No test runner is currently wired.
+- If you add tests, also add root/workspace `test` script(s) and documented single-test invocation.
 
-If you add tests, also add:
-
-- root/workspace `test` script(s)
-- package-level `test` script(s)
-- documented single-test invocation, e.g.:
-  - `pnpm --filter <workspace> test -- <path-to-test-file>`
-
-## Workspace Targeting Patterns
+## Workspace Targeting
 
 - Build one workspace: `pnpm --filter <workspace> build`
 - Typecheck one workspace: `pnpm --filter <workspace> typecheck`
@@ -73,49 +70,67 @@ If you add tests, also add:
 ## TypeScript + Modules
 
 - `tsconfig.base.json` is strict (`strict: true`).
-- `apps/admin/tsconfig.json` is strict with `noEmit: true`.
-- `apps/api/tsconfig.json` extends base config and includes Bun types.
-- Alias `@/*` is available inside both `apps/api` and `apps/admin`.
+- `apps/miniprogram/tsconfig.app.json` uses `verbatimModuleSyntax` and Vue compiler options.
+- Alias `@/*` is available in `apps/api`, `apps/admin`, and `apps/miniprogram`.
 - App/package manifests use ESM (`"type": "module"`).
 
 ## Import Conventions
 
-- Prefer import grouping:
-  1. external packages
-  2. app alias imports (`@/...`)
-  3. relative imports
+- Prefer import grouping: 1. external packages 2. workspace packages (`@reeka-office/...`) 3. app alias (`@/...`) 4. relative
 - Use `import type` for type-only imports.
 - Keep ordering/style consistent with the file being edited.
 
-## Formatting Conventions (transitional)
+## Formatting (transitional)
 
-- `apps/admin` and much of `packages/domain-cms`: mostly no semicolons.
-- `apps/api` and `packages/jsonrpc`: semicolons are common.
-- Do not normalize formatting across files; match local style.
-- Keep diffs narrow; avoid unrelated reformatting.
+- `apps/admin`, `packages/domain-*`: mostly no semicolons.
+- `apps/api`, `packages/jsonrpc`: semicolons are common.
+- `apps/miniprogram`: no semicolons (Vue style).
+- Match local style; keep diffs narrow.
 
 ## Naming Conventions
 
-- React component names: PascalCase (`CmsServicesClient`, `AppSidebar`).
-- UI file names: kebab-case (`app-sidebar.tsx`, `button.tsx`).
+- React components: PascalCase (`CmsServicesClient`, `AppSidebar`).
+- Vue components: kebab-case (`index.vue` in page folders).
+- UI files: kebab-case (`app-sidebar.tsx`).
 - Domain classes: PascalCase + suffix (`CreateContentCommand`, `ListContentsQuery`).
 - Functions/variables: camelCase.
-- Stable constants: UPPER_SNAKE_CASE where already established (`PATH`, `GLOBAL_KEY`).
+- RPC registry: `xxxRegistry` (e.g., `cmsRegistry`, `userRegistry`).
 
 ## Architecture Patterns
 
-- API entrypoint and route registration are centralized in `apps/api/src/index.ts`.
-- JSON-RPC methods are registered via per-feature registry objects (e.g. `cmsRegistry`).
-- Request context is built in dedicated helpers (`createContext`).
-- Domain persistence goes through command/query classes in `packages/domain-cms`.
-- Database wiring is centralized in `packages/domain-cms/src/context.ts` (`setup`, `getDb`, `close`).
+### API (apps/api)
+
+- Entry point: `apps/api/src/index.ts`.
+- JSON-RPC methods registered via per-feature registry objects.
+- Request context built in `createContext()` helper.
+- Database connections via `createDb()` with Drizzle ORM.
+
+### Domain Packages (packages/domain-*)
+
+- CQRS pattern: `commands/` for writes, `queries/` for reads.
+- Each command/query is a class with `execute()` method.
+- Schema defined using Drizzle ORM.
+
+### Admin (apps/admin)
+
+- App Router with route groups: `(console)/` for authenticated pages.
+- Server actions in `actions.ts` files for mutations.
+- Use `revalidatePath()` after mutations.
+- UI components in `src/components/ui/` (shadcn-based).
+
+### Miniprogram (apps/miniprogram)
+
+- weapp-vite + wevu framework (Vue 3 mini-program runtime).
+- TDesign components prefixed with `t-` (e.g., `<t-button>`).
+- Pages in `src/pages/<name>/index.vue`.
+- RPC types via `@rpc-types` alias pointing to `apps/api/rpc-types.d.ts`.
 
 ## Validation + Error Handling
 
-- JSON-RPC method input validation uses Zod (`defineFunc`, `inputSchema.safeParse`).
-- Contract/request failures should raise `RpcError` with `RpcErrorCode`.
-- Server-side unexpected errors are logged and returned as structured internal errors with `requestId`.
-- Client-side error handling checks `error instanceof Error` before reading `message`.
+- JSON-RPC input validation uses Zod (`defineFunc`, `inputSchema.safeParse`).
+- Contract failures raise `RpcError` with `RpcErrorCode`.
+- Domain commands/queries throw `Error` with descriptive messages.
+- Client-side: check `error instanceof Error` before reading `message`.
 - Do not swallow errors silently.
 
 ## React / Next.js (admin)
@@ -123,33 +138,19 @@ If you add tests, also add:
 - Use App Router layout/page patterns under `src/app`.
 - Use `"use client"` and `"use server"` directives correctly.
 - Prefer server actions + `revalidatePath` for mutations.
-- Keep interactive state in client components; fetch on server where practical.
 - Reuse existing primitives from `src/components/ui`.
 
-## Linting / Quality Workflow
+## Vue / Miniprogram
+
+- Use wevu composables for page lifecycle.
+
+## Linting / Quality
 
 - ESLint config exists only for admin: `apps/admin/eslint.config.mjs`.
-- No root lint script exists.
-- No root Prettier/Biome config exists.
+- No root Prettier/Biome config.
 
-Recommended verification flow after edits:
-
-1. `pnpm typecheck`
+Verification flow after edits:
+1. `pnpm typecheck` (all workspaces)
 2. `pnpm --filter admin lint` (when touching `apps/admin`)
-3. targeted workspace build(s) when needed
+3. Targeted workspace build(s) when needed
 
-
-## Source Files Used
-
-- `package.json`
-- `pnpm-workspace.yaml`
-- `README.md`
-- `apps/api/package.json`
-- `apps/admin/package.json`
-- `packages/domain-cms/package.json`
-- `packages/domain-user/package.json`
-- `packages/jsonrpc/package.json`
-- `tsconfig.base.json`
-- `apps/api/tsconfig.json`
-- `apps/admin/tsconfig.json`
-- `apps/admin/eslint.config.mjs`
