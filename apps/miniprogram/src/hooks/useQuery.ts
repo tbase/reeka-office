@@ -1,5 +1,5 @@
-import { ref, shallowRef, watchEffect, onShow, type Ref, type ShallowRef } from 'wevu'
-import { rpc, type RpcMethodName, type RpcInput, type RpcOutput, type RpcError, type RpcResult } from '@/lib/rpc'
+import { rpc, type RpcError, type RpcInput, type RpcMethodName, type RpcOutput, type RpcResult } from '@/lib/rpc';
+import { onShow, ref, shallowRef, watchEffect, type Ref, type ShallowRef } from 'wevu';
 
 const cache = new Map<string, { data: unknown; timestamp: number }>()
 
@@ -85,7 +85,6 @@ export function useQuery<M extends RpcMethodName>(
 
     const rpcMethod = rpc as (method: M, params?: RpcInput<M>) => Promise<RpcResult<TOutput>>
     const result = await rpcMethod(method, params)
-    console.trace('result', result)
 
     loading.value = false
 
