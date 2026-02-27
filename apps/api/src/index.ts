@@ -16,7 +16,7 @@ type RequestContext = {
   user: User;
 };
 
-async function createContext(req: Request): Promise<RequestContext> {
+async function createContext(req: Request): Promise<RequestContext | { openid: string; envid: string; user: null }> {
   console.log("createContext", req.headers);
   const openid = req.headers.get("x-wx-openid") ?? req.headers.get("x-wx-from-openid");
   const envid = req.headers.get("x-wx-env");
@@ -26,6 +26,14 @@ async function createContext(req: Request): Promise<RequestContext> {
   }
   if (!openid) {
     throw new RpcError(RpcErrorCode.INVALID_REQUEST, "缺少 openid");
+  }
+
+  const clonedReq = req.clone();
+  const body = await clonedReq.json();
+  const method = body.method;
+
+  if (method === "user/bindAgent") {
+    return { openid, envid, user: null };
   }
 
   const user = await new GetUserQuery({ openid }).query();
