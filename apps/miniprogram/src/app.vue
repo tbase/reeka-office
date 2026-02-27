@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { onHide, onLaunch, onShow } from "wevu";
-import { setRpcErrorHandler, RpcErrorCode } from "@/lib/rpc";
+import { RpcErrorCode, setRpcErrorHandler } from "@/lib/rpc";
 
 setRpcErrorHandler((error) => {
   if (error.code === RpcErrorCode.FORBIDDEN) {
+    const currentPages = getCurrentPages();
+    const currentPage = currentPages[currentPages.length - 1];
+    const currentRoute = `/${currentPage?.route ?? ""}`;
+
+    if (currentRoute === "/pages/unauthorized/index") {
+      return;
+    }
+
     wx.reLaunch({ url: "/pages/unauthorized/index" });
   }
 });
