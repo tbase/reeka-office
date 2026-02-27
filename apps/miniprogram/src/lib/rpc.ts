@@ -161,7 +161,7 @@ const requestLocalRpc = (data: unknown): Promise<RpcTransportResponse> => {
       header: {
         "Content-Type": "application/json",
         "X-WX-OPENID": config.LOCAL_MOCK_OPENID,
-        "X-WX-ENV": config.LOCAL_MOCK_ENVID,
+        "X-WX-ENV": config.LOCAL_MOCK_ENV,
         "X-WX-SERVICE": config.SERVICE_NAME,
       },
       data: JSON.stringify(data),

@@ -13,7 +13,7 @@ export interface Config {
   /** 本地开发 OpenID（用于调试） */
   LOCAL_MOCK_OPENID: string
   /** 本地开发环境 ID */
-  LOCAL_MOCK_ENVID: string
+  LOCAL_MOCK_ENV: string
   /** RPC 调用模式 */
   RPC_CALL_MODE: 'cloud' | 'local'
 }
@@ -24,6 +24,6 @@ export const config: Config = {
   SERVICE_NAME: import.meta.env.VITE_SERVICE_NAME ?? 'reeka-office-api',
   LOCAL_API_BASE: import.meta.env.VITE_LOCAL_API_BASE ?? 'http://localhost:3000',
   LOCAL_MOCK_OPENID: import.meta.env.VITE_LOCAL_MOCK_OPENID,
-  LOCAL_MOCK_ENVID: import.meta.env.VITE_LOCAL_MOCK_ENVID,
+  LOCAL_MOCK_ENV: import.meta.env.VITE_LOCAL_MOCK_ENV,
   RPC_CALL_MODE: import.meta.env.VITE_RPC_CALL_MODE ?? 'cloud',
 }
