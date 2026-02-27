@@ -9,6 +9,7 @@ import mysql from "mysql2/promise";
 import { config } from "@/config";
 import { cmsRegistry } from "@/rpc/cms";
 import { userRegistry } from "@/rpc/user";
+import { pointsRegistry } from "@/rpc/points";
 
 type RequestContext = {
   openid: string;
@@ -60,6 +61,7 @@ function prefixRegistry(
 const registry: Record<string, RpcMethod<unknown>> = {
   ...prefixRegistry("cms", cmsRegistry),
   ...prefixRegistry("user", userRegistry),
+  ...prefixRegistry("point", pointsRegistry as Record<string, RpcMethod<unknown>>),
 };
 
 let pool: mysql.Pool | null = null;

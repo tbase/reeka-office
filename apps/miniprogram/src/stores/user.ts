@@ -11,17 +11,25 @@ export interface UserStore {
   isAgent: ComputedRef<boolean>
 }
 
+let userStore: UserStore | null = null
+
 export function useUserStore(): UserStore {
+  if (userStore) {
+    return userStore
+  }
+
   const { data, loading, error } = useQuery({
     queryKey: ['user/getCurrentUser', undefined],
   })
 
   const isAgent = computed(() => Boolean(data.value?.agentCode))
 
-  return {
+  userStore = {
     user: data as Ref<GetUserResult | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     isAgent,
   }
+
+  return userStore
 }

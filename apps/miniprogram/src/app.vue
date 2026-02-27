@@ -23,6 +23,10 @@ defineAppJson({
     "pages/resource/index",
     "pages/training/index",
     "pages/mine/index",
+    'pages/mine/points/index',
+    'pages/mine/points-detail/index',
+    'pages/mine/earn-points/index',
+    'pages/mine/redeem-detail/index',
     "pages/unauthorized/index",
   ],
   window: {
