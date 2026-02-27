@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { ref } from "wevu"
+
 import { useFormBinder } from "@/hooks/useFormBinder"
 import { useMutation } from "@/hooks/useMutation"
 import { useToast } from "@/hooks/useToast"
-import { ref } from "wevu"
 
 definePageJson({
   navigationBarTitleText: '代理人验证',
@@ -18,9 +19,10 @@ definePageJson({
 const { changeModel } = useFormBinder()
 const { showToast } = useToast()
 const token = ref("")
+// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
 const tokenModel = changeModel<string>("token")
 
-
+// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
 const { mutate, loading } = useMutation("user/bindAgent", {
   onSuccess: () => {
     showToast("绑定成功")
@@ -33,7 +35,7 @@ const { mutate, loading } = useMutation("user/bindAgent", {
   }
 })
 
-
+// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
 const handleBind = async () => {
   const value = token.value.trim()
   if (!value) {
