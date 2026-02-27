@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onHide, onLaunch, onShow } from "wevu";
 import { RpcErrorCode, setRpcErrorHandler } from "@/lib/rpc";
+import { onHide, onLaunch, onShow } from "wevu";
 
 setRpcErrorHandler((error) => {
   if (error.code === RpcErrorCode.FORBIDDEN) {
@@ -93,5 +93,6 @@ onHide(() => {
 page {
   font-family: "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
   background-color: #f6f7fb;
+  --td-brand-color: #ff2056;
 }
 </style>
