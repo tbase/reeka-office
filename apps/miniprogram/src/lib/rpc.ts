@@ -135,7 +135,7 @@ const _call = async (method: string, params: unknown) => {
 }
 
 const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
-  if (config.RPC_CALL_MODE === "local") {
+  if (config.LOCAL_API) {
     return requestLocalRpc(data)
   }
 
@@ -156,12 +156,12 @@ const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
 const requestLocalRpc = (data: unknown): Promise<RpcTransportResponse> => {
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${config.LOCAL_API_BASE}/rpc`,
+      url: `${config.LOCAL_API!}/rpc`,
       method: "POST",
       header: {
         "Content-Type": "application/json",
-        "X-WX-OPENID": config.LOCAL_MOCK_OPENID,
-        "X-WX-ENV": config.LOCAL_MOCK_ENV,
+        "X-WX-OPENID": config.LOCAL_OPENID!,
+        "X-WX-ENV": config.LOCAL_ENV ?? 'local',
         "X-WX-SERVICE": config.SERVICE_NAME,
       },
       data: JSON.stringify(data),
