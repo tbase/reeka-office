@@ -44,7 +44,7 @@ export function ContentEditFormDialog({
         if (!open) handleClose();
       }}
     >
-      <DialogContent className="sm:max-w-2xl" showCloseButton>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>编辑内容</DialogTitle>
           <DialogDescription>
