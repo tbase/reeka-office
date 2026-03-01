@@ -1,7 +1,6 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +10,6 @@ import {
   ContentFields,
   normalizeFieldValue,
 } from "@/components/cms/content-fields";
-import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldContent,
@@ -20,7 +18,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { LinkButton } from "@/components/ui/link-button";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -35,21 +32,19 @@ type ContentFormValue = {
 export function ContentForm({
   action,
   categories,
-  submitLabel,
-  listHref,
   value,
+  id,
+  onSuccess,
 }: {
   action: (
     formData: FormData,
   ) => { success: true } | void | Promise<{ success: true } | void>;
   categories: CategoryOption[];
-  submitLabel: string;
-  listHref: string;
   value?: ContentFormValue;
+  id?: string;
+  onSuccess?: () => void;
 }) {
-  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const initialCategory =
     categories.find((c) => c.id === value?.categoryId) ?? categories[0];
@@ -125,9 +120,7 @@ export function ContentForm({
       if (result?.success) {
         const isCreate = !value?.id;
         toast.success(isCreate ? "内容已创建" : "内容已保存");
-        if (isCreate) {
-          router.push(listHref);
-        }
+        onSuccess?.();
       }
     },
   });
@@ -135,17 +128,11 @@ export function ContentForm({
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     event.stopPropagation();
-
-    setIsSubmitting(true);
-    try {
-      await form.handleSubmit();
-    } finally {
-      setIsSubmitting(false);
-    }
+    await form.handleSubmit();
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl space-y-4">
+    <form id={id} ref={formRef} onSubmit={handleSubmit} className="max-w-xl space-y-4">
       {value?.id ? (
         <input type="hidden" name="id" value={String(value.id)} />
       ) : null}
@@ -237,18 +224,6 @@ export function ContentForm({
         fields={fields}
         onUpdateField={updateField}
       />
-
-      <div className="flex gap-2">
-        <Button
-          type="submit"
-          disabled={isSubmitting || categories.length === 0}
-        >
-          {submitLabel}
-        </Button>
-        <LinkButton href={listHref} variant="ghost">
-          取消
-        </LinkButton>
-      </div>
     </form>
   );
 }

@@ -1,10 +1,13 @@
 import { ListCategoriesQuery } from "@reeka-office/domain-cms"
 import Link from "next/link"
 
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { LinkButton } from "@/components/ui/link-button"
+
+import { CategoryFormEdit } from "@/components/cms/category-form-edit"
 
 import { updateCategoryAction } from "../../actions"
-import { CategoryForm } from "../../category-form"
 
 function parseId(value: string): number {
   const id = Number(value)
@@ -46,10 +49,9 @@ export default async function CmsCategoryEditPage({
         <p className="text-muted-foreground text-sm">修改后将应用到该分类下后续内容录入。</p>
       </div>
 
-      <CategoryForm
+      <CategoryFormEdit
         action={updateCategoryAction}
-        submitLabel="保存分类"
-        listHref="/cms/categories"
+        id="category-form"
         value={{
           id: category.id,
           name: category.name,
@@ -58,6 +60,11 @@ export default async function CmsCategoryEditPage({
           fieldSchema: category.fieldSchema,
         }}
       />
+
+      <div className="flex gap-2 max-w-xl">
+        <Button type="submit" form="category-form">保存分类</Button>
+        <LinkButton href="/cms/categories" variant="ghost">取消</LinkButton>
+      </div>
     </div>
   )
 }

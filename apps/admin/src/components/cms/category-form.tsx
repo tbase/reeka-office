@@ -1,39 +1,45 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
-import { useRouter } from "next/navigation"
-import { useRef, useState } from "react"
-import { toast } from "sonner"
+import { useForm } from "@tanstack/react-form";
+import { useRef } from "react";
+import { toast } from "sonner";
 
-import { FieldSchemaEditor, type FieldSchemaItem } from "@/components/cms/field-schema-editor"
-import { Button } from "@/components/ui/button"
-import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { LinkButton } from "@/components/ui/link-button"
+import {
+  FieldSchemaEditor,
+  type FieldSchemaItem,
+} from "@/components/cms/field-schema-editor";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-type CategoryFormValue = {
-  id?: number
-  name?: string
-  slug?: string
-  description?: string | null
-  fieldSchema?: FieldSchemaItem[]
-}
+export type CategoryFormValue = {
+  id?: number;
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  fieldSchema?: FieldSchemaItem[];
+};
 
 export function CategoryForm({
   action,
-  submitLabel,
   value,
-  listHref,
+  id,
+  onSuccess,
 }: {
-  action: (formData: FormData) => { success: true } | void | Promise<{ success: true } | void>
-  submitLabel: string
-  value?: CategoryFormValue
-  listHref: string
+  action: (
+    formData: FormData,
+  ) => { success: true } | void | Promise<{ success: true } | void>;
+  value?: CategoryFormValue;
+  id?: string;
+  onSuccess?: () => void;
 }) {
-  const router = useRouter()
-  const formRef = useRef<HTMLFormElement>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm({
     defaultValues: {
@@ -42,45 +48,42 @@ export function CategoryForm({
       description: value?.description ?? "",
     },
     onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) {
-        return
-      }
+      if (!formRef.current) return;
 
-      const formData = new FormData(formRef.current)
-      formData.set("name", formValue.name)
-      formData.set("slug", formValue.slug)
-      formData.set("description", formValue.description)
+      const formData = new FormData(formRef.current);
+      formData.set("name", formValue.name);
+      formData.set("slug", formValue.slug);
+      formData.set("description", formValue.description);
 
       if (value?.id) {
-        formData.set("id", String(value.id))
+        formData.set("id", String(value.id));
       }
 
-      const result = await action(formData)
+      const result = await action(formData);
       if (result?.success) {
-        const isCreate = !value?.id
-        toast.success(isCreate ? "分类已创建" : "分类已保存")
-        if (isCreate) {
-          router.push(listHref)
-        }
+        const isCreate = !value?.id;
+        toast.success(isCreate ? "分类已创建" : "分类已保存");
+        onSuccess?.();
       }
     },
-  })
+  });
 
-  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-
-    setIsSubmitting(true)
-    try {
-      await form.handleSubmit()
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await form.handleSubmit();
+  };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl space-y-4">
-      {value?.id ? <input type="hidden" name="id" value={String(value.id)} /> : null}
+    <form
+      id={id}
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="max-w-xl space-y-4"
+    >
+      {value?.id ? (
+        <input type="hidden" name="id" value={String(value.id)} />
+      ) : null}
 
       <form.Field
         name="name"
@@ -90,7 +93,7 @@ export function CategoryForm({
         }}
       >
         {(field) => {
-          const hasError = field.state.meta.errors.length > 0
+          const hasError = field.state.meta.errors.length > 0;
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
@@ -109,7 +112,7 @@ export function CategoryForm({
                 </FieldError>
               </FieldContent>
             </Field>
-          )
+          );
         }}
       </form.Field>
 
@@ -153,14 +156,12 @@ export function CategoryForm({
       <Field>
         <FieldContent>
           <FieldLabel>字段定义</FieldLabel>
-        <FieldSchemaEditor inputName="fieldSchema" defaultValue={value?.fieldSchema} />
+          <FieldSchemaEditor
+            inputName="fieldSchema"
+            defaultValue={value?.fieldSchema}
+          />
         </FieldContent>
       </Field>
-
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting}>{submitLabel}</Button>
-        <LinkButton href={listHref} variant="ghost">取消</LinkButton>
-      </div>
     </form>
-  )
+  );
 }
