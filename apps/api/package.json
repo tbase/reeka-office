@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@reeka-office/domain-cms": "workspace:*",
-    "@reeka-office/domain-user": "workspace:*",
     "@reeka-office/domain-point": "workspace:*",
+    "@reeka-office/domain-user": "workspace:*",
     "@reeka-office/jsonrpc": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "mysql2": "^3.18.0",
