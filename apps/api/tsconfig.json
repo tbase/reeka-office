@@ -6,7 +6,7 @@
   },
   
   "include": [
-    "**/*.ts",
+    "**/*.ts", "../admin/src/lib/cos.ts",
   ],
   "exclude": ["node_modules"]
 }

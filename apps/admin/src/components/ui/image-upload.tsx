@@ -7,6 +7,15 @@ import { ImagePlusIcon, Loader2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+function buildAssetSrc(value?: string): string {
+  if (!value) {
+    return ""
+  }
+
+  const normalized = value.trim().replace(/^\/+/, "")
+  return normalized ? `/assets/${normalized}` : ""
+}
+
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData()
   formData.append("file", file)
@@ -16,17 +25,19 @@ async function uploadFile(file: File): Promise<string> {
     body: formData,
   })
 
-  const data = await res.json() as { url?: string; error?: string }
+  const data = await res.json() as { path?: string; error?: string }
 
   if (!res.ok) {
     throw new Error(data.error ?? "上传失败")
   }
 
-  if (!data.url) {
-    throw new Error("服务器未返回文件地址")
+  const path = data.path?.trim().replace(/^\/+/, "") ?? ""
+
+  if (!path) {
+    throw new Error("服务器未返回文件路径")
   }
 
-  return data.url
+  return path
 }
 
 export function ImageUpload({
@@ -51,6 +62,7 @@ export function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const hasImage = Boolean(value?.trim())
+  const imageSrc = buildAssetSrc(value)
 
   const openPicker = () => {
     if (disabled || uploading) {
@@ -77,8 +89,8 @@ export function ImageUpload({
 
           setUploading(true)
           try {
-            const url = await uploadFile(file)
-            onChangeAction(url)
+            const path = await uploadFile(file)
+            onChangeAction(path)
           } catch (err) {
             const error = err instanceof Error ? err : new Error("上传失败")
             onError?.(error)
@@ -103,7 +115,7 @@ export function ImageUpload({
           </div>
         ) : hasImage ? (
           <Image
-            src={value ?? ""}
+            src={imageSrc}
             alt={alt ?? "上传图片"}
             fill
             unoptimized

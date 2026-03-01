@@ -112,6 +112,50 @@ export async function getFromCOS<T>(
 }
 
 /**
+ * 从 COS 读取文件原始内容（用于代理转发）
+ * @param bucket 存储桶名称
+ * @param region 存储桶地域
+ * @param cloudPath 云上路径
+ * @returns 原始 Buffer、Content-Type 和 Content-Length
+ */
+export async function getFromCOSRaw(
+  bucket: string,
+  region: string,
+  cloudPath: string
+): Promise<{ body: Buffer; contentType: string | undefined; contentLength: number | undefined }> {
+  const cos = await initCOS();
+  const result = await cos.getObject({
+    Bucket: bucket,
+    Region: region,
+    Key: cloudPath,
+  });
+
+  if (result.statusCode === 404) {
+    throw new Error(`NoSuchKey: ${cloudPath}`);
+  }
+
+  if (result.statusCode !== 200) {
+    throw new Error(`读取文件失败: ${result.statusCode}`);
+  }
+
+  const rawBody = result.Body;
+  if (!rawBody) {
+    throw new Error("文件内容为空");
+  }
+
+  const body = Buffer.isBuffer(rawBody)
+    ? rawBody
+    : Buffer.from(typeof rawBody === "string" ? rawBody : (rawBody as Uint8Array));
+
+  const headers = result.headers as Record<string, string> | undefined;
+  const contentType = headers?.["content-type"] ?? headers?.["Content-Type"];
+  const rawLen = headers?.["content-length"] ?? headers?.["Content-Length"];
+  const contentLength = rawLen !== undefined ? Number(rawLen) : body.byteLength;
+
+  return { body, contentType, contentLength };
+}
+
+/**
  * 上传文件到 COS
  * @param bucket 存储桶名称
  * @param region 存储桶地域，默认 ap-shanghai

@@ -85,7 +85,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "上传失败，请稍后重试" }, { status: 500 })
   }
 
-  // 返回公网 HTTPS URL（bucket 需配置公有读）
-  const url = `https://${bucket}.cos.${region}.myqcloud.com/${cloudPath}`
-  return NextResponse.json({ url })
+  return NextResponse.json({ path: cloudPath })
 }
