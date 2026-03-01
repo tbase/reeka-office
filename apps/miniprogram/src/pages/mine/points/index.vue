@@ -1,25 +1,33 @@
 <script setup lang="ts">
 import { computed } from 'wevu'
 
-import { usePointSummaryStore, useRedeemItemsStore, type RedeemItem } from '@/stores/points'
+import { usePointSummaryStore, useRedeemItemsStore } from '@/stores/points'
 
 definePageJson({
   navigationBarTitleText: '我的积分',
   backgroundColor: '#f6f7fb',
 })
 
+type RedeemItem = {
+  id: string;
+  name: string;
+  cost: number;
+  stock: number;
+  intro: string;
+}
+
 const { summary } = usePointSummaryStore()
 const { items } = useRedeemItemsStore()
 
 const member = computed(() => summary.value ?? {
-  name: '',
-  totalPoints: 0,
+  agentCode: '',
+  currentPoints: 0,
 })
 
 const redeemItems = computed<RedeemItem[]>(() => items.value ?? [])
 
 const canRedeemCount = computed(() =>
-  redeemItems.value.filter((item: RedeemItem) => member.value.totalPoints >= item.cost).length,
+  redeemItems.value.filter((item: RedeemItem) => member.value.currentPoints >= item.cost).length,
 )
 
 const goPointDetail = () => {
@@ -45,8 +53,8 @@ const goRedeemDetail = (id: string) => {
 <template>
   <view class="min-h-screen bg-slate-100 px-4 pb-16 pt-4 text-slate-900">
     <view class="rounded-xl bg-white p-4 shadow-lg">
-      <text class="block text-sm text-slate-500">{{ member.name }}</text>
-      <text class="mt-1 block text-3xl font-bold text-slate-900">{{ member.totalPoints }}</text>
+      <text class="block text-sm text-slate-500">{{ member.agentCode }}</text>
+      <text class="mt-1 block text-3xl font-bold text-slate-900">{{ member.currentPoints }}</text>
       <text class="text-sm text-slate-500">当前积分总额</text>
 
       <view class="mt-4 grid grid-cols-2 gap-3">

@@ -11,10 +11,9 @@ definePageJson({
 const { user } = useUserStore()
 
 const member = computed(() => {
-  const code = user.value?.agentCode?.trim().toUpperCase() ?? ''
   return {
-    name: user.value?.agentName ?? code,
-    code,
+    agentName: user.value?.agentName ?? '',
+    agentCode: user.value?.agentCode ?? '',
     avatar: user.value?.avatar ?? null,
   }
 })
@@ -31,10 +30,10 @@ const goMyPoints = () => {
     <view class="px-4 py-10">
       <view class="mx-auto h-32 w-32 rounded-full border-2 border-slate-300" />
       <text class="mt-5 block text-center text-xl font-semibold tracking-wide text-slate-900">
-        {{ member.name }}
+        {{ member.agentName }}
       </text>
       <text class="mt-3 block text-center text-base text-slate-600">
-        CODE: {{ member.code }}
+        CODE: {{ member.agentCode }}
       </text>
     </view>
 

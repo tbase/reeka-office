@@ -2,7 +2,8 @@
 import { computed } from 'wevu'
 
 import { useMutation } from '@/hooks/useMutation'
-import { useRedeemDetailStore } from '@/stores/points'
+import { usePointSummaryStore, useRedeemItemsStore } from '@/stores/points'
+import { useUserStore } from '@/stores/user'
 
 definePageJson({
   navigationBarTitleText: '兑换详情',
@@ -10,30 +11,33 @@ definePageJson({
 })
 
 const selectedId = wx.getStorageSync('mine_redeem_item_id') as string
-const { detail, refetch, agentCode } = useRedeemDetailStore(selectedId)
-const memberPoints = computed(() => detail.value?.memberPoints ?? 0)
-const item = computed(() => detail.value?.item ?? {
-  id: '',
-  name: '',
-  cost: 0,
-  stock: 0,
-  desc: '',
-  notes: [],
+const { summary } = usePointSummaryStore()
+const { items } = useRedeemItemsStore()
+const { user } = useUserStore()
+
+const memberPoints = computed(() => summary.value?.currentPoints ?? 0)
+const item = computed(() => {
+  const foundItem = items.value?.find((item) => item.id === selectedId)
+  return foundItem || {
+    id: selectedId,
+    name: '商品未找到',
+    cost: 0,
+    stock: 0,
+    intro: '',
+  }
 })
 
+const agentCode = computed(() => user.value?.agentCode ?? '')
 const pointsAfterRedeem = computed(() => memberPoints.value - item.value.cost)
 const canRedeem = computed(() => memberPoints.value >= item.value.cost && item.value.stock > 0)
 
-const { mutate: submitRedeem, loading: redeeming } = useMutation('point/submitRedeem', {
+const { mutate: submitRedeem, loading: redeeming } = useMutation('points/submitRedeem', {
   showLoading: '兑换中...',
   onSuccess: async (result) => {
     wx.showToast({
       title: result.message,
       icon: result.success ? 'success' : 'none',
     })
-    if (result.success) {
-      await refetch()
-    }
   },
   onError: (error) => {
     wx.showToast({
@@ -59,7 +63,7 @@ const handleRedeem = async () => {
   <view class="min-h-screen bg-slate-100 px-4 pb-16 pt-4 text-slate-900">
     <view class="rounded-xl bg-white p-4 shadow-lg">
       <text class="block text-lg font-semibold text-slate-900">{{ item.name }}</text>
-      <text class="mt-2 block text-sm text-slate-500">{{ item.desc }}</text>
+      <text class="mt-2 block text-sm text-slate-500">{{ item.intro }}</text>
 
       <view class="mt-4 rounded-lg bg-slate-50 p-3">
         <view class="flex items-center justify-between">
@@ -81,13 +85,6 @@ const handleRedeem = async () => {
           <text class="text-sm text-slate-900">{{ item.stock }}</text>
         </view>
       </view>
-    </view>
-
-    <view class="mt-4 rounded-xl bg-white p-4 shadow-lg">
-      <text class="text-base font-semibold text-slate-900">兑换须知</text>
-      <text v-for="note in item.notes" :key="note" class="mt-2 block text-sm text-slate-500">
-        - {{ note }}
-      </text>
     </view>
 
     <view

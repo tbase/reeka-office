@@ -1,12 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'wevu'
 
-import { usePointRecordsStore, type PointRecord } from '@/stores/points'
+import { usePointRecordsStore } from '@/stores/points'
 
 definePageJson({
   navigationBarTitleText: '积分明细',
   backgroundColor: '#f6f7fb',
 })
+
+type PointRecord = {
+  id: string;
+  title: string;
+  scene: string;
+  points: number;
+  date: string;
+  expired: boolean;
+  note: string;
+}
 
 const activeFilter = ref<'all' | 'expired'>('all')
 const { records } = usePointRecordsStore()
