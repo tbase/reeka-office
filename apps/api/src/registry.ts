@@ -1,6 +1,6 @@
 import { rpc } from "./context";
 import { listServiceCategories } from "./rpc/cms";
-import { getMineSummary, getRedeemDetail, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
+import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
 import { bindAgent, getCurrentUser } from "./rpc/user";
 
 type PrefixKeys<P extends string, T> = {
@@ -29,19 +29,18 @@ const userRegistry = rpc.registry({
   getCurrentUser,
 });
 
-const pointRegistry = rpc.registry({
+const pointsRegistry = rpc.registry({
   getMineSummary,
   listRedeemItems,
   listPointRecords,
   listPointRuleScenes,
   listPointRules,
-  getRedeemDetail,
   submitRedeem,
 });
 export const registry = {
   ...prefixRegistry("cms", cmsRegistry),
   ...prefixRegistry("user", userRegistry),
-  ...prefixRegistry("point", pointRegistry),
+  ...prefixRegistry("points", pointsRegistry),
 };
 
 export type APIRegistry = typeof registry;

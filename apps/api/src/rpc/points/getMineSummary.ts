@@ -6,8 +6,8 @@ import { agentInputSchema } from "./shared";
 
 export type GetMineSummaryInput = z.infer<typeof agentInputSchema>;
 export type GetMineSummaryOutput = {
-  name: string;
-  totalPoints: number;
+  agentCode: string;
+  currentPoints: number;
 };
 
 export const getMineSummary = rpc.define({
@@ -17,8 +17,8 @@ export const getMineSummary = rpc.define({
     const balance = await new GetAgentPointBalanceQuery({ agentCode: code }).query();
 
     return {
-      name: code,
-      totalPoints: balance?.currentPoints ?? 0,
+      agentCode: code,
+      currentPoints: balance?.currentPoints ?? 0,
     };
   },
 });
