@@ -1,3 +1,6 @@
+import { CmsDB } from "@reeka-office/domain-cms"
+import { PointDB } from "@reeka-office/domain-point"
+
 export async function register() {
   const [{ cmsSchema, setup: setupCms }, { pointSchema, setup: setupPoint }, { createDb }] = await Promise.all([
     import("@reeka-office/domain-cms"),
@@ -6,8 +9,8 @@ export async function register() {
   ])
 
   const cmsDb = createDb(cmsSchema)
-  setupCms({ db: cmsDb })
+  setupCms({ db: cmsDb as unknown as CmsDB })
 
   const pointDb = createDb(pointSchema)
-  setupPoint({ db: pointDb })
+  setupPoint({ db: pointDb as unknown as PointDB })
 }
