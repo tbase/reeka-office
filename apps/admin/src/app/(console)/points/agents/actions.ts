@@ -2,7 +2,6 @@
 
 import { CreatePointRecordCommand } from "@reeka-office/domain-point"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 const DEFAULT_OPERATOR_ID = 1
 const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/
@@ -48,7 +47,7 @@ function parseOptionalPositiveInt(value: FormDataEntryValue | null, label: strin
 
 export async function createAgentPointRecordAction(
   formData: FormData,
-): Promise<{ error: string } | null> {
+): Promise<{ success: true } | { error: string }> {
   try {
     const agentCode = parseAgentCode(formData.get("agentCode"))
     const pointItemId = parseId(formData.get("pointItemId"), "积分事项")
@@ -64,11 +63,9 @@ export async function createAgentPointRecordAction(
     }).execute()
 
     revalidatePath("/points/agents")
-    redirect(`/points/agents?agentCode=${agentCode}`)
+    return { success: true }
   } catch (e) {
     if (isNextInternalError(e)) throw e
     return { error: e instanceof Error ? e.message : "操作失败，请重试" }
   }
-
-  return null
 }

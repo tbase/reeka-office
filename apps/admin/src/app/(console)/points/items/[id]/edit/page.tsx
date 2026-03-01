@@ -1,9 +1,10 @@
 import { ListPointItemsQuery } from "@reeka-office/domain-point"
-import Link from "next/link"
+import { notFound } from "next/navigation"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { LinkButton } from "@/components/ui/link-button"
+import { PointItemFormEdit } from "@/components/points/point-item-form-edit"
 
-import { PointItemForm } from "../../point-item-form"
 import { updatePointItemAction } from "../../actions"
 
 function parseId(value: string): number {
@@ -26,32 +27,38 @@ export default async function PointItemEditPage({
   const item = items.find((row) => row.id === id) ?? null
 
   if (!item) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>积分事项不存在</CardTitle>
-          <CardDescription>该事项可能已被删除。</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/points/items">返回积分事项列表</Link>
-        </CardContent>
-      </Card>
-    )
+    notFound()
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">编辑积分事项：{item.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          编辑积分事项：{item.name}
+        </h1>
         <p className="text-muted-foreground text-sm">修改后会影响后续积分发放规则。</p>
       </div>
 
-      <PointItemForm
+      <PointItemFormEdit
         action={updatePointItemAction}
-        submitLabel="保存事项"
-        cancelHref="/points/items"
-        value={item}
+        id="point-item-form"
+        value={{
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          pointAmount: item.pointAmount,
+          annualLimit: item.annualLimit,
+        }}
       />
+
+      <div className="flex gap-2">
+        <Button type="submit" form="point-item-form">
+          保存事项
+        </Button>
+        <LinkButton href="/points/items" variant="ghost">
+          取消
+        </LinkButton>
+      </div>
     </div>
   )
 }
