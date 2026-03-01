@@ -2,7 +2,7 @@ import { computed, type ComputedRef, type Ref } from 'wevu'
 
 import { useQuery } from '@/hooks/useQuery'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from './user'
 
 type MineSummary = RpcOutput<'point/getMineSummary'>
 type RedeemItems = RpcOutput<'point/listRedeemItems'>

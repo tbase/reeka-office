@@ -1,20 +1,8 @@
-import type { RpcMethod } from "@reeka-office/jsonrpc";
-import type { RequestContext } from "./shared";
+export { getMineSummary } from "./getMineSummary";
+export { getRedeemDetail } from "./getRedeemDetail";
+export { listPointRecords } from "./listPointRecords";
+export { listPointRules } from "./listPointRules";
+export { listPointRuleScenes } from "./listPointRuleScenes";
+export { listRedeemItems } from "./listRedeemItems";
+export { submitRedeem } from "./submitRedeem";
 
-import { getMineSummary } from "./getMineSummary";
-import { getRedeemDetail } from "./getRedeemDetail";
-import { listPointRecords } from "./listPointRecords";
-import { listPointRules } from "./listPointRules";
-import { listPointRuleScenes } from "./listPointRuleScenes";
-import { listRedeemItems } from "./listRedeemItems";
-import { submitRedeem } from "./submitRedeem";
-
-export const pointsRegistry: Record<string, RpcMethod<RequestContext>> = {
-  getMineSummary,
-  listRedeemItems,
-  listPointRecords,
-  listPointRuleScenes,
-  listPointRules,
-  getRedeemDetail,
-  submitRedeem,
-};

@@ -1,8 +1,8 @@
 import { GetAgentPointBalanceQuery } from "@reeka-office/domain-point";
-import { defineFunc } from "@reeka-office/jsonrpc";
 import type { z } from "zod";
+import { rpc } from "../../context";
 
-import { agentInputSchema, type RequestContext } from "./shared";
+import { agentInputSchema } from "./shared";
 
 export type GetMineSummaryInput = z.infer<typeof agentInputSchema>;
 export type GetMineSummaryOutput = {
@@ -10,10 +10,10 @@ export type GetMineSummaryOutput = {
   totalPoints: number;
 };
 
-export const getMineSummary = defineFunc<RequestContext, typeof agentInputSchema, GetMineSummaryOutput>({
+export const getMineSummary = rpc.define({
   inputSchema: agentInputSchema,
   execute: async ({ context }): Promise<GetMineSummaryOutput> => {
-    const code = context.user.agentCode.toUpperCase();
+    const code = context.user!.agentCode!
     const balance = await new GetAgentPointBalanceQuery({ agentCode: code }).query();
 
     return {

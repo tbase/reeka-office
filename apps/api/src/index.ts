@@ -1,23 +1,16 @@
 import { type CmsDB, cmsSchema, setup as setupDomainCms } from "@reeka-office/domain-cms";
 import { type PointDB, pointSchema, setup as setupDomainPoint } from "@reeka-office/domain-point";
-import { GetUserQuery, setup as setupDomainUser, type User, type UserDB, userSchema } from "@reeka-office/domain-user";
-import { handleRPC, RpcError, RpcErrorCode, type RpcMethod } from "@reeka-office/jsonrpc";
+import { GetUserQuery, setup as setupDomainUser, type UserDB, userSchema } from "@reeka-office/domain-user";
+import { handleRPC, RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 
-import { config } from "@/config";
-import { cmsRegistry } from "@/rpc/cms";
-import { userRegistry } from "@/rpc/user";
-import { pointsRegistry } from "@/rpc/points";
+import { config } from "./config";
+import type { APIContext } from "./context";
+import { registry } from "./registry";
 
-type RequestContext = {
-  openid: string;
-  envid: string;
-  user: User;
-};
-
-async function createContext(req: Request): Promise<RequestContext | { openid: string; envid: string; user: null }> {
+async function createContext(req: Request): Promise<APIContext> {
   console.log("createContext", req.headers);
   const openid = req.headers.get("x-wx-openid") ?? req.headers.get("x-wx-from-openid");
   const envid = req.headers.get("x-wx-env");
@@ -45,24 +38,7 @@ async function createContext(req: Request): Promise<RequestContext | { openid: s
   return { openid, envid, user };
 }
 
-function prefixRegistry(
-  prefix: string,
-  methods: Record<string, RpcMethod<unknown>>,
-): Record<string, RpcMethod<unknown>> {
-  const result: Record<string, RpcMethod<unknown>> = {};
 
-  for (const [key, method] of Object.entries(methods)) {
-    result[`${prefix}/${key}`] = method;
-  }
-
-  return result;
-}
-
-const registry: Record<string, RpcMethod<unknown>> = {
-  ...prefixRegistry("cms", cmsRegistry),
-  ...prefixRegistry("user", userRegistry),
-  ...prefixRegistry("point", pointsRegistry as Record<string, RpcMethod<unknown>>),
-};
 
 let pool: mysql.Pool | null = null;
 

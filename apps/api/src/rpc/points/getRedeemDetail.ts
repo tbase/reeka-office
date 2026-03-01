@@ -1,11 +1,11 @@
 import { GetAgentPointBalanceQuery, ListRedemptionProductsQuery } from "@reeka-office/domain-point";
-import { defineFunc, RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
+import { RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
 import type { z } from "zod";
 
+import { rpc } from "../../context";
 import {
   parseNotes,
-  redeemDetailInputSchema,
-  type RequestContext,
+  redeemDetailInputSchema
 } from "./shared";
 
 export type GetRedeemDetailInput = z.infer<typeof redeemDetailInputSchema>;
@@ -21,14 +21,10 @@ export type GetRedeemDetailOutput = {
   };
 };
 
-export const getRedeemDetail = defineFunc<
-  RequestContext,
-  typeof redeemDetailInputSchema,
-  GetRedeemDetailOutput
->({
+export const getRedeemDetail = rpc.define({
   inputSchema: redeemDetailInputSchema,
   execute: async ({ input, context }): Promise<GetRedeemDetailOutput> => {
-    const code = context.user.agentCode.toUpperCase();
+    const code = context.user!.agentCode!
 
     const [products, balance] = await Promise.all([
       new ListRedemptionProductsQuery({ status: "published" }).query(),

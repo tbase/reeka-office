@@ -1,8 +1,9 @@
 import { BindAgentCommand } from "@reeka-office/domain-user";
-import { createRpcError, defineFunc } from "@reeka-office/jsonrpc";
+import { createRpcError } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
-import { config } from "@/config";
+import { config } from "../../config";
+import { rpc } from "../../context";
 
 const inputSchema = z.object({
   token: z.string().min(1),
@@ -24,9 +25,9 @@ export type BindAgentOutput = {
   agentName: string;
 };
 
-export const bindAgent = defineFunc<unknown, typeof inputSchema, BindAgentOutput>({
+export const bindAgent = rpc.define({
   inputSchema,
-  execute: async ({ input, context }): Promise<BindAgentOutput> => {
+  execute: async ({ input, context }) => {
     const { openid } = context as RequestContext;
 
     let response: Response;

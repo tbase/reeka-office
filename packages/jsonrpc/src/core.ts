@@ -7,7 +7,7 @@ export type RpcMethodWithTypes<TContext, TInput extends z.ZodType, TOutput> = Rp
   readonly __outputType: TOutput;
 };
 
-export function defineFunc<
+function defineFunc<
   TContext = unknown,
   TInput extends z.ZodType = z.ZodVoid,
   TOutput = unknown
@@ -18,6 +18,22 @@ export function defineFunc<
     inputSchema: options.inputSchema,
     execute: options.execute as RpcMethod<TContext>["execute"],
   } as RpcMethodWithTypes<TContext, TInput, TOutput>;
+}
+
+export function createRpc<TContext>() {
+  function define<TInput extends z.ZodType = z.ZodVoid, TOutput = unknown>(
+    options: RpcMethodOptions<TContext, TInput, TOutput>
+  ): RpcMethodWithTypes<TContext, TInput, TOutput> {
+    return defineFunc<TContext, TInput, TOutput>(options);
+  }
+
+  function registry<T extends Record<string, RpcMethodWithTypes<TContext, z.ZodType, unknown>>>(
+    methods: T
+  ): T {
+    return methods;
+  }
+
+  return { define, registry };
 }
 
 export class RpcError extends Error {

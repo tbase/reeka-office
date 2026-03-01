@@ -1,6 +1,6 @@
-import { defineFunc } from "@reeka-office/jsonrpc";
+import { rpc } from "../../context";
 
-export const listServiceCategories = defineFunc({
+export const listServiceCategories = rpc.define({
   execute: async () => {
     return [
       { id: 1, name: "Web Development" },

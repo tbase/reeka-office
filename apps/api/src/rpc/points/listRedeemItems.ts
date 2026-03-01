@@ -1,8 +1,7 @@
 import { ListRedemptionProductsQuery } from "@reeka-office/domain-point";
-import { defineFunc } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
-import type { RequestContext } from "./shared";
+import { rpc } from "../../context";
 
 const inputSchema = z.void();
 
@@ -15,7 +14,7 @@ export type ListRedeemItemsOutput = Array<{
   intro: string;
 }>;
 
-export const listRedeemItems = defineFunc<RequestContext, typeof inputSchema, ListRedeemItemsOutput>({
+export const listRedeemItems = rpc.define({
   inputSchema,
   execute: async () => {
     const products = await new ListRedemptionProductsQuery({ status: "published" }).query();

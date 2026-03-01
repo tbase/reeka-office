@@ -15,7 +15,7 @@ export type {
 export { RpcErrorCode } from "./types";
 
 export type { RpcMethodWithTypes } from "./core";
-export { defineFunc, RpcError, createRpcError } from "./core";
+export { createRpc, RpcError, createRpcError } from "./core";
 
 export type { HandleRpcOptions } from "./handler";
 export { handleRPC } from "./handler";

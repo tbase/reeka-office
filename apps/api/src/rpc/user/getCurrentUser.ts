@@ -1,6 +1,6 @@
 import { GetUserQuery, type GetUserResult } from "@reeka-office/domain-user";
-import { defineFunc } from "@reeka-office/jsonrpc";
 import { z } from "zod";
+import { rpc } from "../../context";
 
 const inputSchema = z.void();
 
@@ -12,10 +12,10 @@ type RequestContext = {
 export type GetCurrentUserInput = z.infer<typeof inputSchema>;
 export type GetCurrentUserOutput = GetUserResult | null;
 
-export const getCurrentUser = defineFunc<unknown, typeof inputSchema, GetCurrentUserOutput>({
+export const getCurrentUser = rpc.define({
   inputSchema,
-  execute: async ({ context }): Promise<GetCurrentUserOutput> => {
+  execute: async ({ context }) => {
     const { openid } = context as RequestContext;
     return new GetUserQuery({ openid }).query();
-  },
+  }
 });

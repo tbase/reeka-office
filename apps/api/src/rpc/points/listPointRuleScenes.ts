@@ -1,15 +1,14 @@
 import { ListPointItemsQuery } from "@reeka-office/domain-point";
-import { defineFunc } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
-import type { RequestContext } from "./shared";
+import { rpc } from "../../context";
 
 const inputSchema = z.void();
 
 export type ListPointRuleScenesInput = z.infer<typeof inputSchema>;
 export type ListPointRuleScenesOutput = string[];
 
-export const listPointRuleScenes = defineFunc<RequestContext, typeof inputSchema, ListPointRuleScenesOutput>({
+export const listPointRuleScenes = rpc.define({
   inputSchema,
   execute: async () => {
     const items = await new ListPointItemsQuery().query();

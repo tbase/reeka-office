@@ -1,20 +1,16 @@
 import { RedeemProductCommand } from "@reeka-office/domain-point";
-import { defineFunc } from "@reeka-office/jsonrpc";
 import type { z } from "zod";
 
-import { redeemSubmitInputSchema, type RequestContext } from "./shared";
+import { rpc } from "../../context";
+import { redeemSubmitInputSchema } from "./shared";
 
 export type SubmitRedeemInput = z.infer<typeof redeemSubmitInputSchema>;
 export type SubmitRedeemOutput = { success: boolean; message: string };
 
-export const submitRedeem = defineFunc<
-  RequestContext,
-  typeof redeemSubmitInputSchema,
-  SubmitRedeemOutput
->({
+export const submitRedeem = rpc.define({
   inputSchema: redeemSubmitInputSchema,
-  execute: async ({ input, context }): Promise<SubmitRedeemOutput> => {
-    const code = context.user.agentCode.toUpperCase();
+  execute: async ({ input, context }) => {
+    const code = context.user!.agentCode!
 
     try {
       await new RedeemProductCommand({
