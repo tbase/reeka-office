@@ -8,7 +8,7 @@ import {
   TicketPlusIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { signOut } from "@/lib/auth-client";
 
@@ -77,9 +77,10 @@ const menuGroups = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-
+  const router = useRouter();
   async function handleSignOut() {
     await signOut();
+    router.push("/login");
   }
 
   return (
