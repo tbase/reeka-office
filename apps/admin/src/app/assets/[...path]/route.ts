@@ -35,6 +35,7 @@ export async function GET(
   }
 
   try {
+    console.log("[assets] 读取 COS 文件:", key)
     const { body, contentType, contentLength } = await getFromCOSRaw(bucket, region, key)
 
     const responseHeaders: Record<string, string> = {
