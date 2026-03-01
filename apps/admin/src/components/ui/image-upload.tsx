@@ -1,19 +1,10 @@
 "use client";
 
 import { ImagePlusIcon, Loader2Icon, Trash2Icon } from "lucide-react";
-import Image from "next/image";
 import { useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
-
-function buildAssetSrc(value?: string): string {
-  if (!value) {
-    return "";
-  }
-
-  const normalized = value.trim().replace(/^\/+/, "");
-  return normalized ? `/assets/${normalized}` : "";
-}
+import Image from "next/image";
 
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData();
@@ -61,7 +52,6 @@ export function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const hasImage = Boolean(value?.trim());
-  const imageSrc = buildAssetSrc(value);
 
   const openPicker = () => {
     if (disabled || uploading) {
@@ -115,7 +105,7 @@ export function ImageUpload({
             </div>
           ) : hasImage ? (
             <Image
-              src={imageSrc}
+              src={`/${value}`}
               alt={alt ?? "上传图片"}
               fill
               className="object-cover"
