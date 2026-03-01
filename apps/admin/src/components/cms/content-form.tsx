@@ -132,7 +132,12 @@ export function ContentForm({
   };
 
   return (
-    <form id={id} ref={formRef} onSubmit={handleSubmit} className="max-w-xl space-y-4">
+    <form
+      id={id}
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="max-w-xl space-y-4"
+    >
       {value?.id ? (
         <input type="hidden" name="id" value={String(value.id)} />
       ) : null}
@@ -172,7 +177,7 @@ export function ContentForm({
         name="name"
         validators={{
           onSubmit: ({ value: fieldValue }) =>
-            fieldValue.trim().length > 0 ? undefined : "内容名称不能为空",
+            fieldValue.trim().length > 0 ? undefined : "标题不能为空",
         }}
       >
         {(field) => {
@@ -180,14 +185,14 @@ export function ContentForm({
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
-                <FieldLabel htmlFor={field.name}>内容名称</FieldLabel>
+                <FieldLabel htmlFor={field.name}>标题</FieldLabel>
                 <Input
                   id={field.name}
                   name="name"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="内容名称"
+                  placeholder="标题"
                   required
                 />
                 <FieldError>

@@ -13,7 +13,7 @@ import {
   TypeIcon,
 } from "lucide-react"
 import type { ReactNode } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import type { FieldSchemaItem, FieldSchemaItemCommon, FieldSchemaItemOptions } from "@reeka-office/domain-cms"
 
@@ -36,6 +36,8 @@ import {
 import { SimpleSelect } from "@/components/ui/simple-select"
 import { Textarea } from "@/components/ui/textarea"
 
+// --- Types ---
+
 type FieldType =
   | "text"
   | "textarea"
@@ -54,6 +56,23 @@ type SheetMode =
   | { type: "edit"; rowId: string }
   | { type: "add"; draft: FieldSchemaItem }
   | null
+
+type OptionsPropsFormProps = {
+  props: FieldSchemaItemOptions["props"]
+  onChange: (props: FieldSchemaItemOptions["props"]) => void
+  optionsSyncRef: React.MutableRefObject<string[] | null>
+}
+
+type FieldSchemaEditorProps = {
+  inputName: string
+  defaultValue?: FieldSchemaItem[]
+}
+
+// --- Constants ---
+
+const LABEL_UNNAMED = "未命名字段"
+const OPTIONS_PLACEHOLDER = "选项A\n选项B\n选项C"
+const OPTIONS_HELP = "每行一个选项。"
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   text: "文本",
@@ -87,6 +106,12 @@ const EMPTY_FIELD: FieldSchemaItemCommon = {
   type: "text",
   required: false,
   placeholder: "",
+}
+
+// --- Helpers ---
+
+function parseOptions(text: string): string[] {
+  return text.split("\n").map((o) => o.trim()).filter(Boolean)
 }
 
 function normalize(items: FieldSchemaItem[]): FieldSchemaItem[] {
@@ -134,13 +159,28 @@ function changeFieldType(field: FieldSchemaItem, nextType: FieldType): FieldSche
   }
 }
 
-function OptionsPropsForm({
-  props,
-  onChange,
-}: {
-  props: FieldSchemaItemOptions["props"]
-  onChange: (props: FieldSchemaItemOptions["props"]) => void
-}) {
+function getEffectiveField(
+  field: FieldSchemaItem,
+  optionsSyncRef: React.MutableRefObject<string[] | null>,
+): FieldSchemaItem {
+  if (field.type === "options" && optionsSyncRef.current) {
+    return { ...field, props: { ...field.props, options: optionsSyncRef.current } }
+  }
+  return field
+}
+
+function OptionsPropsForm({ props, onChange, optionsSyncRef }: OptionsPropsFormProps) {
+  const [rawValue, setRawValue] = useState(() => props.options.join("\n"))
+
+  // Keep ref in sync so "完成" gets latest options without blur
+  useEffect(() => {
+    optionsSyncRef.current = parseOptions(rawValue)
+  }, [rawValue, optionsSyncRef])
+
+  const syncOptionsToParent = (text: string) => {
+    onChange({ ...props, options: parseOptions(text) })
+  }
+
   return (
     <>
       <Field>
@@ -148,17 +188,13 @@ function OptionsPropsForm({
           <FieldLabel htmlFor="field-options">选项列表</FieldLabel>
           <Textarea
             id="field-options"
-            placeholder={"选项A\n选项B\n选项C"}
+            placeholder={OPTIONS_PLACEHOLDER}
             rows={4}
-            value={props.options.join("\n")}
-            onChange={(e) =>
-              onChange({
-                ...props,
-                options: e.target.value.split("\n").map((o) => o.trim()).filter(Boolean),
-              })
-            }
+            value={rawValue}
+            onChange={(e) => setRawValue(e.target.value)}
+            onBlur={(e) => syncOptionsToParent(e.target.value)}
           />
-          <FieldDescription>每行一个选项。</FieldDescription>
+          <FieldDescription>{OPTIONS_HELP}</FieldDescription>
         </FieldContent>
       </Field>
       <Field>
@@ -181,17 +217,12 @@ function OptionsPropsForm({
   )
 }
 
-export function FieldSchemaEditor({
-  inputName,
-  defaultValue,
-}: {
-  inputName: string
-  defaultValue?: FieldSchemaItem[]
-}) {
+export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditorProps) {
   const [rows, setRows] = useState<FieldRow[]>(
     defaultValue?.length ? defaultValue.map(createFieldRow) : [],
   )
   const [sheetMode, setSheetMode] = useState<SheetMode>(null)
+  const optionsSyncRef = useRef<string[] | null>(null)
 
   const serialized = useMemo(
     () => JSON.stringify(normalize(rows.map((row) => row.field))),
@@ -210,8 +241,8 @@ export function FieldSchemaEditor({
 
   const updateFormField = (updater: (field: FieldSchemaItem) => FieldSchemaItem) => {
     if (sheetMode?.type === "edit") {
-      setRows((current) =>
-        current.map((row) =>
+      setRows((prev) =>
+        prev.map((row) =>
           row.id === sheetMode.rowId ? { ...row, field: updater(row.field) } : row,
         ),
       )
@@ -222,9 +253,9 @@ export function FieldSchemaEditor({
   }
 
   const deleteRow = (rowId: string) => {
-    setRows((current) => current.filter((row) => row.id !== rowId))
-    setSheetMode((current) =>
-      current?.type === "edit" && current.rowId === rowId ? null : current,
+    setRows((prev) => prev.filter((row) => row.id !== rowId))
+    setSheetMode((prev) =>
+      prev?.type === "edit" && prev.rowId === rowId ? null : prev,
     )
   }
 
@@ -232,12 +263,20 @@ export function FieldSchemaEditor({
 
   const handleComplete = () => {
     if (!formField) return
+    const effectiveField = getEffectiveField(formField, optionsSyncRef)
+
     if (sheetMode?.type === "add") {
-      const name = formField.name.trim()
-      const label = formField.label.trim()
+      const name = effectiveField.name.trim()
+      const label = effectiveField.label.trim()
       if (name && label) {
-        setRows((current) => [...current, createFieldRow({ ...formField, name, label })])
+        setRows((prev) => [...prev, createFieldRow({ ...effectiveField, name, label })])
       }
+    } else if (sheetMode?.type === "edit" && effectiveField !== formField) {
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === sheetMode.rowId ? { ...row, field: effectiveField } : row,
+        ),
+      )
     }
     closeSheet()
   }
@@ -256,7 +295,7 @@ export function FieldSchemaEditor({
           const { field } = row
           const name = field.name.trim()
           const label = field.label.trim()
-          const title = label || name || "未命名字段"
+          const title = label || name || LABEL_UNNAMED
 
           return (
             <div
@@ -326,6 +365,20 @@ export function FieldSchemaEditor({
               <div className="space-y-4 px-4">
                 <Field>
                   <FieldContent>
+                    <FieldLabel htmlFor="field-label">展示名</FieldLabel>
+                    <Input
+                      id="field-label"
+                      placeholder="例如 价格"
+                      value={formField.label}
+                      onChange={(e) =>
+                        updateFormField((field) => ({ ...field, label: e.target.value }))
+                      }
+                    />
+                  </FieldContent>
+                </Field>
+
+                <Field>
+                  <FieldContent>
                     <FieldLabel htmlFor="field-name">字段名</FieldLabel>
                     <Input
                       id="field-name"
@@ -336,20 +389,6 @@ export function FieldSchemaEditor({
                       }
                     />
                     <FieldDescription>用于存储，建议英文且不带空格。</FieldDescription>
-                  </FieldContent>
-                </Field>
-
-                <Field>
-                  <FieldContent>
-                    <FieldLabel htmlFor="field-label">展示名</FieldLabel>
-                    <Input
-                      id="field-label"
-                      placeholder="例如 价格"
-                      value={formField.label}
-                      onChange={(e) =>
-                        updateFormField((field) => ({ ...field, label: e.target.value }))
-                      }
-                    />
                   </FieldContent>
                 </Field>
 
@@ -405,6 +444,11 @@ export function FieldSchemaEditor({
 
                 {formField.type === "options" && (
                   <OptionsPropsForm
+                    key={
+                      sheetMode?.type === "edit"
+                        ? sheetMode.rowId
+                        : "add"
+                    }
                     props={formField.props}
                     onChange={(nextProps) =>
                       updateFormField((field) => {
@@ -412,6 +456,7 @@ export function FieldSchemaEditor({
                         return { ...field, props: nextProps }
                       })
                     }
+                    optionsSyncRef={optionsSyncRef}
                   />
                 )}
               </div>
