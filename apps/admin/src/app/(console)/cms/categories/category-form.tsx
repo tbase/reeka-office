@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useForm } from "@tanstack/react-form"
+import { toast } from "sonner"
 
 import { FieldSchemaEditor, type FieldSchemaItem } from "@/components/cms/field-schema-editor"
 import { Button } from "@/components/ui/button"
@@ -24,7 +25,7 @@ export function CategoryForm({
   value,
   cancelHref,
 }: {
-  action: (formData: FormData) => void | Promise<void>
+  action: (formData: FormData) => { success: true } | void | Promise<{ success: true } | void>
   submitLabel: string
   value?: CategoryFormValue
   cancelHref: string
@@ -52,7 +53,10 @@ export function CategoryForm({
         formData.set("id", String(value.id))
       }
 
-      await action(formData)
+      const result = await action(formData)
+      if (result && result.success) {
+        toast.success("分类信息已保存")
+      }
     },
   })
 

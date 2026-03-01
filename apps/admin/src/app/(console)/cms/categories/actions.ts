@@ -6,6 +6,7 @@ import {
   UpdateCategoryCommand,
 } from "@reeka-office/domain-cms"
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 import type { FieldSchemaItem } from "@/components/cms/field-schema-editor"
 
@@ -56,6 +57,7 @@ export async function createCategoryAction(formData: FormData) {
 
   revalidatePath("/cms/categories")
   revalidatePath("/cms/contents")
+  redirect("/cms/categories")
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -79,6 +81,8 @@ export async function updateCategoryAction(formData: FormData) {
 
   revalidatePath("/cms/categories")
   revalidatePath("/cms/contents")
+
+  return { success: true as const }
 }
 
 export async function deleteCategoryAction(formData: FormData) {
