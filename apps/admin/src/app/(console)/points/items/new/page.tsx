@@ -1,4 +1,7 @@
-import { PointItemForm } from "../point-item-form"
+import { Button } from "@/components/ui/button"
+import { LinkButton } from "@/components/ui/link-button"
+import { PointItemFormNew } from "@/components/points/point-item-form-new"
+
 import { createPointItemAction } from "../actions"
 
 export default function PointItemCreatePage() {
@@ -9,7 +12,16 @@ export default function PointItemCreatePage() {
         <p className="text-muted-foreground text-sm">创建后可用于代理人积分发放。</p>
       </div>
 
-      <PointItemForm action={createPointItemAction} submitLabel="创建事项" cancelHref="/points/items" />
+      <PointItemFormNew action={createPointItemAction} id="point-item-form" />
+
+      <div className="flex gap-2">
+        <Button type="submit" form="point-item-form">
+          创建事项
+        </Button>
+        <LinkButton href="/points/items" variant="ghost">
+          取消
+        </LinkButton>
+      </div>
     </div>
   )
 }

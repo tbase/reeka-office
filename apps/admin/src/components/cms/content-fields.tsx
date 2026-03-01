@@ -1,28 +1,14 @@
 "use client";
 
+import type { FieldSchemaItem } from "@reeka-office/domain-cms";
+
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 
-export type FieldType =
-  | "text"
-  | "textarea"
-  | "image"
-  | "number"
-  | "date"
-  | "select"
-  | "switch";
-
-export type FieldSchemaItem = {
-  name: string;
-  label: string;
-  type: FieldType;
-  required?: boolean;
-  options?: string[];
-  placeholder?: string;
-};
+export type { FieldSchemaItem };
 
 export type CategoryOption = {
   id: number;
@@ -39,6 +25,7 @@ function toBoolean(value: unknown): boolean {
 
 function initialValueForField(field: FieldSchemaItem): unknown {
   if (field.type === "switch") return false;
+  if (field.type === "options") return field.props.multiple ? [] : "";
   return "";
 }
 
@@ -52,6 +39,11 @@ export function normalizeFieldValue(
 
   if (field.type === "switch") {
     return toBoolean(value);
+  }
+
+  if (field.type === "options") {
+    if (field.props.multiple) return Array.isArray(value) ? value : [];
+    return typeof value === "string" ? value : "";
   }
 
   if (field.type === "number") {
@@ -152,14 +144,14 @@ export function ContentFields({
                 </label>
               ) : null}
 
-              {field.type === "select" ? (
+              {field.type === "options" ? (
                 <SimpleSelect
                   placeholder="请选择"
                   value={String(value)}
                   onValueChange={(nextValue) =>
                     onUpdateField(field.name, nextValue)
                   }
-                  items={(field.options ?? []).map((option) => ({
+                  items={field.props.options.map((option) => ({
                     value: option,
                     label: option,
                   }))}
@@ -179,7 +171,7 @@ export function ContentFields({
 
               {field.type !== "textarea" &&
               field.type !== "switch" &&
-              field.type !== "select" &&
+              field.type !== "options" &&
               field.type !== "image" ? (
                 <Input
                   id={fieldId}

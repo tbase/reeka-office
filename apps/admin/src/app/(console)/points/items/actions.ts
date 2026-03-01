@@ -42,7 +42,7 @@ function parseOptionalPositiveInt(
   return num
 }
 
-export async function createPointItemAction(formData: FormData) {
+export async function createPointItemAction(formData: FormData): Promise<{ success: true }> {
   const name = parseRequiredText(formData.get("name"), "事项名称")
   const category = parseRequiredText(formData.get("category"), "事项类别")
   const pointAmount = parseOptionalPositiveInt(formData.get("pointAmount"), "积分金额")
@@ -59,9 +59,10 @@ export async function createPointItemAction(formData: FormData) {
 
   revalidatePath("/points/items")
   revalidatePath("/points/agents")
+  return { success: true }
 }
 
-export async function updatePointItemAction(formData: FormData) {
+export async function updatePointItemAction(formData: FormData): Promise<{ success: true }> {
   const id = parseId(formData.get("id"))
   const name = parseRequiredText(formData.get("name"), "事项名称")
   const category = parseRequiredText(formData.get("category"), "事项类别")
@@ -79,6 +80,7 @@ export async function updatePointItemAction(formData: FormData) {
 
   revalidatePath("/points/items")
   revalidatePath("/points/agents")
+  return { success: true }
 }
 
 export async function deletePointItemAction(formData: FormData) {

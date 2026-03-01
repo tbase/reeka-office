@@ -4,10 +4,9 @@ import { useForm } from "@tanstack/react-form";
 import { useRef } from "react";
 import { toast } from "sonner";
 
-import {
-  FieldSchemaEditor,
-  type FieldSchemaItem,
-} from "@/components/cms/field-schema-editor";
+import type { FieldSchemaItem } from "@reeka-office/domain-cms";
+
+import { FieldSchemaEditor } from "@/components/cms/field-schema-editor";
 import {
   Field,
   FieldContent,

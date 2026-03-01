@@ -63,7 +63,7 @@ function revalidateProducts(): void {
   revalidatePath("/points/products")
 }
 
-export async function createProductAction(formData: FormData): Promise<void> {
+export async function createProductAction(formData: FormData): Promise<{ success: true }> {
   const redeemCategory = parseRequiredText(formData.get("redeemCategory"), "兑换类别")
   const title = parseRequiredText(formData.get("title"), "兑换标题")
   const description = parseOptionalText(formData.get("description"))
@@ -88,9 +88,10 @@ export async function createProductAction(formData: FormData): Promise<void> {
   }).execute()
 
   revalidateProducts()
+  return { success: true }
 }
 
-export async function updateProductAction(formData: FormData): Promise<void> {
+export async function updateProductAction(formData: FormData): Promise<{ success: true }> {
   const id = parseId(formData.get("id"))
   const redeemCategory = parseRequiredText(formData.get("redeemCategory"), "兑换类别")
   const title = parseRequiredText(formData.get("title"), "兑换标题")
@@ -116,6 +117,7 @@ export async function updateProductAction(formData: FormData): Promise<void> {
   }).execute()
 
   revalidateProducts()
+  return { success: true }
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {

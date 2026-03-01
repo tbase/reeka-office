@@ -1,9 +1,18 @@
 import { ListRedemptionProductsQuery } from "@reeka-office/domain-point"
 import Link from "next/link"
+import { notFound } from "next/navigation"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { LinkButton } from "@/components/ui/link-button"
+import { ProductFormEdit } from "@/components/points/product-form-edit"
 
-import { ProductForm } from "../../product-form"
 import { updateProductAction } from "../../actions"
 
 function parseId(value: string): number {
@@ -26,17 +35,7 @@ export default async function ProductEditPage({
   const product = products.find((row) => row.id === id) ?? null
 
   if (!product) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>兑换商品不存在</CardTitle>
-          <CardDescription>该商品可能已被删除。</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/points/products">返回兑换商品列表</Link>
-        </CardContent>
-      </Card>
-    )
+    notFound()
   }
 
   if (product.status !== "draft") {
@@ -44,7 +43,9 @@ export default async function ProductEditPage({
       <Card>
         <CardHeader>
           <CardTitle>仅草稿商品可编辑</CardTitle>
-          <CardDescription>发布后的商品不可修改关键信息，仅允许下架。</CardDescription>
+          <CardDescription>
+            发布后的商品不可修改关键信息，仅允许下架。
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Link href="/points/products">返回兑换商品列表</Link>
@@ -56,16 +57,37 @@ export default async function ProductEditPage({
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">编辑兑换商品：{product.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          编辑兑换商品：{product.title}
+        </h1>
         <p className="text-muted-foreground text-sm">草稿状态可编辑；发布后仅可下架。</p>
       </div>
 
-      <ProductForm
+      <ProductFormEdit
         action={updateProductAction}
-        submitLabel="保存商品"
-        cancelHref="/points/products"
-        value={product}
+        id="product-form"
+        value={{
+          id: product.id,
+          redeemCategory: product.redeemCategory,
+          title: product.title,
+          imageUrl: product.imageUrl,
+          description: product.description,
+          notice: product.notice,
+          validPeriodMonths: product.validPeriodMonths,
+          stock: product.stock,
+          redeemPoints: product.redeemPoints,
+          maxRedeemPerAgent: product.maxRedeemPerAgent,
+        }}
       />
+
+      <div className="flex gap-2">
+        <Button type="submit" form="product-form">
+          保存商品
+        </Button>
+        <LinkButton href="/points/products" variant="ghost">
+          取消
+        </LinkButton>
+      </div>
     </div>
   )
 }

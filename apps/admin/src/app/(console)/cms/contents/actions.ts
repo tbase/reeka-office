@@ -35,7 +35,7 @@ export async function createContentAction(formData: FormData): Promise<{ success
   const fields = parseFields(formData.get("fieldsJson"))
 
   if (!name) {
-    throw new Error("内容名称不能为空")
+    throw new Error("标题不能为空")
   }
 
   await new CreateContentCommand({
@@ -50,14 +50,14 @@ export async function createContentAction(formData: FormData): Promise<{ success
 }
 
 export async function updateContentAction(formData: FormData): Promise<{ success: true }> {
-  const id = parseId(formData.get("id"), "内容")
+  const id = parseId(formData.get("id"), "ID")
   const categoryId = parseId(formData.get("categoryId"), "分类")
   const name = String(formData.get("name") ?? "").trim()
   const content = String(formData.get("content") ?? "")
   const fields = parseFields(formData.get("fieldsJson"))
 
   if (!name) {
-    throw new Error("内容名称不能为空")
+    throw new Error("标题不能为空")
   }
 
   await new UpdateContentCommand({
