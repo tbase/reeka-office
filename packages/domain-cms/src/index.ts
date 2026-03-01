@@ -34,5 +34,8 @@ export type {
   NewCategoryRow,
   NewContentRow,
   CategoryRow,
-  ContentRow
+  ContentRow,
+  FieldSchemaItem,
+  FieldSchemaItemCommon,
+  FieldSchemaItemOptions,
 } from "./schema";

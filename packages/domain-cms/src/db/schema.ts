@@ -1,14 +1,26 @@
 import { int, json, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm/sql/sql";
 
-export type FieldSchemaItem = {
+type FieldSchemaItemBase = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "image" | "number" | "date" | "select" | "switch";
   required?: boolean;
-  options?: string[];
+};
+
+export type FieldSchemaItemCommon = FieldSchemaItemBase & {
+  type: "text" | "textarea" | "image" | "number" | "date" | "switch";
   placeholder?: string;
 };
+
+export type FieldSchemaItemOptions = FieldSchemaItemBase & {
+  type: "options";
+  props: {
+    options: string[];
+    multiple?: boolean;
+  };
+};
+
+export type FieldSchemaItem = FieldSchemaItemCommon | FieldSchemaItemOptions;
 
 export type ContentFields = Record<string, unknown>;
 

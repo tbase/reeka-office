@@ -1,6 +1,6 @@
 "use client";
 
-import type { FieldSchemaItem } from "@/components/cms/field-schema-editor";
+import type { FieldSchemaItem } from "@reeka-office/domain-cms";
 
 import { CategoryForm } from "./category-form";
 

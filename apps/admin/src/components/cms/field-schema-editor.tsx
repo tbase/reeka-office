@@ -1,29 +1,30 @@
-"use client";
+"use client"
 
 import {
   AlignLeftIcon,
   CalendarIcon,
+  CheckSquare2Icon,
   HashIcon,
   ImageIcon,
-  ListIcon,
   PencilIcon,
   PlusIcon,
   ToggleLeftIcon,
   Trash2Icon,
   TypeIcon,
-} from "lucide-react";
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+} from "lucide-react"
+import type { ReactNode } from "react"
+import { useMemo, useState } from "react"
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import type { FieldSchemaItem, FieldSchemaItemCommon, FieldSchemaItemOptions } from "@reeka-office/domain-cms"
+
+import { Button } from "@/components/ui/button"
 import {
   Field,
   FieldContent,
   FieldDescription,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import {
   Sheet,
   SheetContent,
@@ -31,8 +32,9 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { SimpleSelect } from "@/components/ui/simple-select";
+} from "@/components/ui/sheet"
+import { SimpleSelect } from "@/components/ui/simple-select"
+import { Textarea } from "@/components/ui/textarea"
 
 type FieldType =
   | "text"
@@ -40,32 +42,18 @@ type FieldType =
   | "image"
   | "number"
   | "date"
-  | "select"
-  | "switch";
-
-export type FieldSchemaItem = {
-  name: string;
-  label: string;
-  type: FieldType;
-  required?: boolean;
-  options?: string[];
-  placeholder?: string;
-};
+  | "options"
+  | "switch"
 
 type FieldRow = {
-  id: string;
-  field: FieldSchemaItem;
-};
+  id: string
+  field: FieldSchemaItem
+}
 
-const FIELD_TYPES: FieldType[] = [
-  "text",
-  "textarea",
-  "image",
-  "number",
-  "date",
-  "select",
-  "switch",
-];
+type SheetMode =
+  | { type: "edit"; rowId: string }
+  | { type: "add"; draft: FieldSchemaItem }
+  | null
 
 const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   text: "文本",
@@ -73,9 +61,9 @@ const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   image: "图片",
   number: "数字",
   date: "日期",
-  select: "下拉选择",
+  options: "选项",
   switch: "开关",
-};
+}
 
 const FIELD_TYPE_ICON: Record<FieldType, ReactNode> = {
   text: <TypeIcon className="size-4" />,
@@ -83,122 +71,181 @@ const FIELD_TYPE_ICON: Record<FieldType, ReactNode> = {
   image: <ImageIcon className="size-4" />,
   number: <HashIcon className="size-4" />,
   date: <CalendarIcon className="size-4" />,
-  select: <ListIcon className="size-4" />,
+  options: <CheckSquare2Icon className="size-4" />,
   switch: <ToggleLeftIcon className="size-4" />,
-};
-
-function normalize(items: FieldSchemaItem[]): FieldSchemaItem[] {
-  return items
-    .map((item) => ({
-      name: item.name.trim(),
-      label: item.label.trim(),
-      type: item.type,
-      required: item.required ?? false,
-      placeholder: item.placeholder?.trim() || undefined,
-      options:
-        item.type === "select"
-          ? (item.options ?? []).map((opt) => opt.trim()).filter(Boolean)
-          : undefined,
-    }))
-    .filter((item) => item.name && item.label);
 }
 
-const EMPTY_FIELD: FieldSchemaItem = {
+const FIELD_TYPE_ITEMS = (Object.keys(FIELD_TYPE_LABEL) as FieldType[]).map((type) => ({
+  value: type,
+  label: FIELD_TYPE_LABEL[type],
+  icon: FIELD_TYPE_ICON[type],
+}))
+
+const EMPTY_FIELD: FieldSchemaItemCommon = {
   name: "",
   label: "",
   type: "text",
   required: false,
   placeholder: "",
-};
-
-function createFieldRow(field: FieldSchemaItem): FieldRow {
-  return {
-    id: crypto.randomUUID(),
-    field,
-  };
 }
 
-type SheetMode =
-  | { type: "edit"; rowId: string }
-  | { type: "add"; draft: FieldSchemaItem }
-  | null;
+function normalize(items: FieldSchemaItem[]): FieldSchemaItem[] {
+  return items
+    .map((item): FieldSchemaItem | null => {
+      const name = item.name.trim()
+      const label = item.label.trim()
+      if (!name || !label) return null
+      if (item.type === "options") {
+        return {
+          name,
+          label,
+          type: "options",
+          required: item.required ?? false,
+          props: {
+            options: item.props.options.map((o) => o.trim()).filter(Boolean),
+            multiple: item.props.multiple ?? false,
+          },
+        }
+      }
+      return {
+        name,
+        label,
+        type: item.type,
+        required: item.required ?? false,
+        placeholder: item.placeholder?.trim() || undefined,
+      }
+    })
+    .filter((item): item is FieldSchemaItem => item !== null)
+}
+
+function createFieldRow(field: FieldSchemaItem): FieldRow {
+  return { id: crypto.randomUUID(), field }
+}
+
+function changeFieldType(field: FieldSchemaItem, nextType: FieldType): FieldSchemaItem {
+  const base = { name: field.name, label: field.label, required: field.required }
+  if (nextType === "options") {
+    return { ...base, type: "options", props: { options: [], multiple: false } }
+  }
+  return {
+    ...base,
+    type: nextType,
+    placeholder: field.type !== "options" ? field.placeholder : undefined,
+  }
+}
+
+function OptionsPropsForm({
+  props,
+  onChange,
+}: {
+  props: FieldSchemaItemOptions["props"]
+  onChange: (props: FieldSchemaItemOptions["props"]) => void
+}) {
+  return (
+    <>
+      <Field>
+        <FieldContent>
+          <FieldLabel htmlFor="field-options">选项列表</FieldLabel>
+          <Textarea
+            id="field-options"
+            placeholder={"选项A\n选项B\n选项C"}
+            rows={4}
+            value={props.options.join("\n")}
+            onChange={(e) =>
+              onChange({
+                ...props,
+                options: e.target.value.split("\n").map((o) => o.trim()).filter(Boolean),
+              })
+            }
+          />
+          <FieldDescription>每行一个选项。</FieldDescription>
+        </FieldContent>
+      </Field>
+      <Field>
+        <FieldContent>
+          <FieldLabel>选择模式</FieldLabel>
+          <label className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm">
+            <input
+              type="checkbox"
+              checked={props.multiple ?? false}
+              onChange={(e) => onChange({ ...props, multiple: e.target.checked })}
+            />
+            允许多选
+          </label>
+          <FieldDescription>
+            勾选后用户可同时选择多个选项，否则仅能选一个。
+          </FieldDescription>
+        </FieldContent>
+      </Field>
+    </>
+  )
+}
 
 export function FieldSchemaEditor({
   inputName,
   defaultValue,
 }: {
-  inputName: string;
-  defaultValue?: FieldSchemaItem[];
+  inputName: string
+  defaultValue?: FieldSchemaItem[]
 }) {
   const [rows, setRows] = useState<FieldRow[]>(
-    defaultValue?.length
-      ? defaultValue.map((item) => createFieldRow(item))
-      : [],
-  );
-  const [sheetMode, setSheetMode] = useState<SheetMode>(null);
+    defaultValue?.length ? defaultValue.map(createFieldRow) : [],
+  )
+  const [sheetMode, setSheetMode] = useState<SheetMode>(null)
 
   const serialized = useMemo(
     () => JSON.stringify(normalize(rows.map((row) => row.field))),
     [rows],
-  );
-  const isAdding = sheetMode?.type === "add";
+  )
+
+  const isAdding = sheetMode?.type === "add"
+
   const formField = useMemo(() => {
     if (sheetMode?.type === "edit") {
-      const row = rows.find((r) => r.id === sheetMode.rowId);
-      return row?.field ?? null;
+      return rows.find((r) => r.id === sheetMode.rowId)?.field ?? null
     }
-    if (sheetMode?.type === "add") return sheetMode.draft;
-    return null;
-  }, [sheetMode, rows]);
+    if (sheetMode?.type === "add") return sheetMode.draft
+    return null
+  }, [sheetMode, rows])
 
-  const updateFormField = (
-    updater: (field: FieldSchemaItem) => FieldSchemaItem,
-  ) => {
+  const updateFormField = (updater: (field: FieldSchemaItem) => FieldSchemaItem) => {
     if (sheetMode?.type === "edit") {
       setRows((current) =>
         current.map((row) =>
-          row.id === sheetMode.rowId
-            ? { ...row, field: updater(row.field) }
-            : row,
+          row.id === sheetMode.rowId ? { ...row, field: updater(row.field) } : row,
         ),
-      );
+      )
     }
     if (sheetMode?.type === "add") {
-      setSheetMode({ type: "add", draft: updater(sheetMode.draft) });
+      setSheetMode({ type: "add", draft: updater(sheetMode.draft) })
     }
-  };
+  }
 
   const deleteRow = (rowId: string) => {
-    setRows((current) => current.filter((row) => row.id !== rowId));
+    setRows((current) => current.filter((row) => row.id !== rowId))
     setSheetMode((current) =>
       current?.type === "edit" && current.rowId === rowId ? null : current,
-    );
-  };
+    )
+  }
 
-  const closeSheet = () => setSheetMode(null);
+  const closeSheet = () => setSheetMode(null)
 
   const handleComplete = () => {
-    if (!formField) return;
+    if (!formField) return
     if (sheetMode?.type === "add") {
-      const name = formField.name.trim();
-      const label = formField.label.trim();
+      const name = formField.name.trim()
+      const label = formField.label.trim()
       if (name && label) {
-        setRows((current) => [
-          ...current,
-          createFieldRow({ ...formField, name, label }),
-        ]);
+        setRows((current) => [...current, createFieldRow({ ...formField, name, label })])
       }
     }
-    closeSheet();
-  };
+    closeSheet()
+  }
 
   const handleDeleteInSheet = () => {
-    if (sheetMode?.type === "edit") {
-      deleteRow(sheetMode.rowId);
-    } else {
-      closeSheet();
-    }
-  };
+    if (sheetMode?.type === "edit") deleteRow(sheetMode.rowId)
+    else closeSheet()
+  }
 
   return (
     <div className="space-y-3">
@@ -206,62 +253,44 @@ export function FieldSchemaEditor({
 
       <div className="space-y-2">
         {rows.map((row) => {
-          const field = row.field;
-          const name = field.name.trim();
-          const label = field.label.trim();
-          const title = label || name || "未命名字段";
+          const { field } = row
+          const name = field.name.trim()
+          const label = field.label.trim()
+          const title = label || name || "未命名字段"
 
           return (
-            <div key={row.id} className="rounded-md border p-3">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{title}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {name ? `字段名：${name}` : "字段名未填写"}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline" className="inline-flex items-center gap-1.5">
-                      {FIELD_TYPE_ICON[field.type]}
-                      {FIELD_TYPE_LABEL[field.type]}
-                    </Badge>
-                    <Badge variant={field.required ? "default" : "secondary"}>
-                      {field.required ? "必填" : "可选"}
-                    </Badge>
-                    {field.type === "select" ? (
-                      <Badge variant="secondary">
-                        选项 {(field.options ?? []).length} 个
-                      </Badge>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setSheetMode({ type: "edit", rowId: row.id })
-                    }
-                  >
-                    <PencilIcon className="size-4" />
-                    编辑
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      deleteRow(row.id);
-                    }}
-                  >
-                    <Trash2Icon className="size-4" />
-                    删除
-                  </Button>
-                </div>
-              </div>
+            <div
+              key={row.id}
+              className="flex items-center gap-2 rounded-md border px-3 py-2"
+            >
+              <span className="text-muted-foreground shrink-0">
+                {FIELD_TYPE_ICON[field.type]}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm">
+                <span className="font-medium">{title}</span>
+                {name && (
+                  <span className="text-muted-foreground ml-1">({name})</span>
+                )}
+                {field.required && (
+                  <span className="ml-0.5 text-red-500">*</span>
+                )}
+                {field.type === "options" && (
+                  <span className="text-muted-foreground ml-1.5 text-xs">
+                    {field.props.multiple ? "多选" : "单选"}
+                  </span>
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground shrink-0 size-7"
+                onClick={() => setSheetMode({ type: "edit", rowId: row.id })}
+              >
+                <PencilIcon className="size-3.5" />
+              </Button>
             </div>
-          );
+          )
         })}
 
         <Button
@@ -269,9 +298,7 @@ export function FieldSchemaEditor({
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={() =>
-            setSheetMode({ type: "add", draft: { ...EMPTY_FIELD } })
-          }
+          onClick={() => setSheetMode({ type: "add", draft: { ...EMPTY_FIELD } })}
         >
           <PlusIcon className="size-4" />
           新增字段
@@ -281,11 +308,11 @@ export function FieldSchemaEditor({
       <Sheet
         open={sheetMode !== null}
         onOpenChange={(open) => {
-          if (!open) closeSheet();
+          if (!open) closeSheet()
         }}
       >
         <SheetContent side="right" className="w-full sm:max-w-lg">
-          {formField ? (
+          {formField && (
             <>
               <SheetHeader>
                 <SheetTitle>{isAdding ? "新增字段" : "编辑字段"}</SheetTitle>
@@ -304,16 +331,11 @@ export function FieldSchemaEditor({
                       id="field-name"
                       placeholder="例如 price"
                       value={formField.name}
-                      onChange={(event) => {
-                        updateFormField((field) => ({
-                          ...field,
-                          name: event.target.value,
-                        }));
-                      }}
+                      onChange={(e) =>
+                        updateFormField((field) => ({ ...field, name: e.target.value }))
+                      }
                     />
-                    <FieldDescription>
-                      用于存储，建议英文且不带空格。
-                    </FieldDescription>
+                    <FieldDescription>用于存储，建议英文且不带空格。</FieldDescription>
                   </FieldContent>
                 </Field>
 
@@ -324,58 +346,31 @@ export function FieldSchemaEditor({
                       id="field-label"
                       placeholder="例如 价格"
                       value={formField.label}
-                      onChange={(event) => {
-                        updateFormField((field) => ({
-                          ...field,
-                          label: event.target.value,
-                        }));
-                      }}
+                      onChange={(e) =>
+                        updateFormField((field) => ({ ...field, label: e.target.value }))
+                      }
                     />
                   </FieldContent>
                 </Field>
 
-                <Field>
-                  <FieldContent>
-                    <FieldLabel>字段类型</FieldLabel>
-                    <SimpleSelect
-                      placeholder="请选择字段类型"
-                      value={formField.type}
-                      onValueChange={(value) => {
-                        const nextType = value as FieldType;
-                        updateFormField((field) => ({
-                          ...field,
-                          type: nextType,
-                          options:
-                            nextType === "select"
-                              ? (field.options ?? [])
-                              : undefined,
-                        }));
-                      }}
-                      items={FIELD_TYPES.map((type) => ({
-                        value: type,
-                        label: FIELD_TYPE_LABEL[type],
-                        icon: FIELD_TYPE_ICON[type],
-                      }))}
-                    />
-                  </FieldContent>
-                </Field>
-
-                <Field>
-                  <FieldContent>
-                    <FieldLabel htmlFor="field-placeholder">占位符</FieldLabel>
-                    <Input
-                      id="field-placeholder"
-                      placeholder="占位符（可选）"
-                      value={formField.placeholder ?? ""}
-                      onChange={(event) => {
-                        updateFormField((field) => ({
-                          ...field,
-                          placeholder: event.target.value,
-                        }));
-                      }}
-                    />
-                  </FieldContent>
-                </Field>
+                {formField.type !== "options" && (
+                  <Field>
+                    <FieldContent>
+                      <FieldLabel htmlFor="field-placeholder">占位符</FieldLabel>
+                      <Input
+                        id="field-placeholder"
+                        placeholder="占位符（可选）"
+                        value={formField.placeholder ?? ""}
+                        onChange={(e) =>
+                          updateFormField((field) => {
+                            if (field.type === "options") return field
+                            return { ...field, placeholder: e.target.value }
+                          })
+                        }
+                      />
+                    </FieldContent>
+                  </Field>
+                )}
 
                 <Field>
                   <FieldContent>
@@ -385,64 +380,57 @@ export function FieldSchemaEditor({
                         id="field-required"
                         type="checkbox"
                         checked={formField.required ?? false}
-                        onChange={(event) => {
-                          updateFormField((field) => ({
-                            ...field,
-                            required: event.target.checked,
-                          }));
-                        }}
+                        onChange={(e) =>
+                          updateFormField((field) => ({ ...field, required: e.target.checked }))
+                        }
                       />
                       设为必填项
                     </label>
                   </FieldContent>
                 </Field>
 
-                {formField.type === "select" ? (
-                  <Field>
-                    <FieldContent>
-                      <FieldLabel htmlFor="field-options">下拉选项</FieldLabel>
-                      <Input
-                        id="field-options"
-                        placeholder="选项（英文逗号分隔）"
-                        value={(formField.options ?? []).join(",")}
-                        onChange={(event) => {
-                          updateFormField((field) => ({
-                            ...field,
-                            options: event.target.value
-                              .split(",")
-                              .map((option) => option.trim())
-                              .filter(Boolean),
-                          }));
-                        }}
-                      />
-                    </FieldContent>
-                  </Field>
-                ) : null}
+                <Field>
+                  <FieldContent>
+                    <FieldLabel>字段类型</FieldLabel>
+                    <SimpleSelect
+                      placeholder="请选择字段类型"
+                      value={formField.type}
+                      onValueChange={(value) =>
+                        updateFormField((field) => changeFieldType(field, value as FieldType))
+                      }
+                      items={FIELD_TYPE_ITEMS}
+                    />
+                  </FieldContent>
+                </Field>
+
+                {formField.type === "options" && (
+                  <OptionsPropsForm
+                    props={formField.props}
+                    onChange={(nextProps) =>
+                      updateFormField((field) => {
+                        if (field.type !== "options") return field
+                        return { ...field, props: nextProps }
+                      })
+                    }
+                  />
+                )}
               </div>
 
               <SheetFooter>
-                {!isAdding ? (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={handleDeleteInSheet}
-                  >
+                {!isAdding && (
+                  <Button type="button" variant="destructive" onClick={handleDeleteInSheet}>
                     <Trash2Icon className="size-4" />
                     删除字段
                   </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleComplete}
-                >
+                )}
+                <Button type="button" variant="outline" onClick={handleComplete}>
                   完成
                 </Button>
               </SheetFooter>
             </>
-          ) : null}
+          )}
         </SheetContent>
       </Sheet>
     </div>
-  );
+  )
 }

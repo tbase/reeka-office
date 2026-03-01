@@ -4,10 +4,9 @@ import {
   CreateCategoryCommand,
   DeleteCategoryCommand,
   UpdateCategoryCommand,
+  type FieldSchemaItem,
 } from "@reeka-office/domain-cms"
 import { revalidatePath } from "next/cache"
-
-import type { FieldSchemaItem } from "@/components/cms/field-schema-editor"
 
 function parseId(value: FormDataEntryValue | null): number {
   const id = Number(value)
