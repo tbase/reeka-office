@@ -6,7 +6,6 @@ import {
   UpdateCategoryCommand,
 } from "@reeka-office/domain-cms"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 import type { FieldSchemaItem } from "@/components/cms/field-schema-editor"
 
@@ -38,7 +37,7 @@ function parseFieldSchema(value: FormDataEntryValue | null): FieldSchemaItem[] {
   })
 }
 
-export async function createCategoryAction(formData: FormData) {
+export async function createCategoryAction(formData: FormData): Promise<{ success: true }> {
   const name = String(formData.get("name") ?? "").trim()
   const slug = String(formData.get("slug") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
@@ -57,10 +56,10 @@ export async function createCategoryAction(formData: FormData) {
 
   revalidatePath("/cms/categories")
   revalidatePath("/cms/contents")
-  redirect("/cms/categories")
+  return { success: true }
 }
 
-export async function updateCategoryAction(formData: FormData) {
+export async function updateCategoryAction(formData: FormData): Promise<{ success: true }> {
   const id = parseId(formData.get("id"))
   const name = String(formData.get("name") ?? "").trim()
   const slug = String(formData.get("slug") ?? "").trim()

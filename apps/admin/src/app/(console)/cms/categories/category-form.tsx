@@ -1,7 +1,8 @@
 "use client"
 
-import { useRef, useState } from "react"
 import { useForm } from "@tanstack/react-form"
+import { useRouter } from "next/navigation"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { FieldSchemaEditor, type FieldSchemaItem } from "@/components/cms/field-schema-editor"
@@ -23,13 +24,14 @@ export function CategoryForm({
   action,
   submitLabel,
   value,
-  cancelHref,
+  listHref,
 }: {
   action: (formData: FormData) => { success: true } | void | Promise<{ success: true } | void>
   submitLabel: string
   value?: CategoryFormValue
-  cancelHref: string
+  listHref: string
 }) {
+  const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -54,8 +56,12 @@ export function CategoryForm({
       }
 
       const result = await action(formData)
-      if (result && result.success) {
-        toast.success("分类信息已保存")
+      if (result?.success) {
+        const isCreate = !value?.id
+        toast.success(isCreate ? "分类已创建" : "分类已保存")
+        if (isCreate) {
+          router.push(listHref)
+        }
       }
     },
   })
@@ -153,7 +159,7 @@ export function CategoryForm({
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isSubmitting}>{submitLabel}</Button>
-        <LinkButton href={cancelHref} variant="ghost">取消</LinkButton>
+        <LinkButton href={listHref} variant="ghost">取消</LinkButton>
       </div>
     </form>
   )

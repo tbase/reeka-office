@@ -47,7 +47,7 @@ export default async function CmsContentCreatePage({
         action={createContentAction}
         categories={categoriesForFields}
         submitLabel="创建内容"
-        cancelHref="/cms/contents"
+        listHref="/cms/contents"
         value={resolvedDefaultCategoryId ? { categoryId: resolvedDefaultCategoryId } : undefined}
       />
     </div>

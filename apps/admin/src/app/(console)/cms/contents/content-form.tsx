@@ -1,7 +1,9 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   buildFieldsState,
@@ -34,15 +36,18 @@ export function ContentForm({
   action,
   categories,
   submitLabel,
-  cancelHref,
+  listHref,
   value,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (
+    formData: FormData,
+  ) => { success: true } | void | Promise<{ success: true } | void>;
   categories: CategoryOption[];
   submitLabel: string;
-  cancelHref: string;
+  listHref: string;
   value?: ContentFormValue;
 }) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -116,7 +121,14 @@ export function ContentForm({
         formData.set("id", String(value.id));
       }
 
-      await action(formData);
+      const result = await action(formData);
+      if (result?.success) {
+        const isCreate = !value?.id;
+        toast.success(isCreate ? "内容已创建" : "内容已保存");
+        if (isCreate) {
+          router.push(listHref);
+        }
+      }
     },
   });
 
@@ -146,7 +158,10 @@ export function ContentForm({
             name="categoryId"
             required
             placeholder={categories.length === 0 ? "暂无分类" : "请选择分类"}
-            items={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+            items={categories.map((c) => ({
+              value: String(c.id),
+              label: c.name,
+            }))}
             value={categoryId ? String(categoryId) : ""}
             onValueChange={(nextValue) => {
               const nextId = Number(nextValue);
@@ -230,7 +245,7 @@ export function ContentForm({
         >
           {submitLabel}
         </Button>
-        <LinkButton href={cancelHref} variant="ghost">
+        <LinkButton href={listHref} variant="ghost">
           取消
         </LinkButton>
       </div>

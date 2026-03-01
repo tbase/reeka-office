@@ -28,7 +28,7 @@ function parseFields(value: FormDataEntryValue | null): Record<string, unknown> 
   return parsed as Record<string, unknown>
 }
 
-export async function createContentAction(formData: FormData) {
+export async function createContentAction(formData: FormData): Promise<{ success: true }> {
   const categoryId = parseId(formData.get("categoryId"), "分类")
   const name = String(formData.get("name") ?? "").trim()
   const content = String(formData.get("content") ?? "")
@@ -46,9 +46,10 @@ export async function createContentAction(formData: FormData) {
   }).execute()
 
   revalidatePath("/cms/contents")
+  return { success: true }
 }
 
-export async function updateContentAction(formData: FormData) {
+export async function updateContentAction(formData: FormData): Promise<{ success: true }> {
   const id = parseId(formData.get("id"), "内容")
   const categoryId = parseId(formData.get("categoryId"), "分类")
   const name = String(formData.get("name") ?? "").trim()
@@ -68,6 +69,7 @@ export async function updateContentAction(formData: FormData) {
   }).execute()
 
   revalidatePath("/cms/contents")
+  return { success: true }
 }
 
 export async function deleteContentAction(formData: FormData) {

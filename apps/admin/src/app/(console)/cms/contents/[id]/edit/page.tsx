@@ -59,7 +59,7 @@ export default async function CmsContentEditPage({
         action={updateContentAction}
         categories={categoriesForFields}
         submitLabel="保存内容"
-        cancelHref="/cms/contents"
+        listHref="/cms/contents"
         value={{
           id: content.id,
           name: content.name,

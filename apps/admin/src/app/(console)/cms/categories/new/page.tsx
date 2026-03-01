@@ -9,7 +9,7 @@ export default function CmsCategoryCreatePage() {
         <p className="text-muted-foreground text-sm">创建分类并设置需要录入的信息项。</p>
       </div>
 
-      <CategoryForm action={createCategoryAction} submitLabel="创建分类" cancelHref="/cms/categories" />
+      <CategoryForm action={createCategoryAction} submitLabel="创建分类" listHref="/cms/categories" />
     </div>
   )
 }

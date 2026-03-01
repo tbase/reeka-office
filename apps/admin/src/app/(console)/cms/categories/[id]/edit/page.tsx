@@ -49,7 +49,7 @@ export default async function CmsCategoryEditPage({
       <CategoryForm
         action={updateCategoryAction}
         submitLabel="保存分类"
-        cancelHref="/cms/categories"
+        listHref="/cms/categories"
         value={{
           id: category.id,
           name: category.name,
