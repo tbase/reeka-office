@@ -33,15 +33,9 @@ export default async function CmsContentEditModal({
     notFound();
   }
 
-  const categoriesForFields = categories.map((category) => ({
-    id: category.id,
-    name: category.name,
-    fieldSchema: category.fieldSchema,
-  }));
-
   return (
     <ContentEditFormDialog
-      categories={categoriesForFields}
+      categories={categories}
       value={{
         id: content.id,
         name: content.name,
