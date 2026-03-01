@@ -22,7 +22,7 @@ export async function GET(
   }
 
   const { path } = await params
-  const key = path.join("/")
+  const key = `assets/${path.join("/")}`
 
   let bucket: string
   let region: string
@@ -53,7 +53,7 @@ export async function GET(
     if (message.includes("404") || message.includes("NoSuchKey")) {
       return NextResponse.json({ error: "文件不存在" }, { status: 404 })
     }
-    console.error("[assets] 读取 COS 文件失败:", err)
+    console.error("[assets] 读取 COS 文件失败:", err, key)
     return NextResponse.json({ error: "读取文件失败" }, { status: 500 })
   }
 }

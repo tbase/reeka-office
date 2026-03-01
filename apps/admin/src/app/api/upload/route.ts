@@ -57,17 +57,16 @@ export async function POST(request: Request) {
 
   let bucket: string
   let region: string
-  let prefix: string
   try {
     bucket = getEnv("COS_BUCKET")
     region = getEnv("COS_REGION")
-    prefix = process.env["COS_PATH_PREFIX"] ?? "cms"
   } catch (err) {
     console.error("[upload] 环境变量缺失:", err)
     return NextResponse.json({ error: "服务器配置错误" }, { status: 500 })
   }
 
   const ext = getExtension(file.type)
+  const prefix = 'assets'
   const cloudPath = generatePath(prefix, ext)
 
   let buffer: ArrayBuffer
