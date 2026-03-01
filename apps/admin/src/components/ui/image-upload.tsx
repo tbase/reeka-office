@@ -1,28 +1,32 @@
 "use client"
 
-import { useId, useRef } from "react"
+import { useId, useRef, useState } from "react"
 import Image from "next/image"
-import { ImagePlusIcon } from "lucide-react"
+import { ImagePlusIcon, Loader2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-async function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result)
-        return
-      }
+async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append("file", file)
 
-      reject(new Error("读取图片失败"))
-    }
-    reader.onerror = () => {
-      reject(reader.error ?? new Error("读取图片失败"))
-    }
-    reader.readAsDataURL(file)
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
   })
+
+  const data = await res.json() as { url?: string; error?: string }
+
+  if (!res.ok) {
+    throw new Error(data.error ?? "上传失败")
+  }
+
+  if (!data.url) {
+    throw new Error("服务器未返回文件地址")
+  }
+
+  return data.url
 }
 
 export function ImageUpload({
@@ -32,6 +36,7 @@ export function ImageUpload({
   disabled,
   className,
   onChangeAction,
+  onError,
 }: {
   id?: string
   value?: string
@@ -39,14 +44,16 @@ export function ImageUpload({
   disabled?: boolean
   className?: string
   onChangeAction: (nextValue: string) => void
+  onError?: (err: Error) => void
 }) {
   const generatedId = useId()
   const inputId = id ?? generatedId
   const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
   const hasImage = Boolean(value?.trim())
 
   const openPicker = () => {
-    if (disabled) {
+    if (disabled || uploading) {
       return
     }
 
@@ -61,18 +68,22 @@ export function ImageUpload({
         type="file"
         accept="image/*"
         className="sr-only"
-        disabled={disabled}
+        disabled={disabled || uploading}
         onChange={async (event) => {
           const file = event.target.files?.[0]
           if (!file) {
             return
           }
 
+          setUploading(true)
           try {
-            const dataUrl = await readFileAsDataUrl(file)
-            onChangeAction(dataUrl)
-          } catch {
-            onChangeAction("")
+            const url = await uploadFile(file)
+            onChangeAction(url)
+          } catch (err) {
+            const error = err instanceof Error ? err : new Error("上传失败")
+            onError?.(error)
+          } finally {
+            setUploading(false)
           }
 
           event.target.value = ""
@@ -82,10 +93,15 @@ export function ImageUpload({
       <button
         type="button"
         onClick={openPicker}
-        disabled={disabled}
+        disabled={disabled || uploading}
         className="bg-muted/40 hover:bg-muted/60 relative aspect-square w-40 overflow-hidden rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {hasImage ? (
+        {uploading ? (
+          <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center gap-1 text-xs">
+            <Loader2Icon className="size-4 animate-spin" />
+            上传中…
+          </div>
+        ) : hasImage ? (
           <Image
             src={value ?? ""}
             alt={alt ?? "上传图片"}
@@ -102,7 +118,7 @@ export function ImageUpload({
       </button>
 
       {hasImage ? (
-        <Button type="button" variant="ghost" size="sm" onClick={() => onChangeAction("")} disabled={disabled}>
+        <Button type="button" variant="ghost" size="sm" onClick={() => onChangeAction("")} disabled={disabled || uploading}>
           清除
         </Button>
       ) : null}
