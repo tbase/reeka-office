@@ -1,8 +1,16 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { GiftIcon, LayoutGridIcon, LogInIcon, ScrollTextIcon, TicketPlusIcon } from "lucide-react"
+import {
+  GiftIcon,
+  LayoutGridIcon,
+  LogInIcon,
+  ScrollTextIcon,
+  TicketPlusIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { signOut } from "@/lib/auth-client";
 
 import {
   Sidebar,
@@ -16,8 +24,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { FolderTreeIcon, FileTextIcon } from "lucide-react"
+} from "@/components/ui/sidebar";
+import { FileTextIcon, FolderTreeIcon } from "lucide-react";
 
 const menuGroups = [
   {
@@ -65,10 +73,14 @@ const menuGroups = [
       },
     ],
   },
-]
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
+  const pathname = usePathname();
+
+  async function handleSignOut() {
+    await signOut();
+  }
 
   return (
     <Sidebar {...props}>
@@ -98,19 +110,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {group.items.map((item) => {
                   const isActive =
                     pathname === item.url ||
-                    (item.url !== "/dashboard" && pathname.startsWith(item.url))
+                    (item.url !== "/dashboard" &&
+                      pathname.startsWith(item.url));
 
                   return (
                     <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      render={<Link href={item.url} />}
-                    >
-                      <item.icon className="size-4" />
-                      {item.title}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  )
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        render={<Link href={item.url} />}
+                      >
+                        <item.icon className="size-4" />
+                        {item.title}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -120,14 +133,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton render={<Link href="/login" />}>
+            <SidebarMenuButton onClick={handleSignOut}>
               <LogInIcon className="size-4" />
-              退出到登录页
+              退出登录
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
