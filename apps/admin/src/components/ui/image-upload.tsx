@@ -107,6 +107,7 @@ export function ImageUpload({
             <Image
               src={`/${value}`}
               alt={alt ?? "上传图片"}
+              unoptimized
               fill
               className="object-cover"
             />
