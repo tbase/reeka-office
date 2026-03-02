@@ -8,8 +8,15 @@ type FieldSchemaItemBase = {
 };
 
 export type FieldSchemaItemCommon = FieldSchemaItemBase & {
-  type: "text" | "textarea" | "image" | "number" | "date" | "switch";
+  type: "text" | "textarea" | "number" | "date" | "switch";
   placeholder?: string;
+};
+
+export type FieldSchemaItemImage = FieldSchemaItemBase & {
+  type: "image";
+  props?: {
+    multiple?: boolean;
+  };
 };
 
 export type FieldSchemaItemOptions = FieldSchemaItemBase & {
@@ -20,19 +27,19 @@ export type FieldSchemaItemOptions = FieldSchemaItemBase & {
   };
 };
 
-export type FieldSchemaItem = FieldSchemaItemCommon | FieldSchemaItemOptions;
+export type FieldSchemaItem = FieldSchemaItemCommon | FieldSchemaItemImage | FieldSchemaItemOptions;
 
 export type ContentFields = Record<string, unknown>;
 
 export const categories = mysqlTable("cms_categories", {
-id: int("id").autoincrement().primaryKey(),
-slug: varchar("slug", { length: 100 }).notNull(),
-name: varchar("name", { length: 255 }).notNull(),
+  id: int("id").autoincrement().primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   hideContent: int("hide_content").default(0).$type<boolean>().notNull(),
-fieldSchema: json("field_schema").$type<FieldSchemaItem[]>().notNull(),
-createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull()
+  fieldSchema: json("field_schema").$type<FieldSchemaItem[]>().notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull()
 });
 
 export const contents = mysqlTable("cms_contents", {

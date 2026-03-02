@@ -16,7 +16,7 @@ import {
 import type { DragEvent, ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import type { FieldSchemaItem, FieldSchemaItemCommon, FieldSchemaItemOptions } from "@reeka-office/domain-cms"
+import type { FieldSchemaItem, FieldSchemaItemCommon, FieldSchemaItemImage, FieldSchemaItemOptions } from "@reeka-office/domain-cms"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -57,6 +57,11 @@ type SheetMode =
   | { type: "edit"; rowId: string }
   | { type: "add"; draft: FieldSchemaItem }
   | null
+
+type ImagePropsFormProps = {
+  props: FieldSchemaItemImage["props"]
+  onChange: (props: FieldSchemaItemImage["props"]) => void
+}
 
 type OptionsPropsFormProps = {
   props: FieldSchemaItemOptions["props"]
@@ -133,6 +138,17 @@ function normalize(items: FieldSchemaItem[]): FieldSchemaItem[] {
           },
         }
       }
+      if (item.type === "image") {
+        return {
+          name,
+          label,
+          type: "image",
+          required: item.required ?? false,
+          props: {
+            multiple: item.props?.multiple ?? false,
+          },
+        }
+      }
       return {
         name,
         label,
@@ -166,10 +182,13 @@ function changeFieldType(field: FieldSchemaItem, nextType: FieldType): FieldSche
   if (nextType === "options") {
     return { ...base, type: "options", props: { options: [], multiple: false } }
   }
+  if (nextType === "image") {
+    return { ...base, type: "image", props: { multiple: false } }
+  }
   return {
     ...base,
     type: nextType,
-    placeholder: field.type !== "options" ? field.placeholder : undefined,
+    placeholder: field.type !== "options" && field.type !== "image" ? field.placeholder : undefined,
   }
 }
 
@@ -181,6 +200,27 @@ function getEffectiveField(
     return { ...field, props: { ...field.props, options: optionsSyncRef.current } }
   }
   return field
+}
+
+function ImagePropsForm({ props, onChange }: ImagePropsFormProps) {
+  return (
+    <Field>
+      <FieldContent>
+        <FieldLabel>上传模式</FieldLabel>
+        <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm">
+          <input
+            type="checkbox"
+            checked={props?.multiple ?? false}
+            onChange={(e) => onChange({ ...props, multiple: e.target.checked })}
+          />
+          允许多选
+        </label>
+        <FieldDescription>
+          勾选后用户可同时上传多张图片，否则仅能上传一张。
+        </FieldDescription>
+      </FieldContent>
+    </Field>
+  )
 }
 
 function OptionsPropsForm({ props, onChange, optionsSyncRef }: OptionsPropsFormProps) {
@@ -378,6 +418,11 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
                     {field.props.multiple ? "多选" : "单选"}
                   </span>
                 )}
+                {field.type === "image" && (
+                  <span className="text-muted-foreground ml-1.5 text-xs">
+                    {field.props?.multiple ? "多张" : "单张"}
+                  </span>
+                )}
               </span>
               <Button
                 type="button"
@@ -452,7 +497,7 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
                   </FieldContent>
                 </Field>
 
-                {formField.type !== "options" && (
+                {formField.type !== "options" && formField.type !== "image" && (
                   <Field>
                     <FieldContent>
                       <FieldLabel htmlFor="field-placeholder">占位符</FieldLabel>
@@ -462,7 +507,7 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
                         value={formField.placeholder ?? ""}
                         onChange={(e) =>
                           updateFormField((field) => {
-                            if (field.type === "options") return field
+                            if (field.type === "options" || field.type === "image") return field
                             return { ...field, placeholder: e.target.value }
                           })
                         }
@@ -501,6 +546,18 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
                     />
                   </FieldContent>
                 </Field>
+
+                {formField.type === "image" && (
+                  <ImagePropsForm
+                    props={formField.props}
+                    onChange={(nextProps) =>
+                      updateFormField((field) => {
+                        if (field.type !== "image") return field
+                        return { ...field, props: nextProps }
+                      })
+                    }
+                  />
+                )}
 
                 {formField.type === "options" && (
                   <OptionsPropsForm

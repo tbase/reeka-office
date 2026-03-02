@@ -37,5 +37,6 @@ export type {
   ContentRow,
   FieldSchemaItem,
   FieldSchemaItemCommon,
+  FieldSchemaItemImage,
   FieldSchemaItemOptions,
 } from "./schema";

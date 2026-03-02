@@ -27,6 +27,7 @@ function toBoolean(value: unknown): boolean {
 function initialValueForField(field: FieldSchemaItem): unknown {
   if (field.type === "switch") return false;
   if (field.type === "options") return field.props.multiple ? [] : "";
+  if (field.type === "image") return field.props?.multiple ? [] : "";
   return "";
 }
 
@@ -44,6 +45,11 @@ export function normalizeFieldValue(
 
   if (field.type === "options") {
     if (field.props.multiple) return Array.isArray(value) ? value : [];
+    return typeof value === "string" ? value : "";
+  }
+
+  if (field.type === "image") {
+    if (field.props?.multiple) return Array.isArray(value) ? value : [];
     return typeof value === "string" ? value : "";
   }
 
@@ -159,7 +165,19 @@ export function ContentFields({
                 />
               ) : null}
 
-              {field.type === "image" ? (
+              {field.type === "image" && field.props?.multiple ? (
+                <ImageUpload
+                  multiple
+                  id={fieldId}
+                  value={Array.isArray(value) ? (value as string[]) : []}
+                  alt={field.label}
+                  onChangeAction={(nextValue) =>
+                    onUpdateField(field.name, nextValue)
+                  }
+                />
+              ) : null}
+
+              {field.type === "image" && !field.props?.multiple ? (
                 <ImageUpload
                   id={fieldId}
                   value={typeof value === "string" ? value : ""}
