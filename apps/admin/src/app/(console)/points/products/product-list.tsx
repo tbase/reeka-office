@@ -1,4 +1,5 @@
 import { ListRedemptionProductsQuery } from "@reeka-office/domain-point"
+import Image from "next/image"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,22 +51,42 @@ export async function ProductList({ status }: ProductListProps) {
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {products.map((product) => (
         <Card key={product.id}>
           <CardHeader className="gap-2">
             <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base leading-none">{product.title}</CardTitle>
+              <div className="flex min-w-0 items-center gap-2">
+                <CardTitle className="truncate text-base leading-none">{product.title}</CardTitle>
+                <Badge variant="outline">{product.redeemCategory}</Badge>
+              </div>
               <Badge variant={getStatusVariant(product.status)}>{getStatusText(product.status)}</Badge>
             </div>
-            <p className="text-muted-foreground text-xs">类别：{product.redeemCategory}</p>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="space-y-1">
-              <p>积分：{product.redeemPoints}</p>
-              <p>库存：{product.stock}</p>
-              <p>每人上限：{product.maxRedeemPerAgent}</p>
-              <p>有效期：{formatValidPeriod(product.validPeriodMonths)}</p>
+            <div className="flex items-start gap-3">
+              <div className="bg-muted/40 relative aspect-square w-24 shrink-0 overflow-hidden rounded-md border">
+                {product.imageUrl ? (
+                  <Image
+                    src={`/${product.imageUrl}`}
+                    alt={product.title}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="text-muted-foreground flex h-full w-full items-center justify-center text-xs">
+                    暂无图片
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 space-y-1">
+                <p>积分：{product.redeemPoints}</p>
+                <p>库存：{product.stock}</p>
+                <p>每人上限：{product.maxRedeemPerAgent}</p>
+                <p>有效期：{formatValidPeriod(product.validPeriodMonths)}</p>
+              </div>
             </div>
 
             <div className="flex flex-wrap justify-end gap-2">

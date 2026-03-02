@@ -5,6 +5,7 @@ import { useRef } from "react"
 import { toast } from "sonner"
 
 import type { PointItemRow } from "@reeka-office/domain-point"
+import type { Agent } from "@reeka-office/domain-user"
 
 import {
   Field,
@@ -17,15 +18,18 @@ import { SimpleSelect } from "@/components/ui/simple-select"
 import { Textarea } from "@/components/ui/textarea"
 
 type PointItem = Pick<PointItemRow, "id" | "name">
+type AgentOption = Pick<Agent, "agentCode" | "name">
 
 export function AgentPointRecordForm({
   pointItems,
+  agents,
   defaultAgentCode,
   id,
   onSuccess,
   action,
 }: {
   pointItems: PointItem[]
+  agents: AgentOption[]
   defaultAgentCode?: string
   id?: string
   onSuccess?: () => void
@@ -92,17 +96,18 @@ export function AgentPointRecordForm({
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
                 <FieldLabel htmlFor={field.name}>代理人编码</FieldLabel>
-                <Input
-                  id={field.name}
+                <SimpleSelect
                   name="agentCode"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) =>
-                    field.handleChange(e.target.value.toUpperCase())
-                  }
-                  placeholder="例如 A1234567"
-                  maxLength={8}
                   required
+                  placeholder={
+                    agents.length === 0 ? "暂无代理人" : "请选择代理人"
+                  }
+                  items={agents.map((agent) => ({
+                    value: agent.agentCode,
+                    label: `${agent.agentCode} - ${agent.name}`,
+                  }))}
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(String(v).toUpperCase())}
                 />
               </FieldContent>
             </Field>

@@ -11,11 +11,11 @@ import { StatusTabs } from "./status-tabs"
 const VALID_STATUSES = ["draft", "published", "off_shelf"] as const
 type ProductStatus = (typeof VALID_STATUSES)[number]
 
-function parseStatus(value: string | undefined): ProductStatus | undefined {
+function parseStatus(value: string | undefined): ProductStatus {
   if (VALID_STATUSES.includes(value as ProductStatus)) {
     return value as ProductStatus
   }
-  return undefined
+  return "published"
 }
 
 export default async function ProductsPage({
@@ -44,7 +44,7 @@ export default async function ProductsPage({
       </div>
 
       <Suspense
-        key={status ?? "all"}
+        key={status}
         fallback={
           <div className="text-muted-foreground rounded-md border border-dashed px-3 py-6 text-sm">
             正在加载商品...

@@ -1,37 +1,43 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-import { ListPointItemsQuery } from "@reeka-office/domain-point"
+import { ListPointItemsQuery } from "@reeka-office/domain-point";
+import { ListAgentsQuery } from "@reeka-office/domain-user";
 
-import { Button } from "@/components/ui/button"
-import { LinkButton } from "@/components/ui/link-button"
-import { AgentPointRecordForm } from "@/components/points/agent-point-record-form"
+import { AgentPointRecordForm } from "@/components/points/agent-point-record-form";
+import { Button } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/link-button";
 
-import { createAgentPointRecordAction } from "../actions"
+import { createAgentPointRecordAction } from "../actions";
 
-const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/
+const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/;
 
 function parseOptionalAgentCode(value: string | undefined): string | undefined {
-  if (!value) return undefined
-  const code = value.trim().toUpperCase()
-  return AGENT_CODE_REGEX.test(code) ? code : undefined
+  if (!value) return undefined;
+  const code = value.trim().toUpperCase();
+  return AGENT_CODE_REGEX.test(code) ? code : undefined;
 }
 
 export default async function AgentPointsCreatePage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = (await searchParams) ?? {}
+  const params = (await searchParams) ?? {};
   const defaultAgentCode = parseOptionalAgentCode(
     typeof params.agentCode === "string" ? params.agentCode : undefined,
-  )
+  );
 
-  const pointItems = await new ListPointItemsQuery().query()
+  const [pointItems, agents] = await Promise.all([
+    new ListPointItemsQuery().query(),
+    new ListAgentsQuery().query(),
+  ]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">新增代理人积分</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          新增代理人积分
+        </h1>
         <p className="text-muted-foreground text-sm">
           发放时会校验事项年次数上限，并自动累计当前积分余额。
         </p>
@@ -41,6 +47,7 @@ export default async function AgentPointsCreatePage({
         action={createAgentPointRecordAction}
         id="agent-point-record-form"
         pointItems={pointItems}
+        agents={agents}
         defaultAgentCode={defaultAgentCode}
       />
 
@@ -57,5 +64,5 @@ export default async function AgentPointsCreatePage({
         </LinkButton>
       </div>
     </div>
-  )
+  );
 }

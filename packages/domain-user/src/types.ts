@@ -9,3 +9,8 @@ export interface User {
   createdAt: Date | null
   updatedAt: Date | null
 }
+
+export interface Agent {
+  agentCode: string
+  name: string
+}

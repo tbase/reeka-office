@@ -10,4 +10,4 @@ export {
 export { BindAgentCommand, type BindAgentInput, type BindAgentResult } from './commands/bind-agent'
 export * from './commands'
 export * from './queries'
-export type { User } from './types'
+export type { Agent, User } from './types'
