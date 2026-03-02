@@ -20,3 +20,8 @@ export {
   type AgentRedemptionRecordItem,
   type ListAgentRedemptionRecordsResult,
 } from './list-agent-redemption-records'
+export {
+  ListAgentRedeemCountsQuery,
+  type ListAgentRedeemCountsInput,
+  type AgentRedeemCountItem,
+} from './list-agent-redeem-counts'

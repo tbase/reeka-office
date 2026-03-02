@@ -2,7 +2,8 @@
 import { computed } from 'wevu'
 
 import { useMutation } from '@/hooks/useMutation'
-import { usePointSummaryStore, useRedeemItemsStore } from '@/stores/points'
+import { invalidateQueries } from '@/hooks/useQuery'
+import { usePointSummaryStore, useRedeemItemStore } from '@/stores/points'
 import { useUserStore } from '@/stores/user'
 
 definePageJson({
@@ -11,25 +12,38 @@ definePageJson({
 })
 
 const selectedId = wx.getStorageSync('mine_redeem_item_id') as string
-const { summary } = usePointSummaryStore()
-const { items } = useRedeemItemsStore()
+const { summary, refetch: refetchSummary } = usePointSummaryStore()
+const { items, refetch: refetchItem } = useRedeemItemStore(selectedId)
 const { user } = useUserStore()
 
 const memberPoints = computed(() => summary.value?.currentPoints ?? 0)
-const item = computed(() => {
-  const foundItem = items.value?.find((item) => item.id === selectedId)
-  return foundItem || {
-    id: selectedId,
-    name: '商品未找到',
-    cost: 0,
-    stock: 0,
-    intro: '',
+const item = computed(
+  () => {
+    const rawItem = items.value?.[0]
+
+    return {
+      id: rawItem?.id ?? '',
+      redeemCategory: rawItem?.redeemCategory ?? '',
+      title: rawItem?.title ?? '商品未找到',
+      description: rawItem?.description ?? '',
+      redeemPoints: rawItem?.redeemPoints ?? 0,
+      stock: rawItem?.stock ?? 0,
+      maxRedeemPerAgent: rawItem?.maxRedeemPerAgent ?? 1,
+      redeemedCount: rawItem?.redeemedCount ?? 0,
+      imageUrl: rawItem?.imageUrl ?? undefined,
+      notice: rawItem?.notice ?? '',
+    }
   }
-})
+)
 
 const agentCode = computed(() => user.value?.agentCode ?? '')
-const pointsAfterRedeem = computed(() => memberPoints.value - item.value.cost)
-const canRedeem = computed(() => memberPoints.value >= item.value.cost && item.value.stock > 0)
+const pointsAfterRedeem = computed(() => memberPoints.value - item.value.redeemPoints)
+const redeemLimitReached = computed(() => item.value.redeemedCount >= item.value.maxRedeemPerAgent)
+const canRedeem = computed(() =>
+  memberPoints.value >= item.value.redeemPoints
+  && item.value.stock > 0
+  && !redeemLimitReached.value,
+)
 
 const { mutate: submitRedeem, loading: redeeming } = useMutation('points/submitRedeem', {
   showLoading: '兑换中...',
@@ -38,6 +52,14 @@ const { mutate: submitRedeem, loading: redeeming } = useMutation('points/submitR
       title: result.message,
       icon: result.success ? 'success' : 'none',
     })
+
+    if (!result.success) {
+      return
+    }
+
+    invalidateQueries('points/getMineSummary')
+    invalidateQueries('points/listRedeemItems')
+    await Promise.all([refetchSummary(), refetchItem()])
   },
   onError: (error) => {
     wx.showToast({
@@ -62,13 +84,21 @@ const handleRedeem = async () => {
 <template>
   <view class="min-h-screen bg-slate-100 px-4 pb-16 pt-4 text-slate-900">
     <view class="rounded-xl bg-white p-4 shadow-lg">
-      <text class="block text-lg font-semibold text-slate-900">{{ item.name }}</text>
-      <text class="mt-2 block text-sm text-slate-500">{{ item.intro }}</text>
-
+      <text class="inline-flex rounded-full bg-rose-50 px-2 py-1 text-xs text-rose-500">
+        {{ item.redeemCategory || '默认分类' }}
+      </text>
+      <image
+        v-if="item.imageUrl"
+        class="mt-3 h-40 w-full rounded-lg bg-slate-100"
+        mode="aspectFill"
+        :src="item.imageUrl"
+      />
+      <text class="mt-2 block text-lg font-semibold text-slate-900">{{ item.title }}</text>
+      <text class="mt-2 block text-sm text-slate-500">{{ item.description }}</text>
       <view class="mt-4 rounded-lg bg-slate-50 p-3">
         <view class="flex items-center justify-between">
           <text class="text-sm text-slate-500">积分消耗</text>
-          <text class="text-sm font-semibold text-rose-500">{{ item.cost }} 积分</text>
+          <text class="text-sm font-semibold text-rose-500">{{ item.redeemPoints }} 积分</text>
         </view>
         <view class="mt-2 flex items-center justify-between">
           <text class="text-sm text-slate-500">当前积分</text>
@@ -84,6 +114,18 @@ const handleRedeem = async () => {
           <text class="text-sm text-slate-500">剩余库存</text>
           <text class="text-sm text-slate-900">{{ item.stock }}</text>
         </view>
+        <view class="mt-2 flex items-center justify-between">
+          <text class="text-sm text-slate-500">每人限兑</text>
+          <text class="text-sm text-slate-900">{{ item.maxRedeemPerAgent }} 次</text>
+        </view>
+        <view class="mt-2 flex items-center justify-between">
+          <text class="text-sm text-slate-500">已兑换次数</text>
+          <text class="text-sm text-slate-900">{{ item.redeemedCount }} 次</text>
+        </view>
+        <view v-if="item.notice" class="mt-2">
+          <text class="text-sm text-slate-500">兑换说明</text>
+          <text class="mt-1 block text-sm text-slate-700">{{ item.notice }}</text>
+        </view>
       </view>
     </view>
 
@@ -96,7 +138,7 @@ const handleRedeem = async () => {
     </view>
 
     <text v-if="!canRedeem" class="mt-2 block text-center text-xs text-slate-400">
-      积分不足或库存不足，暂不可兑换
+      积分不足、库存不足或已达限兑次数，暂不可兑换
     </text>
   </view>
 </template>
