@@ -15,12 +15,14 @@ export interface PointSummaryStore {
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
   agentCode: ComputedRef<string | undefined>
+  refetch: () => Promise<MineSummary | null>
 }
 
 export interface RedeemItemsStore {
   items: Ref<RedeemItems | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
+  refetch: () => Promise<RedeemItems | null>
 }
 
 export interface PointRecordsStore {
@@ -28,18 +30,21 @@ export interface PointRecordsStore {
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
   agentCode: ComputedRef<string | undefined>
+  refetch: () => Promise<PointRecords | null>
 }
 
 export interface PointRuleScenesStore {
   scenes: Ref<PointRuleScenes | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
+  refetch: () => Promise<PointRuleScenes | null>
 }
 
 export interface PointRulesStore {
   rules: Ref<PointRules | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
+  refetch: () => Promise<PointRules | null>
 }
 
 function useAgentCode(): ComputedRef<string | undefined> {
@@ -55,7 +60,7 @@ function useAgentCode(): ComputedRef<string | undefined> {
 
 export function usePointSummaryStore(): PointSummaryStore {
   const agentCode = useAgentCode()
-  const { data, loading, error } = useQuery({
+  const { data, loading, error, refetch } = useQuery({
     queryKey: () => ['points/getMineSummary', { agentCode: agentCode.value }],
   })
 
@@ -64,11 +69,12 @@ export function usePointSummaryStore(): PointSummaryStore {
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     agentCode,
+    refetch,
   }
 }
 
 export function useRedeemItemsStore(): RedeemItemsStore {
-  const { data, loading, error } = useQuery({
+  const { data, loading, error, refetch } = useQuery({
     queryKey: ['points/listRedeemItems', {}],
   })
 
@@ -76,12 +82,26 @@ export function useRedeemItemsStore(): RedeemItemsStore {
     items: data as Ref<RedeemItems | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
+    refetch,
+  }
+}
+
+export function useRedeemItemStore(itemId: string): RedeemItemsStore {
+  const { data, loading, error, refetch } = useQuery({
+    queryKey: () => ['points/listRedeemItems', { itemId }],
+  })
+
+  return {
+    items: data as Ref<RedeemItems | null>,
+    isLoading: loading,
+    error: error as Ref<RpcError | null>,
+    refetch,
   }
 }
 
 export function usePointRecordsStore(): PointRecordsStore {
   const agentCode = useAgentCode()
-  const { data, loading, error } = useQuery({
+  const { data, loading, error, refetch } = useQuery({
     queryKey: () => ['points/listPointRecords', { agentCode: agentCode.value }],
   })
 
@@ -90,11 +110,12 @@ export function usePointRecordsStore(): PointRecordsStore {
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     agentCode,
+    refetch,
   }
 }
 
 export function usePointRuleScenesStore(): PointRuleScenesStore {
-  const { data, loading, error } = useQuery({
+  const { data, loading, error, refetch } = useQuery({
     queryKey: ['points/listPointRuleScenes', undefined],
   })
 
@@ -102,11 +123,12 @@ export function usePointRuleScenesStore(): PointRuleScenesStore {
     scenes: data as Ref<PointRuleScenes | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
+    refetch,
   }
 }
 
 export function usePointRulesStore(): PointRulesStore {
-  const { data, loading, error } = useQuery({
+  const { data, loading, error, refetch } = useQuery({
     queryKey: ['points/listPointRules', undefined],
   })
 
@@ -114,5 +136,6 @@ export function usePointRulesStore(): PointRulesStore {
     rules: data as Ref<PointRules | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
+    refetch,
   }
 }
