@@ -9,7 +9,6 @@ import {
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 async function uploadFile(file: File): Promise<string> {
@@ -103,47 +102,18 @@ function RemoveButton({
   );
 }
 
-function PreviewButton({ onClick }: { onClick: () => void }) {
+function PreviewButton({ src }: { src: string }) {
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
       aria-label="预览大图"
-      className="absolute bottom-1.5 left-1.5 flex size-5 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/70 group-hover:opacity-100"
+      className="absolute bottom-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/70 group-hover:opacity-100"
     >
       <ZoomInIcon className="size-3" />
-    </button>
-  );
-}
-
-function ImagePreviewDialog({
-  src,
-  alt,
-  open,
-  onOpenChange,
-}: {
-  src: string;
-  alt: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl border-0 bg-transparent p-0 shadow-none">
-        <div className="relative flex items-center justify-center">
-          <Image
-            src={src}
-            alt={alt}
-            unoptimized
-            fill
-            className="max-h-[80vh] max-w-full rounded-md object-contain"
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
+    </a>
   );
 }
 
@@ -158,7 +128,6 @@ export function ImageUpload(
   const inputId = id ?? generatedId;
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
   const openPicker = () => {
     if (disabled || uploading) return;
@@ -190,72 +159,57 @@ export function ImageUpload(
     const values = props.value ?? [];
 
     return (
-      <>
-        <div className={cn("flex flex-wrap gap-2", className)}>
-          <input
-            ref={inputRef}
-            id={inputId}
-            type="file"
-            accept="image/*"
-            multiple
-            className="sr-only"
-            disabled={disabled || uploading}
-            onChange={handleChange}
-          />
+      <div className={cn("flex flex-wrap gap-2", className)}>
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          disabled={disabled || uploading}
+          onChange={handleChange}
+        />
 
-          {values.map((src, index) => {
-            const imgAlt = alt ? `${alt} ${index + 1}` : `图片 ${index + 1}`;
-            return (
-              <div key={index} className="group relative aspect-square w-40">
-                <div className="bg-muted/40 relative h-full w-full overflow-hidden rounded-md border">
-                  <Image
-                    src={`/${src}`}
-                    alt={imgAlt}
-                    unoptimized
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                {!uploading && (
-                  <>
-                    <RemoveButton
-                      onClick={() =>
-                        props.onChangeAction(
-                          values.filter((_, i) => i !== index),
-                        )
-                      }
-                      disabled={disabled}
-                    />
-                    <PreviewButton onClick={() => setPreviewSrc(`/${src}`)} />
-                  </>
-                )}
+        {values.map((src, index) => {
+          const imgAlt = alt ? `${alt} ${index + 1}` : `图片 ${index + 1}`;
+          return (
+            <div key={index} className="group relative aspect-square w-28">
+              <div className="bg-muted/40 relative h-full w-full overflow-hidden rounded-md border">
+                <Image
+                  src={`/${src}`}
+                  alt={imgAlt}
+                  unoptimized
+                  fill
+                  className="object-cover"
+                />
               </div>
-            );
-          })}
+              {!uploading && (
+                <>
+                  <RemoveButton
+                    onClick={() =>
+                      props.onChangeAction(values.filter((_, i) => i !== index))
+                    }
+                    disabled={disabled}
+                  />
+                  <PreviewButton src={`/${src}`} />
+                </>
+              )}
+            </div>
+          );
+        })}
 
-          <div className="aspect-square w-32">
-            <button
-              type="button"
-              onClick={openPicker}
-              disabled={disabled || uploading}
-              className="bg-muted/40 hover:bg-muted/60 h-full w-full overflow-hidden rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <PickerContent uploading={uploading} label="添加图片" />
-            </button>
-          </div>
+        <div className="aspect-square w-28">
+          <button
+            type="button"
+            onClick={openPicker}
+            disabled={disabled || uploading}
+            className="bg-muted/40 hover:bg-muted/60 h-full w-full overflow-hidden rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <PickerContent uploading={uploading} label="添加图片" />
+          </button>
         </div>
-
-        {previewSrc && (
-          <ImagePreviewDialog
-            src={previewSrc}
-            alt={alt ?? "预览图片"}
-            open={Boolean(previewSrc)}
-            onOpenChange={(open) => {
-              if (!open) setPreviewSrc(null);
-            }}
-          />
-        )}
-      </>
+      </div>
     );
   }
 
@@ -274,7 +228,7 @@ export function ImageUpload(
         onChange={handleChange}
       />
 
-      <div className="group relative aspect-square w-32">
+      <div className="group relative aspect-square w-28">
         <button
           type="button"
           onClick={openPicker}
@@ -300,21 +254,10 @@ export function ImageUpload(
               onClick={() => props.onChangeAction("")}
               disabled={disabled}
             />
-            <PreviewButton onClick={() => setPreviewSrc(`/${value}`)} />
+            <PreviewButton src={`/${value}`} />
           </>
         )}
       </div>
-
-      {previewSrc && (
-        <ImagePreviewDialog
-          src={previewSrc}
-          alt={alt ?? "预览图片"}
-          open={Boolean(previewSrc)}
-          onOpenChange={(open) => {
-            if (!open) setPreviewSrc(null);
-          }}
-        />
-      )}
     </div>
   );
 }
