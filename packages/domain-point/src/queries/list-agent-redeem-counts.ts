@@ -1,0 +1,41 @@
+import { and, count, eq } from 'drizzle-orm'
+import { getDb, type DB } from '../context'
+import { redemptionRecords } from '../schema'
+
+export interface ListAgentRedeemCountsInput {
+  agentCode: string
+}
+
+export interface AgentRedeemCountItem {
+  productId: number
+  redeemedCount: number
+}
+
+export class ListAgentRedeemCountsQuery {
+  private readonly db: DB
+
+  constructor(private readonly input: ListAgentRedeemCountsInput) {
+    this.db = getDb()
+  }
+
+  async query(): Promise<AgentRedeemCountItem[]> {
+    const rows = await this.db
+      .select({
+        productId: redemptionRecords.productId,
+        redeemedCount: count(),
+      })
+      .from(redemptionRecords)
+      .where(
+        and(
+          eq(redemptionRecords.agentCode, this.input.agentCode),
+          eq(redemptionRecords.status, 'success'),
+        ),
+      )
+      .groupBy(redemptionRecords.productId)
+
+    return rows.map((row) => ({
+      productId: row.productId,
+      redeemedCount: Number(row.redeemedCount ?? 0),
+    }))
+  }
+}
