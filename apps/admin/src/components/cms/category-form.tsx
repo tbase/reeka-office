@@ -22,6 +22,7 @@ export type CategoryFormValue = {
   name?: string;
   slug?: string;
   description?: string | null;
+  hideContent?: boolean;
   fieldSchema?: FieldSchemaItem[];
 };
 
@@ -45,6 +46,7 @@ export function CategoryForm({
       name: value?.name ?? "",
       slug: value?.slug ?? "",
       description: value?.description ?? "",
+      hideContent: value?.hideContent ?? false,
     },
     onSubmit: async ({ value: formValue }) => {
       if (!formRef.current) return;
@@ -53,6 +55,7 @@ export function CategoryForm({
       formData.set("name", formValue.name);
       formData.set("slug", formValue.slug);
       formData.set("description", formValue.description);
+      formData.set("hideContent", formValue.hideContent ? "1" : "0");
 
       if (value?.id) {
         formData.set("id", String(value.id));
@@ -147,6 +150,27 @@ export function CategoryForm({
                 onChange={(event) => field.handleChange(event.target.value)}
                 placeholder="分类描述（可选）"
               />
+            </FieldContent>
+          </Field>
+        )}
+      </form.Field>
+
+      <form.Field name="hideContent">
+        {(field) => (
+          <Field>
+            <FieldContent>
+              <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="hideContent"
+                  checked={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.checked)}
+                />
+                <span>隐藏正文</span>
+              </label>
+              <FieldDescription>
+                开启后，编辑该分类下的内容时不显示正文字段。
+              </FieldDescription>
             </FieldContent>
           </Field>
         )}

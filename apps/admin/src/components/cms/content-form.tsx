@@ -204,25 +204,27 @@ export function ContentForm({
         }}
       </form.Field>
 
-      <form.Field name="content">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>正文</FieldLabel>
-              <Textarea
-                id={field.name}
-                name="content"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                placeholder="正文"
-                rows={4}
-              />
-              <FieldDescription>支持纯文本录入，可留空。</FieldDescription>
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      {!selectedCategory?.hideContent && (
+        <form.Field name="content">
+          {(field) => (
+            <Field>
+              <FieldContent>
+                <FieldLabel htmlFor={field.name}>正文</FieldLabel>
+                <Textarea
+                  id={field.name}
+                  name="content"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  placeholder="正文"
+                  rows={4}
+                />
+                <FieldDescription>支持纯文本录入，可留空。</FieldDescription>
+              </FieldContent>
+            </Field>
+          )}
+        </form.Field>
+      )}
 
       <ContentFields
         category={selectedCategory}

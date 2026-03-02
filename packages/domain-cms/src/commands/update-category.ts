@@ -8,6 +8,7 @@ export interface UpdateCategoryInput {
   name?: string;
   description?: string | null;
   fieldSchema?: FieldSchemaItem[];
+  hideContent?: boolean;
 }
 
 export class UpdateCategoryCommand {
@@ -21,14 +22,15 @@ export class UpdateCategoryCommand {
       slug: this.input.slug,
       name: this.input.name,
       description: this.input.description,
-      fieldSchema: this.input.fieldSchema
+      fieldSchema: this.input.fieldSchema,
+      hideContent: this.input.hideContent
     };
 
     const [result] = await this.db
       .update(categories)
       .set(values)
       .where(eq(categories.id, this.input.id));
-    
+
     return result.affectedRows > 0;
   }
 }

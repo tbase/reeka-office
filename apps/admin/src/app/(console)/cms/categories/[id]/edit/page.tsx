@@ -57,6 +57,7 @@ export default async function CmsCategoryEditPage({
           name: category.name,
           slug: category.slug,
           description: category.description,
+          hideContent: Boolean(category.hideContent),
           fieldSchema: category.fieldSchema,
         }}
       />

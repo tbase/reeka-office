@@ -16,6 +16,14 @@ function parseId(value: FormDataEntryValue | null): number {
   return id
 }
 
+function parseHideContent(value: FormDataEntryValue | null): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === "boolean") return value
+  if (typeof value === "string") return value === "1" || value === "true"
+  if (typeof value === "number") return value === 1
+  return false
+}
+
 function parseFieldSchema(value: FormDataEntryValue | null): FieldSchemaItem[] {
   if (typeof value !== "string" || !value.trim()) {
     return []
@@ -40,6 +48,7 @@ export async function createCategoryAction(formData: FormData): Promise<{ succes
   const name = String(formData.get("name") ?? "").trim()
   const slug = String(formData.get("slug") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
+  const hideContent = parseHideContent(formData.get("hideContent"))
   const fieldSchema = parseFieldSchema(formData.get("fieldSchema"))
 
   if (!name) {
@@ -50,6 +59,7 @@ export async function createCategoryAction(formData: FormData): Promise<{ succes
     name,
     slug: slug || undefined,
     description: description || null,
+    hideContent,
     fieldSchema,
   }).execute()
 
@@ -63,6 +73,7 @@ export async function updateCategoryAction(formData: FormData): Promise<{ succes
   const name = String(formData.get("name") ?? "").trim()
   const slug = String(formData.get("slug") ?? "").trim()
   const description = String(formData.get("description") ?? "").trim()
+  const hideContent = parseHideContent(formData.get("hideContent"))
   const fieldSchema = parseFieldSchema(formData.get("fieldSchema"))
 
   if (!name) {
@@ -74,6 +85,7 @@ export async function updateCategoryAction(formData: FormData): Promise<{ succes
     name,
     slug: slug || undefined,
     description: description || null,
+    hideContent,
     fieldSchema,
   }).execute()
 

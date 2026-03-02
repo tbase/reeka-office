@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import type { CategoryOption } from "@/components/cms/content-fields";
 import { ContentFormEdit } from "@/components/cms/content-form-edit";
@@ -51,12 +52,14 @@ export function ContentEditFormDialog({
             请根据实际信息更新标题、正文与分类。
           </DialogDescription>
         </DialogHeader>
-        <ContentFormEdit
-          action={updateContentAction}
-          categories={categories}
-          id="content-form"
-          value={value}
-        />
+        <ScrollArea className="max-h-[70vh]">
+          <ContentFormEdit
+            action={updateContentAction}
+            categories={categories}
+            id="content-form"
+            value={value}
+          />
+        </ScrollArea>
         <DialogFooter>
           <Button type="submit" form="content-form">
             保存内容

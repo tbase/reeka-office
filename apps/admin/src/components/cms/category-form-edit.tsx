@@ -9,6 +9,7 @@ export type CategoryFormEditValue = {
   name: string;
   slug: string;
   description: string | null;
+  hideContent?: boolean;
   fieldSchema: FieldSchemaItem[];
 };
 

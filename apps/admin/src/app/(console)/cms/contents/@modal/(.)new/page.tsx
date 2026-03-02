@@ -30,6 +30,7 @@ export default async function CmsContentNewModal({
     id: category.id,
     name: category.name,
     fieldSchema: category.fieldSchema,
+    hideContent: Boolean(category.hideContent),
   }));
 
   return (

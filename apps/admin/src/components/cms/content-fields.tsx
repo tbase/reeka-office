@@ -14,6 +14,7 @@ export type CategoryOption = {
   id: number;
   name: string;
   fieldSchema: FieldSchemaItem[];
+  hideContent?: boolean;
 };
 
 function toBoolean(value: unknown): boolean {

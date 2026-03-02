@@ -6,6 +6,7 @@ export interface CreateCategoryInput {
   name: string;
   description?: string | null;
   fieldSchema?: FieldSchemaItem[];
+  hideContent?: boolean;
 }
 
 function toSlug(value: string): string {
@@ -28,7 +29,8 @@ export class CreateCategoryCommand {
       slug: this.input.slug ?? toSlug(this.input.name),
       name: this.input.name,
       description: this.input.description ?? null,
-      fieldSchema: this.input.fieldSchema ?? []
+      fieldSchema: this.input.fieldSchema ?? [],
+      hideContent: this.input.hideContent ?? false
     };
     const result = await this.db.insert(categories).values(values).$returningId();
     return result[0]?.id ?? null;

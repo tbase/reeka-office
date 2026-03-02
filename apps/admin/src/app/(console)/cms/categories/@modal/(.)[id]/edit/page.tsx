@@ -33,6 +33,7 @@ export default async function CmsCategoryEditModal({
         name: category.name,
         slug: category.slug,
         description: category.description,
+        hideContent: Boolean(category.hideContent),
         fieldSchema: category.fieldSchema,
       }}
     />

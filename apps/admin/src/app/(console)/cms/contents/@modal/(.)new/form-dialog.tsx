@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import type { CategoryOption } from "@/components/cms/content-fields";
 import { ContentFormNew } from "@/components/cms/content-form-new";
@@ -43,12 +44,14 @@ export function ContentFormDialog({
             请选择分类并填写标题、正文与扩展信息。
           </DialogDescription>
         </DialogHeader>
-        <ContentFormNew
-          action={createContentAction}
-          categories={categories}
-          id="content-form"
-          categoryId={defaultCategoryId}
-        />
+        <ScrollArea className="max-h-[70vh]">
+          <ContentFormNew
+            action={createContentAction}
+            categories={categories}
+            id="content-form"
+            categoryId={defaultCategoryId}
+          />
+        </ScrollArea>
         <DialogFooter>
           <Button
             type="submit"

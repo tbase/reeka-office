@@ -5,6 +5,7 @@ import {
   CalendarIcon,
   CheckSquare2Icon,
   HashIcon,
+  GripVerticalIcon,
   ImageIcon,
   PencilIcon,
   PlusIcon,
@@ -12,7 +13,7 @@ import {
   Trash2Icon,
   TypeIcon,
 } from "lucide-react"
-import type { ReactNode } from "react"
+import type { DragEvent, ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import type { FieldSchemaItem, FieldSchemaItemCommon, FieldSchemaItemOptions } from "@reeka-office/domain-cms"
@@ -147,6 +148,19 @@ function createFieldRow(field: FieldSchemaItem): FieldRow {
   return { id: crypto.randomUUID(), field }
 }
 
+function reorderRows(rows: FieldRow[], activeRowId: string, overRowId: string): FieldRow[] {
+  if (activeRowId === overRowId) return rows
+
+  const activeIndex = rows.findIndex((row) => row.id === activeRowId)
+  const overIndex = rows.findIndex((row) => row.id === overRowId)
+  if (activeIndex === -1 || overIndex === -1) return rows
+
+  const nextRows = [...rows]
+  const [activeRow] = nextRows.splice(activeIndex, 1)
+  nextRows.splice(overIndex, 0, activeRow)
+  return nextRows
+}
+
 function changeFieldType(field: FieldSchemaItem, nextType: FieldType): FieldSchemaItem {
   const base = { name: field.name, label: field.label, required: field.required }
   if (nextType === "options") {
@@ -222,6 +236,8 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
     defaultValue?.length ? defaultValue.map(createFieldRow) : [],
   )
   const [sheetMode, setSheetMode] = useState<SheetMode>(null)
+  const [draggingRowId, setDraggingRowId] = useState<string | null>(null)
+  const [dragOverRowId, setDragOverRowId] = useState<string | null>(null)
   const optionsSyncRef = useRef<string[] | null>(null)
 
   const serialized = useMemo(
@@ -286,6 +302,36 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
     else closeSheet()
   }
 
+  const handleRowDragStart = (event: DragEvent<HTMLElement>, rowId: string) => {
+    setDraggingRowId(rowId)
+    setDragOverRowId(rowId)
+    event.dataTransfer.effectAllowed = "move"
+    event.dataTransfer.setData("text/plain", rowId)
+  }
+
+  const handleRowDragOver = (event: DragEvent<HTMLElement>, rowId: string) => {
+    if (!draggingRowId) return
+    event.preventDefault()
+    if (dragOverRowId !== rowId) {
+      setDragOverRowId(rowId)
+    }
+  }
+
+  const handleRowDrop = (event: DragEvent<HTMLElement>, rowId: string) => {
+    event.preventDefault()
+    const activeRowId = draggingRowId ?? event.dataTransfer.getData("text/plain")
+    if (activeRowId) {
+      setRows((prev) => reorderRows(prev, activeRowId, rowId))
+    }
+    setDraggingRowId(null)
+    setDragOverRowId(null)
+  }
+
+  const handleRowDragEnd = () => {
+    setDraggingRowId(null)
+    setDragOverRowId(null)
+  }
+
   return (
     <div className="space-y-3">
       <input type="hidden" name={inputName} value={serialized} />
@@ -300,8 +346,22 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
           return (
             <div
               key={row.id}
-              className="flex items-center gap-2 rounded-md border px-3 py-2"
+              className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
+                draggingRowId === row.id ? "opacity-50" : ""
+              } ${dragOverRowId === row.id ? "border-primary" : ""}`}
             >
+              <button
+                type="button"
+                aria-label="拖拽排序字段"
+                draggable
+                onDragStart={(event) => handleRowDragStart(event, row.id)}
+                onDragOver={(event) => handleRowDragOver(event, row.id)}
+                onDrop={(event) => handleRowDrop(event, row.id)}
+                onDragEnd={handleRowDragEnd}
+                className="text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing"
+              >
+                <GripVerticalIcon className="size-3.5" />
+              </button>
               <span className="text-muted-foreground shrink-0">
                 {FIELD_TYPE_ICON[field.type]}
               </span>
