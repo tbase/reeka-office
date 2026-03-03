@@ -94,30 +94,39 @@ const getRedeemDisabledReason = (item: RedeemItem): string | null => {
         <text class="text-xs text-slate-400">可兑换 {{ canRedeemCount }} 项</text>
       </view>
 
-      <view
-        v-for="item in redeemItems"
-        :key="item.id"
-        class="mt-3 rounded-lg border border-slate-100 p-3"
-        @tap="goRedeemDetail(item.id)"
-      >
-        <text class="block text-base font-semibold text-slate-900">{{ item.title }}</text>
-        <text class="mt-1 block text-sm text-slate-500">{{ item.description }}</text>
-        <view class="mt-2 flex items-center justify-between">
-          <text class="text-sm text-rose-500">消耗 {{ item.redeemPoints }} 积分</text>
-          <text class="text-xs text-slate-400">剩余库存 {{ item.stock }}</text>
-        </view>
-        <text class="mt-1 block text-xs text-slate-400">每人限兑 {{ item.maxRedeemPerAgent }} 次</text>
-        <text class="mt-1 block text-xs text-slate-400">我已兑换 {{ item.redeemedCount }} 次</text>
+      <view class="mt-3 grid grid-cols-2 gap-3">
         <view
-          class="mt-3 rounded-md py-2 text-center"
-          :class="getRedeemDisabledReason(item) ? 'bg-slate-200' : 'bg-rose-50'"
+          v-for="item in redeemItems"
+          :key="item.id"
+          class="flex h-full flex-col rounded-lg border border-slate-100 p-3"
+          @tap="goRedeemDetail(item.id)"
         >
-          <text
-            class="text-sm font-medium"
-            :class="getRedeemDisabledReason(item) ? 'text-slate-400' : 'text-rose-500'"
-          >
-            {{ getRedeemDisabledReason(item) ?? '去兑换' }}
-          </text>
+          <image
+            v-if="item.imageUrl"
+            class="h-24 w-full rounded-md bg-slate-100"
+            mode="aspectFill"
+            :src="item.imageUrl"
+          />
+          <view v-else class="flex h-24 w-full items-center justify-center rounded-md bg-slate-100">
+            <text class="text-xs text-slate-400">暂无商品图</text>
+          </view>
+          <text class="mt-2 block text-base font-semibold text-slate-900">{{ item.title }}</text>
+          <view class="mt-2 flex items-center justify-between">
+            <text class="text-sm text-rose-500">{{ item.redeemPoints }} 积分</text>
+            <text class="text-xs text-slate-400">库存 {{ item.stock }}</text>
+          </view>
+          <text class="mt-1 block text-xs text-slate-400">每人限兑 {{ item.maxRedeemPerAgent }} 次</text>
+          <text class="mt-1 block text-xs text-slate-400">你已兑换 {{ item.redeemedCount }} 次</text>
+          <view class="mt-auto pt-3">
+            <text
+              class="block rounded-md py-2 text-center text-sm font-medium"
+              :class="getRedeemDisabledReason(item)
+                ? 'bg-slate-200 text-slate-400'
+                : 'bg-rose-50 text-rose-500'"
+            >
+              {{ getRedeemDisabledReason(item) ?? '去兑换' }}
+            </text>
+          </view>
         </view>
       </view>
     </view>

@@ -22,16 +22,22 @@ export type ListRedeemItemsOutput = Array<{
   redeemedCount: number;
 }>;
 
+function isProductWithinValidity(publishedAt: Date | null, validPeriodMonths: number | null): boolean {
+  if (!publishedAt || !validPeriodMonths) {
+    return true
+  }
+
+  const expiryAt = new Date(publishedAt)
+  expiryAt.setMonth(expiryAt.getMonth() + validPeriodMonths)
+  return expiryAt.getTime() >= Date.now()
+}
+
 const normalizeImageURL = (src: string | null | undefined): string | undefined => {
-  if (!src) {
-    return undefined;
-  }
-  if (src.includes("://")) {
-    return src;
-  }
-  src = src.replace(/^\/+/, "")
-  return `https://${process.env.COS_BUCKET}.tcb.qcloud.la/${src}`;
-};
+  if (!src) return undefined
+  if (src.includes("://") || src.startsWith("cloud://")) return src
+  const normalizedPath = src.replace(/^\/+/, "")
+  return `https://${process.env.COS_BUCKET}.tcb.qcloud.la/${normalizedPath}`
+}
 
 export const listRedeemItems = rpc.define({
   inputSchema,
@@ -47,8 +53,11 @@ export const listRedeemItems = rpc.define({
     }
 
     const products = await new ListRedemptionProductsQuery({ status: "published" }).query();
+    const validProducts = products.filter((product) =>
+      isProductWithinValidity(product.publishedAt, product.validPeriodMonths),
+    )
 
-    const mappedProducts = products.map((product) => ({
+    const mappedProducts = validProducts.map((product) => ({
       id: product.id == null ? "" : String(product.id),
       redeemCategory: product.redeemCategory ?? "",
       title: product.title ?? "",
