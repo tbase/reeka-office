@@ -22,27 +22,16 @@ export type ListRedeemItemsOutput = Array<{
   redeemedCount: number;
 }>;
 
-function formatImageUrl(imageUrl: string | null | undefined, envid: string): string | undefined {
-  if (!imageUrl) return undefined
-
-  // Already absolute URL or COS file id style, return as-is.
-  if (imageUrl.includes("://") || imageUrl.startsWith("cloud://")) {
-    return imageUrl
+const normalizeImageURL = (src: string | null | undefined): string | undefined => {
+  if (!src) {
+    return undefined;
   }
-
-  const bucket = process.env.COS_BUCKET
-  if (!bucket) {
-    return imageUrl
+  if (src.includes("://")) {
+    return src;
   }
-
-  const normalizedPath = imageUrl.replace(/^\/+/, "")
-  const prefix = `cloud://${envid}.${bucket}/`
-  if (normalizedPath.startsWith(prefix)) {
-    return normalizedPath
-  }
-
-  return `${prefix}${normalizedPath}`
-}
+  src = src.replace(/^\/+/, "")
+  return `https://${process.env.COS_BUCKET}.tcb.qcloud.la/${src}`;
+};
 
 export const listRedeemItems = rpc.define({
   inputSchema,
@@ -66,7 +55,7 @@ export const listRedeemItems = rpc.define({
       description: product.description ?? "",
       redeemPoints: product.redeemPoints ?? 0,
       stock: product.stock ?? 0,
-      imageUrl: formatImageUrl(product.imageUrl, context.envid),
+      imageUrl: normalizeImageURL(product.imageUrl),
       notice: product.notice ?? "",
       maxRedeemPerAgent: product.maxRedeemPerAgent ?? 1,
       redeemedCount: product.id == null ? 0 : redeemCountMap.get(product.id) ?? 0,

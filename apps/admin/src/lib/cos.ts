@@ -194,6 +194,10 @@ export async function uploadToCOS(
     throw new Error(`上传文件失败: ${JSON.stringify(result)}`);
   }
 
-  // 返回 fileID（微信云托管格式）
-  return `${bucket}/${cloudPath}`;
+  const url = cos.getObjectUrl({
+    Bucket: bucket,
+    Region: region,
+    Key: cloudPath,
+  });
+  return url
 }

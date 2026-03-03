@@ -30,7 +30,7 @@ const item = computed(
       stock: rawItem?.stock ?? 0,
       maxRedeemPerAgent: rawItem?.maxRedeemPerAgent ?? 1,
       redeemedCount: rawItem?.redeemedCount ?? 0,
-      imageUrl: rawItem?.imageUrl ?? undefined,
+      imageUrl: rawItem?.imageUrl,
       notice: rawItem?.notice ?? '',
     }
   }

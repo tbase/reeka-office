@@ -11,6 +11,16 @@ import { useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
+const normalizeImageURL = (src: string): string => {
+  if (src.includes("://")) {
+    return src;
+  }
+  if (src.startsWith("/")) {
+    src = src.slice(1);
+  }
+  return `https://${process.env.COS_BUCKET}.tcb.qcloud.la/${src}`;
+};
+
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
@@ -177,7 +187,7 @@ export function ImageUpload(
             <div key={index} className="group relative aspect-square w-28">
               <div className="bg-muted/40 relative h-full w-full overflow-hidden rounded-md border">
                 <Image
-                  src={`/${src}`}
+                  src={normalizeImageURL(src)}
                   alt={imgAlt}
                   unoptimized
                   fill
@@ -192,7 +202,7 @@ export function ImageUpload(
                     }
                     disabled={disabled}
                   />
-                  <PreviewButton src={`/${src}`} />
+                  <PreviewButton src={normalizeImageURL(src)} />
                 </>
               )}
             </div>
