@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  MilestoneIcon,
+  FileTextIcon,
+  FolderTreeIcon,
   GiftIcon,
   LayoutGridIcon,
   LogInIcon,
@@ -25,8 +28,6 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { FileTextIcon, FolderTreeIcon } from "lucide-react";
-
 const menuGroups = [
   {
     title: "Workspace",
@@ -49,6 +50,22 @@ const menuGroups = [
       {
         title: "内容管理",
         url: "/cms/contents",
+        icon: FileTextIcon,
+      },
+    ],
+  },
+  {
+    title: "新手任务",
+    items: [
+      {
+        title: "阶段管理",
+        url: "/newbie/stages",
+        icon: MilestoneIcon,
+        hidden: true,
+      },
+      {
+        title: "任务管理",
+        url: "/newbie/tasks",
         icon: FileTextIcon,
       },
     ],
@@ -108,7 +125,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => {
+                {group.items.filter((item) => !item.hidden).map((item) => {
                   const isActive =
                     pathname === item.url ||
                     (item.url !== "/dashboard" &&

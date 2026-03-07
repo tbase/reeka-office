@@ -16,6 +16,7 @@
     "@ai-sdk/openai": "^3.0.37",
     "@base-ui/react": "^1.2.0",
     "@reeka-office/domain-cms": "workspace:*",
+    "@reeka-office/domain-newbie": "workspace:*",
     "@reeka-office/domain-point": "workspace:*",
     "@reeka-office/domain-user": "workspace:*",
     "@tanstack/react-form": "^1.28.3",

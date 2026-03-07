@@ -1,5 +1,5 @@
+import { config } from 'dotenv';
 import { defineConfig } from "drizzle-kit";
-import { config } from 'dotenv'
 
 config({ path: '.env.local' })
 
@@ -9,6 +9,7 @@ export default defineConfig({
     "../../packages/domain-user/src/db/schema.ts",
     "../../packages/domain-cms/src/db/schema.ts",
     "../../packages/domain-point/src/db/schema.ts",
+    "../../packages/domain-newbie/src/db/schema.ts",
   ],
   out: "./drizzle",
   dialect: "mysql",

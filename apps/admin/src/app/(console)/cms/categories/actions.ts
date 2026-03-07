@@ -8,48 +8,19 @@ import {
 } from "@reeka-office/domain-cms"
 import { revalidatePath } from "next/cache"
 
-function parseId(value: FormDataEntryValue | null): number {
-  const id = Number(value)
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("无效分类 ID")
-  }
-  return id
+export type CategoryActionInput = {
+  id?: number
+  name: string
+  slug: string
+  description: string
+  hideContent: boolean
+  fieldSchema: FieldSchemaItem[]
 }
 
-function parseHideContent(value: FormDataEntryValue | null): boolean {
-  if (value === null || value === undefined) return false
-  if (typeof value === "boolean") return value
-  if (typeof value === "string") return value === "1" || value === "true"
-  if (typeof value === "number") return value === 1
-  return false
-}
-
-function parseFieldSchema(value: FormDataEntryValue | null): FieldSchemaItem[] {
-  if (typeof value !== "string" || !value.trim()) {
-    return []
-  }
-
-  const parsed: unknown = JSON.parse(value)
-  if (!Array.isArray(parsed)) {
-    return []
-  }
-
-  return parsed.filter((item): item is FieldSchemaItem => {
-    if (!item || typeof item !== "object") {
-      return false
-    }
-
-    const field = item as Record<string, unknown>
-    return typeof field.name === "string" && typeof field.label === "string" && typeof field.type === "string"
-  })
-}
-
-export async function createCategoryAction(formData: FormData): Promise<{ success: true }> {
-  const name = String(formData.get("name") ?? "").trim()
-  const slug = String(formData.get("slug") ?? "").trim()
-  const description = String(formData.get("description") ?? "").trim()
-  const hideContent = parseHideContent(formData.get("hideContent"))
-  const fieldSchema = parseFieldSchema(formData.get("fieldSchema"))
+export async function createCategoryAction(data: CategoryActionInput): Promise<{ success: true }> {
+  const name = data.name.trim()
+  const slug = data.slug.trim()
+  const description = data.description.trim()
 
   if (!name) {
     throw new Error("分类名称不能为空")
@@ -59,8 +30,8 @@ export async function createCategoryAction(formData: FormData): Promise<{ succes
     name,
     slug: slug || undefined,
     description: description || null,
-    hideContent,
-    fieldSchema,
+    hideContent: data.hideContent,
+    fieldSchema: data.fieldSchema,
   }).execute()
 
   revalidatePath("/cms/categories")
@@ -68,35 +39,38 @@ export async function createCategoryAction(formData: FormData): Promise<{ succes
   return { success: true }
 }
 
-export async function updateCategoryAction(formData: FormData): Promise<{ success: true }> {
-  const id = parseId(formData.get("id"))
-  const name = String(formData.get("name") ?? "").trim()
-  const slug = String(formData.get("slug") ?? "").trim()
-  const description = String(formData.get("description") ?? "").trim()
-  const hideContent = parseHideContent(formData.get("hideContent"))
-  const fieldSchema = parseFieldSchema(formData.get("fieldSchema"))
+export async function updateCategoryAction(data: CategoryActionInput): Promise<{ success: true }> {
+  if (!data.id || !Number.isInteger(data.id) || data.id <= 0) {
+    throw new Error("无效分类 ID")
+  }
+
+  const name = data.name.trim()
+  const slug = data.slug.trim()
+  const description = data.description.trim()
 
   if (!name) {
     throw new Error("分类名称不能为空")
   }
 
   await new UpdateCategoryCommand({
-    id,
+    id: data.id,
     name,
     slug: slug || undefined,
     description: description || null,
-    hideContent,
-    fieldSchema,
+    hideContent: data.hideContent,
+    fieldSchema: data.fieldSchema,
   }).execute()
 
   revalidatePath("/cms/categories")
   revalidatePath("/cms/contents")
-
-  return { success: true as const }
+  return { success: true }
 }
 
 export async function deleteCategoryAction(formData: FormData) {
-  const id = parseId(formData.get("id"))
+  const id = Number(formData.get("id"))
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("无效分类 ID")
+  }
   await new DeleteCategoryCommand({ id }).execute()
 
   revalidatePath("/cms/categories")

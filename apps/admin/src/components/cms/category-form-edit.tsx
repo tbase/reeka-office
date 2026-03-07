@@ -2,6 +2,8 @@
 
 import type { FieldSchemaItem } from "@reeka-office/domain-cms";
 
+import type { CategoryActionInput } from "@/app/(console)/cms/categories/actions";
+
 import { CategoryForm } from "./category-form";
 
 export type CategoryFormEditValue = {
@@ -22,7 +24,7 @@ export function CategoryFormEdit({
   id: string;
   value: CategoryFormEditValue;
   action: (
-    formData: FormData,
+    data: CategoryActionInput,
   ) => { success: true } | void | Promise<{ success: true } | void>;
   onSuccess?: () => void;
 }) {

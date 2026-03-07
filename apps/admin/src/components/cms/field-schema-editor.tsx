@@ -70,8 +70,8 @@ type OptionsPropsFormProps = {
 }
 
 type FieldSchemaEditorProps = {
-  inputName: string
   defaultValue?: FieldSchemaItem[]
+  onChange?: (value: FieldSchemaItem[]) => void
 }
 
 // --- Constants ---
@@ -271,7 +271,7 @@ function OptionsPropsForm({ props, onChange, optionsSyncRef }: OptionsPropsFormP
   )
 }
 
-export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditorProps) {
+export function FieldSchemaEditor({ defaultValue, onChange }: FieldSchemaEditorProps) {
   const [rows, setRows] = useState<FieldRow[]>(
     defaultValue?.length ? defaultValue.map(createFieldRow) : [],
   )
@@ -279,11 +279,19 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
   const [draggingRowId, setDraggingRowId] = useState<string | null>(null)
   const [dragOverRowId, setDragOverRowId] = useState<string | null>(null)
   const optionsSyncRef = useRef<string[] | null>(null)
+  const onChangeRef = useRef(onChange)
+  useEffect(() => {
+    onChangeRef.current = onChange
+  })
 
-  const serialized = useMemo(
-    () => JSON.stringify(normalize(rows.map((row) => row.field))),
+  const normalized = useMemo(
+    () => normalize(rows.map((row) => row.field)),
     [rows],
   )
+
+  useEffect(() => {
+    onChangeRef.current?.(normalized)
+  }, [normalized])
 
   const isAdding = sheetMode?.type === "add"
 
@@ -374,8 +382,6 @@ export function FieldSchemaEditor({ inputName, defaultValue }: FieldSchemaEditor
 
   return (
     <div className="space-y-3">
-      <input type="hidden" name={inputName} value={serialized} />
-
       <div className="space-y-2">
         {rows.map((row) => {
           const { field } = row

@@ -1,11 +1,11 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useRef } from "react";
 import { toast } from "sonner";
 
 import type { FieldSchemaItem } from "@reeka-office/domain-cms";
 
+import type { CategoryActionInput } from "@/app/(console)/cms/categories/actions";
 import { FieldSchemaEditor } from "@/components/cms/field-schema-editor";
 import {
   Field,
@@ -33,35 +33,29 @@ export function CategoryForm({
   onSuccess,
 }: {
   action: (
-    formData: FormData,
+    data: CategoryActionInput,
   ) => { success: true } | void | Promise<{ success: true } | void>;
   value?: CategoryFormValue;
   id?: string;
   onSuccess?: () => void;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-
   const form = useForm({
     defaultValues: {
       name: value?.name ?? "",
       slug: value?.slug ?? "",
       description: value?.description ?? "",
       hideContent: value?.hideContent ?? false,
+      fieldSchema: value?.fieldSchema ?? ([] as FieldSchemaItem[]),
     },
     onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) return;
-
-      const formData = new FormData(formRef.current);
-      formData.set("name", formValue.name);
-      formData.set("slug", formValue.slug);
-      formData.set("description", formValue.description);
-      formData.set("hideContent", formValue.hideContent ? "1" : "0");
-
-      if (value?.id) {
-        formData.set("id", String(value.id));
-      }
-
-      const result = await action(formData);
+      const result = await action({
+        id: value?.id,
+        name: formValue.name,
+        slug: formValue.slug,
+        description: formValue.description,
+        hideContent: formValue.hideContent,
+        fieldSchema: formValue.fieldSchema,
+      });
       if (result?.success) {
         const isCreate = !value?.id;
         toast.success(isCreate ? "分类已创建" : "分类已保存");
@@ -77,16 +71,7 @@ export function CategoryForm({
   };
 
   return (
-    <form
-      id={id}
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="max-w-xl space-y-4"
-    >
-      {value?.id ? (
-        <input type="hidden" name="id" value={String(value.id)} />
-      ) : null}
-
+    <form id={id} onSubmit={handleSubmit} className="space-y-4">
       <form.Field
         name="name"
         validators={{
@@ -176,15 +161,19 @@ export function CategoryForm({
         )}
       </form.Field>
 
-      <Field>
-        <FieldContent>
-          <FieldLabel>字段定义</FieldLabel>
-          <FieldSchemaEditor
-            inputName="fieldSchema"
-            defaultValue={value?.fieldSchema}
-          />
-        </FieldContent>
-      </Field>
+      <form.Field name="fieldSchema">
+        {(field) => (
+          <Field>
+            <FieldContent>
+              <FieldLabel>字段定义</FieldLabel>
+              <FieldSchemaEditor
+                defaultValue={field.state.value}
+                onChange={(items) => field.handleChange(items)}
+              />
+            </FieldContent>
+          </Field>
+        )}
+      </form.Field>
     </form>
   );
 }

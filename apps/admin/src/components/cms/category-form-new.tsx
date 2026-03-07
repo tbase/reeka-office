@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import type { CategoryActionInput } from "@/app/(console)/cms/categories/actions";
+
 import { CategoryForm } from "./category-form";
 
 export function CategoryFormNew({
@@ -10,7 +12,7 @@ export function CategoryFormNew({
 }: {
   id: string;
   action: (
-    formData: FormData,
+    data: CategoryActionInput,
   ) => { success: true } | void | Promise<{ success: true } | void>;
 }) {
   const router = useRouter();

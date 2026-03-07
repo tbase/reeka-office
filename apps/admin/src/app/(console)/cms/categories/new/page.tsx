@@ -7,7 +7,7 @@ import { createCategoryAction } from "../actions";
 
 export default function CmsCategoryCreatePage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-xl">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">新增分类</h1>
         <p className="text-muted-foreground text-sm">
@@ -17,7 +17,7 @@ export default function CmsCategoryCreatePage() {
 
       <CategoryFormNew action={createCategoryAction} id="category-form" />
 
-      <div className="flex gap-2 max-w-xl justify-end">
+      <div className="flex gap-2 justify-end">
         <Button type="submit" form="category-form">
           创建分类
         </Button>
