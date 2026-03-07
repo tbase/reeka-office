@@ -16,4 +16,6 @@ export type {
   NewNewbieTaskCategoryRow,
   NewbieTaskRow,
   NewNewbieTaskRow,
+  NewbieTaskCheckinRow,
+  NewNewbieTaskCheckinRow,
 } from './schema'

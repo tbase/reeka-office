@@ -1,16 +1,18 @@
 import type { MySql2Database } from 'drizzle-orm/mysql2'
-import { newbieTaskCategories, newbieTasks, newbieTaskStages } from './schema'
+import { newbieTaskCategories, newbieTaskCheckins, newbieTasks, newbieTaskStages } from './schema'
 
 export type NewbieSchema = {
   newbieTaskStages: typeof newbieTaskStages
   newbieTaskCategories: typeof newbieTaskCategories
   newbieTasks: typeof newbieTasks
+  newbieTaskCheckins: typeof newbieTaskCheckins
 }
 
 export const newbieSchema: NewbieSchema = {
   newbieTaskStages,
   newbieTaskCategories,
   newbieTasks,
+  newbieTaskCheckins,
 }
 
 export type DB = MySql2Database<NewbieSchema>

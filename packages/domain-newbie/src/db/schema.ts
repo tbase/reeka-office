@@ -33,9 +33,24 @@ export const newbieTasks = mysqlTable('newbie_tasks', {
   index('newbie_tasks_category_idx').on(t.categoryId),
 ])
 
+export const newbieTaskCheckins = mysqlTable('newbie_task_checkins', {
+  id: int('id').autoincrement().primaryKey(),
+  agentCode: varchar('agent_code', { length: 8 }).notNull(),
+  taskId: int('task_id').notNull().references(() => newbieTasks.id),
+  evidence: text('evidence').notNull(),
+  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
+}, (t) => [
+  index('newbie_task_checkins_agent_idx').on(t.agentCode),
+  index('newbie_task_checkins_task_idx').on(t.taskId),
+  index('newbie_task_checkins_agent_task_idx').on(t.agentCode, t.taskId),
+])
+
 export type NewbieTaskStageRow = typeof newbieTaskStages.$inferSelect
 export type NewNewbieTaskStageRow = typeof newbieTaskStages.$inferInsert
 export type NewbieTaskCategoryRow = typeof newbieTaskCategories.$inferSelect
 export type NewNewbieTaskCategoryRow = typeof newbieTaskCategories.$inferInsert
 export type NewbieTaskRow = typeof newbieTasks.$inferSelect
 export type NewNewbieTaskRow = typeof newbieTasks.$inferInsert
+export type NewbieTaskCheckinRow = typeof newbieTaskCheckins.$inferSelect
+export type NewNewbieTaskCheckinRow = typeof newbieTaskCheckins.$inferInsert
