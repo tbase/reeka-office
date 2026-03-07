@@ -43,6 +43,7 @@ export function NewbieStageFormDialog({
           action={createNewbieStageAction}
           id="newbie-stage-form"
           redirectTo={redirectTo}
+          onSuccess={() => router.back()}
         />
 
         <DialogFooter>

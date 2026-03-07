@@ -1,14 +1,15 @@
-"use client"
+"use client";
 
-import type { NewbieTaskCategoryRow, NewbieTaskStageRow } from "@reeka-office/domain-newbie"
-import type { PointItemRow } from "@reeka-office/domain-point"
-import { useRouter } from "next/navigation"
+import type {
+  NewbieTaskCategoryRow,
+  NewbieTaskStageRow,
+} from "@reeka-office/domain-newbie";
+import type { PointItemRow } from "@reeka-office/domain-point";
+import { useRouter } from "next/navigation";
 
-import {
-  NewbieTaskFormEdit,
-} from "@/components/newbie/newbie-task-form-edit"
-import type { NewbieTaskFormValue } from "@/components/newbie/newbie-task-form"
-import { Button } from "@/components/ui/button"
+import type { NewbieTaskFormValue } from "@/components/newbie/newbie-task-form";
+import { NewbieTaskFormEdit } from "@/components/newbie/newbie-task-form-edit";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +17,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
-import { updateNewbieTaskAction } from "../../../actions"
+import { updateNewbieTaskAction } from "../../../actions";
 
 export function NewbieTaskEditFormDialog({
   value,
@@ -26,26 +27,28 @@ export function NewbieTaskEditFormDialog({
   categories,
   pointItems,
 }: {
-  value: NewbieTaskFormValue & { id: number }
-  stages: NewbieTaskStageRow[]
-  categories: NewbieTaskCategoryRow[]
-  pointItems: PointItemRow[]
+  value: NewbieTaskFormValue & { id: number };
+  stages: NewbieTaskStageRow[];
+  categories: NewbieTaskCategoryRow[];
+  pointItems: PointItemRow[];
 }) {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <Dialog
       open
       onOpenChange={(open) => {
         if (!open) {
-          router.back()
+          router.back();
         }
       }}
     >
       <DialogContent className="sm:max-w-lg" showCloseButton>
         <DialogHeader>
           <DialogTitle>编辑任务</DialogTitle>
-          <DialogDescription>修改后会影响新手任务展示与积分配置。</DialogDescription>
+          <DialogDescription>
+            修改后会影响新手任务展示与积分配置。
+          </DialogDescription>
         </DialogHeader>
 
         <NewbieTaskFormEdit
@@ -65,5 +68,5 @@ export function NewbieTaskEditFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

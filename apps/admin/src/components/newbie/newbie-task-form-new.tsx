@@ -1,11 +1,14 @@
-"use client"
+"use client";
 
-import type { NewbieTaskCategoryRow, NewbieTaskStageRow } from "@reeka-office/domain-newbie"
-import type { PointItemRow } from "@reeka-office/domain-point"
-import { useRouter } from "next/navigation"
+import type {
+  NewbieTaskCategoryRow,
+  NewbieTaskStageRow,
+} from "@reeka-office/domain-newbie";
+import type { PointItemRow } from "@reeka-office/domain-point";
+import { useRouter } from "next/navigation";
 
-import type { NewbieTaskFormValue } from "./newbie-task-form"
-import { NewbieTaskForm } from "./newbie-task-form"
+import type { NewbieTaskFormValue } from "./newbie-task-form";
+import { NewbieTaskForm } from "./newbie-task-form";
 
 export function NewbieTaskFormNew({
   id,
@@ -14,20 +17,26 @@ export function NewbieTaskFormNew({
   categories,
   pointItems,
   value,
+  onSuccess,
 }: {
-  id: string
+  id: string;
   action: (
     formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>
-  stages: NewbieTaskStageRow[]
-  categories: NewbieTaskCategoryRow[]
-  pointItems: PointItemRow[]
-  value?: NewbieTaskFormValue
+  ) => { success: true } | void | Promise<{ success: true } | void>;
+  stages: NewbieTaskStageRow[];
+  categories: NewbieTaskCategoryRow[];
+  pointItems: PointItemRow[];
+  value?: NewbieTaskFormValue;
+  onSuccess?: () => void;
 }) {
-  const router = useRouter()
+  const router = useRouter();
 
   function handleSuccess() {
-    router.push("/newbie/tasks")
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      router.push("/newbie/tasks");
+    }
   }
 
   return (
@@ -43,5 +52,5 @@ export function NewbieTaskFormNew({
       prioritizeStageAndCategory
       onSuccess={handleSuccess}
     />
-  )
+  );
 }

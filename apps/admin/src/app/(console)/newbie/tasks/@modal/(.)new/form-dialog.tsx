@@ -1,12 +1,15 @@
-"use client"
+"use client";
 
-import type { NewbieTaskCategoryRow, NewbieTaskStageRow } from "@reeka-office/domain-newbie"
-import type { PointItemRow } from "@reeka-office/domain-point"
-import { useRouter } from "next/navigation"
+import type {
+  NewbieTaskCategoryRow,
+  NewbieTaskStageRow,
+} from "@reeka-office/domain-newbie";
+import type { PointItemRow } from "@reeka-office/domain-point";
+import { useRouter } from "next/navigation";
 
-import { NewbieTaskFormNew } from "@/components/newbie/newbie-task-form-new"
-import type { NewbieTaskFormValue } from "@/components/newbie/newbie-task-form"
-import { Button } from "@/components/ui/button"
+import type { NewbieTaskFormValue } from "@/components/newbie/newbie-task-form";
+import { NewbieTaskFormNew } from "@/components/newbie/newbie-task-form-new";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +17,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
-import { createNewbieTaskAction } from "../../actions"
+import { createNewbieTaskAction } from "../../actions";
 
 export function NewbieTaskFormDialog({
   stages,
@@ -24,26 +27,28 @@ export function NewbieTaskFormDialog({
   pointItems,
   value,
 }: {
-  stages: NewbieTaskStageRow[]
-  categories: NewbieTaskCategoryRow[]
-  pointItems: PointItemRow[]
-  value?: NewbieTaskFormValue
+  stages: NewbieTaskStageRow[];
+  categories: NewbieTaskCategoryRow[];
+  pointItems: PointItemRow[];
+  value?: NewbieTaskFormValue;
 }) {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <Dialog
       open
       onOpenChange={(open) => {
         if (!open) {
-          router.back()
+          router.back();
         }
       }}
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>新增任务</DialogTitle>
-          <DialogDescription>创建后可在小程序新手任务中展示。</DialogDescription>
+          <DialogDescription>
+            创建后可在小程序新手任务中展示。
+          </DialogDescription>
         </DialogHeader>
 
         <NewbieTaskFormNew
@@ -53,6 +58,7 @@ export function NewbieTaskFormDialog({
           categories={categories}
           pointItems={pointItems}
           value={value}
+          onSuccess={() => router.back()}
         />
 
         <DialogFooter>
@@ -62,5 +68,5 @@ export function NewbieTaskFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
