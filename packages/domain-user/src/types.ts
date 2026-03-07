@@ -13,4 +13,6 @@ export interface User {
 export interface Agent {
   agentCode: string
   name: string
+  joinDate: string | null
+  designation: string | null
 }

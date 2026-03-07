@@ -1,4 +1,4 @@
-import { User } from "@reeka-office/domain-user";
+import type { User } from "@reeka-office/domain-user";
 import { createRpc } from "@reeka-office/jsonrpc";
 
 export type APIContext = {
@@ -8,4 +8,3 @@ export type APIContext = {
 };
 
 export const rpc = createRpc<APIContext>();
-

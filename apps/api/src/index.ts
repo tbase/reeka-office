@@ -1,4 +1,5 @@
 import { type CmsDB, cmsSchema, setup as setupDomainCms } from "@reeka-office/domain-cms";
+import { type NewbieDB, newbieSchema, setup as setupDomainNewbie } from "@reeka-office/domain-newbie";
 import { type PointDB, pointSchema, setup as setupDomainPoint } from "@reeka-office/domain-point";
 import { GetUserQuery, setup as setupDomainUser, type UserDB, userSchema } from "@reeka-office/domain-user";
 import { handleRPC, RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
@@ -94,6 +95,9 @@ setupDomainCms({ db: cmsDb as unknown as CmsDB })
 
 const pointDb = createDb(pointSchema)
 setupDomainPoint({ db: pointDb as unknown as PointDB })
+
+const newbieDb = createDb(newbieSchema)
+setupDomainNewbie({ db: newbieDb as unknown as NewbieDB })
 
 const server = Bun.serve({
   port: config.server.port,

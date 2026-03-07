@@ -29,6 +29,14 @@ defineAppJson({
     'pages/mine/redeem-detail/index',
     "pages/unauthorized/index",
   ],
+  subPackages: [
+    {
+      root: "packages/newbie",
+      pages: [
+        "index/index",
+      ],
+    },
+  ],
   window: {
     navigationBarTitleText: "海纳API | 家族办公室",
     navigationBarBackgroundColor: "#ff2056",
