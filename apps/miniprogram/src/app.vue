@@ -34,6 +34,7 @@ defineAppJson({
       root: "packages/newbie",
       pages: [
         "index/index",
+        "detail/index",
       ],
     },
   ],

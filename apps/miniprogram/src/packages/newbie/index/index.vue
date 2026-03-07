@@ -56,6 +56,12 @@ const formatPointAmount = (pointAmount: number | null) => {
 
   return `+${pointAmount} 积分`
 }
+
+const goTaskDetail = (taskId: number) => {
+  wx.navigateTo({
+    url: `/packages/newbie/detail/index?taskId=${taskId}`,
+  })
+}
 </script>
 
 <template>
@@ -113,7 +119,7 @@ const formatPointAmount = (pointAmount: number | null) => {
             {{ currentStage?.title }}
           </text>
           <text class="text-xs text-slate-400">
-            Stage {{ currentStageIndex + 1 }}/{{ stages.length }}
+            {{ currentStageIndex + 1 }}/{{ stages.length }}
           </text>
         </view>
 
@@ -134,6 +140,7 @@ const formatPointAmount = (pointAmount: number | null) => {
             v-for="task in currentTasks"
             :key="task.id"
             class="rounded-[24rpx] bg-white px-4 py-4 shadow-sm shadow-slate-200/70"
+            @tap="goTaskDetail(task.id)"
           >
             <view class="flex items-start justify-between gap-3">
               <view class="min-w-0 flex-1">
@@ -145,12 +152,17 @@ const formatPointAmount = (pointAmount: number | null) => {
                 </text>
               </view>
 
-              <text
-                v-if="task.pointAmount !== null"
-                class="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600"
-              >
-                {{ formatPointAmount(task.pointAmount) }}
-              </text>
+              <view class="flex shrink-0 items-center gap-2">
+                <text
+                  v-if="task.pointAmount !== null"
+                  class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600"
+                >
+                  {{ formatPointAmount(task.pointAmount) }}
+                </text>
+                <text class="text-sm text-slate-300">
+                  >
+                </text>
+              </view>
             </view>
           </view>
         </view>
