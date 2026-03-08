@@ -21,6 +21,7 @@ defineAppJson({
     "pages/index/index",
     "pages/product/index",
     "pages/resource/index",
+    "pages/resource/detail/index",
     "pages/training/index",
     "pages/mine/index",
     'pages/mine/points/index',
