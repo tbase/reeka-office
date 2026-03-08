@@ -1,4 +1,5 @@
 import type { RpcInput, RpcMethodName, RpcOutput } from "@rpc-types"
+import { getCloudInstance } from "./cloud"
 import { config } from "./config"
 
 
@@ -45,20 +46,7 @@ export function setRpcErrorHandler(handler: RpcGlobalErrorHandler): void {
   globalRpcErrorHandler = handler
 }
 
-let cloudInstance: WxCloud | undefined = undefined
-export const getInstance = async (): Promise<WxCloud> => {
-  if (cloudInstance) {
-    return cloudInstance
-  }
-  // @ts-ignore
-  const instance = new wx.cloud.Cloud({
-    resourceAppid: config.CLOUD_APPID,
-    resourceEnv: config.CLOUD_ENV,
-  });
-  await instance.init()
-  cloudInstance = instance
-  return instance
-}
+
 
 
 function createRpcError(
@@ -139,7 +127,7 @@ const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
     return requestLocalRpc(data)
   }
 
-  const instance = await getInstance()
+  const instance = await getCloudInstance()
   const res = await instance.callContainer({
     path: "/rpc",
     method: "POST" as const,

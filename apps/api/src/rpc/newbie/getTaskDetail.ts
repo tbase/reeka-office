@@ -1,5 +1,5 @@
 import { createRpcError } from "@reeka-office/jsonrpc";
-import { GetNewbieTaskQuery } from "@reeka-office/domain-newbie";
+import { GetNewbieTaskCheckinQuery, GetNewbieTaskQuery } from "@reeka-office/domain-newbie";
 import { z } from "zod";
 
 import { rpc } from "../../context";
@@ -20,16 +20,24 @@ export interface GetNewbieTaskDetailOutput {
   displayOrder: number;
   stage: string;
   stageTitle: string;
+  isCheckedIn: boolean;
+  checkedInAt: string | null;
+  evidenceFileIds: string[];
 }
 
 export const getTaskDetail = rpc.define({
   inputSchema,
-  execute: async ({ input }): Promise<GetNewbieTaskDetailOutput> => {
+  execute: async ({ input, context }): Promise<GetNewbieTaskDetailOutput> => {
     const task = await new GetNewbieTaskQuery({ id: input.id }).query();
 
     if (!task) {
       throw createRpcError.notFound("任务不存在");
     }
+
+    const agentCode = context.user?.agentCode;
+    const checkin = agentCode
+      ? await new GetNewbieTaskCheckinQuery({ agentCode, taskId: input.id }).query()
+      : null;
 
     return {
       id: task.id,
@@ -41,6 +49,9 @@ export const getTaskDetail = rpc.define({
       displayOrder: task.displayOrder,
       stage: task.stage,
       stageTitle: task.stageTitle,
+      isCheckedIn: Boolean(checkin),
+      checkedInAt: checkin ? checkin.createdAt.toISOString() : null,
+      evidenceFileIds: checkin?.evidenceFileIds ?? [],
     };
   },
 });

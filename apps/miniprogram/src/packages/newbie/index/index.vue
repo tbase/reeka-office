@@ -1,75 +1,77 @@
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'wevu'
+import { computed, ref, watchEffect } from "wevu";
 
-import { useQuery } from '@/hooks/useQuery'
+import { useQuery } from "@/hooks/useQuery";
 
 definePageJson({
-  navigationBarTitleText: '新手任务',
-  backgroundColor: '#f6f7fb',
-})
+  navigationBarTitleText: "新手任务",
+  backgroundColor: "#f6f7fb",
+});
 
-const currentStageIndex = ref(0)
+const currentStageIndex = ref(0);
 
 const { data, loading } = useQuery({
-  queryKey: ['newbie/getHome', undefined],
-})
+  queryKey: ["newbie/getHome", undefined],
+  refetchOnShow: true,
+});
 
-const stages = computed(() => data.value?.stages ?? [])
+const stages = computed(() => data.value?.stages ?? []);
 
 const currentStage = computed(() => {
-  return stages.value[currentStageIndex.value] ?? null
-})
+  return stages.value[currentStageIndex.value] ?? null;
+});
 
-const currentTasks = computed(() => currentStage.value?.tasks ?? [])
+const currentTasks = computed(() => currentStage.value?.tasks ?? []);
 
 watchEffect(() => {
-  const lastIndex = stages.value.length - 1
+  const lastIndex = stages.value.length - 1;
 
   if (lastIndex < 0) {
-    currentStageIndex.value = 0
-    return
+    currentStageIndex.value = 0;
+    return;
   }
 
   if (currentStageIndex.value > lastIndex) {
-    currentStageIndex.value = lastIndex
+    currentStageIndex.value = lastIndex;
   }
-})
+});
 
 const handleStageChange = (event: { detail: { current: number } }) => {
-  currentStageIndex.value = event.detail.current
-}
+  currentStageIndex.value = event.detail.current;
+};
 
 const formatStageLabel = (stage: string) => {
-  const matchedWeek = /^W0*([1-9]\d*)$/i.exec(stage)
+  const matchedWeek = /^W0*([1-9]\d*)$/i.exec(stage);
 
   if (matchedWeek) {
-    return `第${matchedWeek[1]}周`
+    return `第${matchedWeek[1]}周`;
   }
 
-  return stage
-}
+  return stage;
+};
 
 const formatPointAmount = (pointAmount: number | null) => {
   if (pointAmount === null) {
-    return ''
+    return "";
   }
 
-  return `+${pointAmount} 积分`
-}
+  return `+${pointAmount} 积分`;
+};
+
+const formatTaskAction = (isCheckedIn: boolean) => {
+  return isCheckedIn ? "已打卡" : "去打卡";
+};
 
 const goTaskDetail = (taskId: number) => {
   wx.navigateTo({
     url: `/packages/newbie/detail/index?taskId=${taskId}`,
-  })
-}
+  });
+};
 </script>
 
 <template>
   <view class="min-h-screen bg-slate-100 px-4 pb-12 pt-4 text-slate-900">
-    <view
-      v-if="loading && stages.length === 0"
-      class="space-y-4"
-    >
+    <view v-if="loading && stages.length === 0" class="space-y-4">
       <view class="h-32 animate-pulse rounded-[28rpx] bg-white" />
       <view class="space-y-3">
         <view class="h-5 w-40 animate-pulse rounded bg-slate-100" />
@@ -98,12 +100,13 @@ const goTaskDetail = (taskId: number) => {
         next-margin="36px"
         @change="handleStageChange"
       >
-        <swiper-item
-          v-for="stage in stages"
-          :key="stage.id"
-        >
-          <view class="mr-3 h-full rounded-[28rpx] bg-gradient-to-br from-rose-500 via-orange-400 to-amber-300 p-4 text-white shadow-lg shadow-rose-200/70">
-            <text class="rounded-full bg-white/20 px-3 py-1 text-xs tracking-[0.3em]">
+        <swiper-item v-for="stage in stages" :key="stage.id">
+          <view
+            class="mr-3 h-full rounded-[28rpx] bg-gradient-to-br from-rose-500 via-orange-400 to-amber-300 p-4 text-white shadow-lg shadow-rose-200/70"
+          >
+            <text
+              class="rounded-full bg-white/20 px-3 py-1 text-xs tracking-[0.3em]"
+            >
               {{ formatStageLabel(stage.stage) }}
             </text>
             <text class="mt-3 block text-xl font-semibold">
@@ -159,8 +162,15 @@ const goTaskDetail = (taskId: number) => {
                 >
                   {{ formatPointAmount(task.pointAmount) }}
                 </text>
-                <text class="text-sm text-slate-300">
-                  >
+                <text
+                  class="rounded-full px-3 py-1 text-xs font-medium"
+                  :class="
+                    task.isCheckedIn
+                      ? 'bg-slate-100 text-slate-500'
+                      : 'bg-rose-50 text-rose-500'
+                  "
+                >
+                  {{ formatTaskAction(task.isCheckedIn) }}
                 </text>
               </view>
             </view>

@@ -4,6 +4,7 @@ import type { UploadFile } from "tdesign-miniprogram/upload/type";
 import { ref, watch } from "wevu";
 
 import { useToast } from "@/hooks/useToast";
+import { uploadFile } from "@/lib/upload-file";
 
 defineComponentJson({
   component: true,
@@ -18,19 +19,23 @@ defineComponentJson({
 
 const props = defineProps<{
   visible: boolean;
+  taskId: number | null;
+  storagePathPrefix: string;
 }>();
 
 const emit = defineEmits<{
   (event: "close"): void;
-  (event: "submit", files: UploadFile[]): void;
+  (event: "submit", fileIds: string[]): void;
 }>();
 
 const evidenceFiles = ref<UploadFile[]>([]);
+const uploading = ref(false);
 
 const { showToast } = useToast({ theme: "error" });
 
 const resetForm = () => {
   evidenceFiles.value = [];
+  uploading.value = false;
 };
 
 const handleVisibleChange = (
@@ -65,17 +70,47 @@ const handleUploadFail = () => {
   showToast("图片选择失败，请重试", "error");
 };
 
-const handleSubmit = () => {
-  if (!evidenceFiles.value.length) {
-    showToast("请先上传 evidence 图片", "warning");
+const handleSubmit = async () => {
+  if (!props.taskId || props.taskId <= 0) {
+    showToast("任务参数缺失，请返回后重试", "error");
     return;
   }
 
-  console.log(evidenceFiles.value);
+  if (evidenceFiles.value.length === 0) {
+    emit("submit", []);
+    return;
+  }
 
-  emit("submit", evidenceFiles.value);
-  showToast("evidence 已保存，提交功能开发中", "success");
-  emit("close");
+  if (!props.storagePathPrefix.trim()) {
+    showToast("当前用户信息未就绪，请稍后再试", "error");
+    return;
+  }
+
+  uploading.value = true;
+  wx.showLoading({
+    title: "上传中...",
+    mask: true,
+  });
+
+  try {
+    const uploadedFileIds = await Promise.all(
+      evidenceFiles.value.map(async (file) => {
+        const dir = `plans-newbie`;
+        return uploadFile(file, dir);
+      }),
+    );
+
+    emit("submit", uploadedFileIds);
+  } catch (error) {
+    console.error("uploadFile error", error);
+    showToast(
+      error instanceof Error ? error.message : "图片上传失败，请重试",
+      "error",
+    );
+  } finally {
+    uploading.value = false;
+    wx.hideLoading();
+  }
 };
 
 watch(
@@ -104,7 +139,7 @@ watch(
           <view>
             <text class="block text-lg font-semibold">打卡</text>
             <text class="mt-2 block text-xs leading-6 text-slate-500">
-              上传完成任务的图片凭证，最多 3 张，支持相册和拍照。
+              可选上传完成任务的图片凭证，最多 3 张，支持相册和拍照。
             </text>
           </view>
 
@@ -126,7 +161,9 @@ watch(
       </scroll-view>
 
       <view class="px-4 pb-[calc(env(safe-area-inset-bottom)+16rpx)] pt-3">
-        <t-button theme="primary" block @tap="handleSubmit">提交打卡</t-button>
+        <t-button theme="primary" block :loading="uploading" @tap="handleSubmit"
+          >提交打卡</t-button
+        >
       </view>
     </view>
 

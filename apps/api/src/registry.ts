@@ -1,6 +1,6 @@
 import { rpc } from "./context";
 import { listServiceCategories } from "./rpc/cms";
-import { getHome, getTaskDetail } from "./rpc/newbie";
+import { getHome, getTaskDetail, submitCheckin } from "./rpc/newbie";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
 import { bindAgent, getCurrentUser } from "./rpc/user";
 
@@ -33,6 +33,7 @@ const userRegistry = rpc.registry({
 const newbieRegistry = rpc.registry({
   getHome,
   getTaskDetail,
+  submitCheckin,
 });
 
 const pointsRegistry = rpc.registry({

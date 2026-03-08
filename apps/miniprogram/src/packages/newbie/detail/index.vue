@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, onShow, ref } from "wevu";
 
+import { useMutation } from "@/hooks/useMutation";
+import { invalidateQueries } from "@/hooks/useQuery";
 import { useQuery } from "@/hooks/useQuery";
+import { useUserStore } from "@/stores/user";
 
 definePageJson({
   navigationBarTitleText: "任务详情",
@@ -14,8 +17,9 @@ definePageJson({
 
 const taskId = ref<number | null>(null);
 const checkinPopupVisible = ref(false);
+const { user } = useUserStore();
 
-const { data, loading } = useQuery({
+const { data, loading, refetch } = useQuery({
   queryKey: () => {
     if (taskId.value === null) {
       return undefined;
@@ -23,9 +27,13 @@ const { data, loading } = useQuery({
 
     return ["newbie/getTaskDetail", { id: taskId.value }];
   },
+  refetchOnShow: true,
 });
 
 const taskDetail = computed(() => data.value);
+const storagePathPrefix = computed(() => {
+  return user.value?.agentCode ?? user.value?.openid ?? "";
+});
 
 const formatStageLabel = (stage: string) => {
   const matchedWeek = /^W0*([1-9]\d*)$/i.exec(stage);
@@ -45,7 +53,26 @@ const formatPointAmount = (pointAmount: number | null) => {
   return `完成后预计获得 +${pointAmount} 积分`;
 };
 
+const formatCheckedInAt = (value: string | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const pad = (num: number) => String(num).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const handleCheckin = () => {
+  if (taskDetail.value?.isCheckedIn) {
+    return;
+  }
+
   checkinPopupVisible.value = true;
 };
 
@@ -53,8 +80,68 @@ const handleCheckinPopupClose = () => {
   checkinPopupVisible.value = false;
 };
 
-const handleEvidenceSubmit = () => {
-  checkinPopupVisible.value = false;
+const previewEvidence = (current: string) => {
+  const urls = taskDetail.value?.evidenceFileIds ?? [];
+  if (!urls.length) {
+    return;
+  }
+
+  wx.previewImage({
+    current,
+    urls,
+  });
+};
+
+const { mutate: submitCheckin, loading: submittingCheckin } = useMutation("newbie/submitCheckin", {
+  showLoading: "提交打卡中...",
+  onSuccess: async () => {
+    wx.showToast({
+      title: "打卡成功",
+      icon: "success",
+    });
+
+    checkinPopupVisible.value = false;
+    invalidateQueries("newbie/getHome");
+    invalidateQueries("newbie/getTaskDetail");
+    await refetch();
+  },
+  onError: (error) => {
+    wx.showToast({
+      title: error.message || "打卡失败",
+      icon: "none",
+    });
+  },
+});
+
+const normalizeEvidenceFileIds = (payload: unknown): string[] => {
+  if (Array.isArray(payload)) {
+    return payload.filter(
+      (item): item is string => typeof item === "string" && item.length > 0,
+    );
+  }
+
+  if (
+    typeof payload === "object"
+    && payload !== null
+    && "detail" in payload
+  ) {
+    return normalizeEvidenceFileIds((payload as { detail: unknown }).detail);
+  }
+
+  return [];
+};
+
+const handleEvidenceSubmit = async (payload: unknown) => {
+  if (taskId.value === null || submittingCheckin.value) {
+    return;
+  }
+
+  const evidenceFileIds = normalizeEvidenceFileIds(payload);
+
+  await submitCheckin({
+    taskId: taskId.value,
+    evidenceFileIds,
+  });
 };
 
 onShow(() => {
@@ -121,6 +208,38 @@ onShow(() => {
           }}
         </text>
       </view>
+
+      <view
+        v-if="taskDetail.isCheckedIn"
+        class="rounded-[28rpx] bg-white px-5 py-5 shadow-sm shadow-slate-200/70"
+      >
+        <text class="text-xs font-medium tracking-[0.2em] text-slate-400">
+          打卡记录
+        </text>
+        <text class="mt-3 block text-sm text-emerald-600">
+          已完成打卡
+        </text>
+        <text
+          v-if="taskDetail.checkedInAt"
+          class="mt-2 block text-sm leading-6 text-slate-500"
+        >
+          完成时间：{{ formatCheckedInAt(taskDetail.checkedInAt) }}
+        </text>
+
+        <view
+          v-if="taskDetail.evidenceFileIds.length > 0"
+          class="mt-4 grid grid-cols-3 gap-3"
+        >
+          <image
+            v-for="fileId in taskDetail.evidenceFileIds"
+            :key="fileId"
+            class="h-24 w-full rounded-[20rpx] bg-slate-100"
+            mode="aspectFill"
+            :src="fileId"
+            @tap="previewEvidence(fileId)"
+          />
+        </view>
+      </view>
     </view>
 
     <view
@@ -131,14 +250,21 @@ onShow(() => {
           {{ formatPointAmount(taskDetail?.pointAmount ?? null) }}
         </view>
 
-        <t-button theme="primary" block @tap="handleCheckin">
-          立即打卡
+        <t-button
+          theme="primary"
+          block
+          :disabled="!taskDetail || taskDetail.isCheckedIn || submittingCheckin"
+          @tap="handleCheckin"
+        >
+          {{ taskDetail?.isCheckedIn ? "已打卡" : "立即打卡" }}
         </t-button>
       </view>
     </view>
 
     <checkin-form-popup
       :visible="checkinPopupVisible"
+      :task-id="taskId"
+      :storage-path-prefix="storagePathPrefix"
       @close="handleCheckinPopupClose"
       @submit="handleEvidenceSubmit"
     />

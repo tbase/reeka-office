@@ -1,4 +1,4 @@
-import { ListNewbieTasksQuery, ListNewbieTaskStagesQuery } from "@reeka-office/domain-newbie";
+import { ListNewbieTaskCheckinsQuery, ListNewbieTasksQuery, ListNewbieTaskStagesQuery } from "@reeka-office/domain-newbie";
 import { z } from "zod";
 
 import { rpc } from "../../context";
@@ -20,19 +20,24 @@ export interface GetNewbieHomeOutput {
       pointAmount: number | null;
       pointEventId: number;
       displayOrder: number;
+      isCheckedIn: boolean;
     }>;
   }>;
 }
 
 export const getHome = rpc.define({
   inputSchema,
-  execute: async (): Promise<GetNewbieHomeOutput> => {
-    const [stages, tasks] = await Promise.all([
+  execute: async ({ context }): Promise<GetNewbieHomeOutput> => {
+    const agentCode = context.user?.agentCode;
+
+    const [stages, tasks, checkins] = await Promise.all([
       new ListNewbieTaskStagesQuery().query(),
       new ListNewbieTasksQuery().query(),
+      agentCode ? new ListNewbieTaskCheckinsQuery({ agentCode }).query() : Promise.resolve([]),
     ]);
 
     const tasksByStageId = new Map<number, GetNewbieHomeOutput["stages"][number]["tasks"]>();
+    const checkedTaskIds = new Set(checkins.map((item) => item.taskId));
 
     for (const task of tasks) {
       const stageTasks = tasksByStageId.get(task.stageId) ?? [];
@@ -44,6 +49,7 @@ export const getHome = rpc.define({
         pointAmount: task.pointAmount,
         pointEventId: task.pointEventId,
         displayOrder: task.displayOrder,
+        isCheckedIn: checkedTaskIds.has(task.id),
       });
       tasksByStageId.set(task.stageId, stageTasks);
     }
