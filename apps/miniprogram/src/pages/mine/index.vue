@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'wevu'
 
+import { usePointSummaryStore } from '@/stores/points'
 import { useUserStore } from '@/stores/user'
 
 definePageJson({
@@ -9,12 +10,14 @@ definePageJson({
 })
 
 const { user } = useUserStore()
+const { summary } = usePointSummaryStore()
 
 const member = computed(() => {
   return {
     agentName: user.value?.agentName ?? '',
     agentCode: user.value?.agentCode ?? '',
     avatar: user.value?.avatar ?? null,
+    currentPoints: summary.value?.currentPoints ?? '',
   }
 })
 
@@ -28,13 +31,28 @@ const goMyPoints = () => {
 <template>
   <view class="min-h-screen bg-white text-slate-900">
     <view class="px-4 py-10">
-      <view class="mx-auto h-32 w-32 rounded-full border-2 border-slate-300" />
-      <text class="mt-5 block text-center text-xl font-semibold tracking-wide text-slate-900">
-        {{ member.agentName }}
-      </text>
-      <text class="mt-3 block text-center text-base text-slate-600">
-        CODE: {{ member.agentCode }}
-      </text>
+      <view class="flex items-start gap-3">
+        <image
+          v-if="member.avatar"
+          class="h-14 w-14 shrink-0 rounded-full bg-slate-100"
+          mode="aspectFill"
+          :src="member.avatar"
+        />
+        <view
+          v-else
+          class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-100"
+        >
+        </view>
+
+        <view class="flex h-14 min-w-0 flex-1 flex-col justify-between">
+          <text class="block text-xl font-semibold tracking-wide text-slate-900">
+            {{ member.agentName }}
+          </text>
+          <text class="block text-base text-slate-600">
+            CODE: {{ member.agentCode }}
+          </text>
+        </view>
+      </view>
     </view>
 
     <view class="px-4 py-4">
@@ -47,7 +65,7 @@ const goMyPoints = () => {
             积分管理
           </text>
           <text class="mt-1 block text-lg font-semibold text-rose-600">
-            我的积分
+            我的积分{{ member.currentPoints }}
           </text>
         </view>
         <view class="flex items-center justify-center">
