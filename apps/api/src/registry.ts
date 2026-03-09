@@ -6,7 +6,7 @@ import {
 } from "./rpc/cms";
 import { getHome, getTaskDetail, submitCheckin } from "./rpc/newbie";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
-import { bindAgent, getCurrentUser } from "./rpc/user";
+import { bindAgent, getCurrentUser, updateAvatar } from "./rpc/user";
 
 type PrefixKeys<P extends string, T> = {
   [K in keyof T as K extends string ? `${P}/${K}` : never]: T[K]
@@ -34,6 +34,7 @@ const cmsRegistry = rpc.registry({
 const userRegistry = rpc.registry({
   bindAgent,
   getCurrentUser,
+  updateAvatar,
 });
 
 const newbieRegistry = rpc.registry({
