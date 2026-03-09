@@ -24,3 +24,7 @@ export {
   type DeleteNewbieTaskStageInput,
   type UpdateNewbieTaskStageInput,
 } from './newbie-task-stage'
+export {
+  SubmitNewbieTaskCheckinCommand,
+  type SubmitNewbieTaskCheckinInput,
+} from './newbie-task-checkin'

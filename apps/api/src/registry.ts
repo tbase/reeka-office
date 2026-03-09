@@ -4,6 +4,7 @@ import {
   listFamilyOfficeResources,
   listServiceCategories,
 } from "./rpc/cms";
+import { getHome, getTaskDetail, submitCheckin } from "./rpc/newbie";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
 import { bindAgent, getCurrentUser } from "./rpc/user";
 
@@ -35,6 +36,12 @@ const userRegistry = rpc.registry({
   getCurrentUser,
 });
 
+const newbieRegistry = rpc.registry({
+  getHome,
+  getTaskDetail,
+  submitCheckin,
+});
+
 const pointsRegistry = rpc.registry({
   getMineSummary,
   listRedeemItems,
@@ -45,6 +52,7 @@ const pointsRegistry = rpc.registry({
 });
 export const registry = {
   ...prefixRegistry("cms", cmsRegistry),
+  ...prefixRegistry("newbie", newbieRegistry),
   ...prefixRegistry("user", userRegistry),
   ...prefixRegistry("points", pointsRegistry),
 };

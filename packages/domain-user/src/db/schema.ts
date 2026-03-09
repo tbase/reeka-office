@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm"
-import { int, mysqlEnum, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core"
+import { date, int, mysqlEnum, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core"
 
 export const agents = mysqlTable('agents', {
   agentCode: varchar('agent_code', { length: 8 }).primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
+  joinDate: date('join_date', { mode: 'string' }),
+  designation: varchar('designation', { length: 100 }),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow(),
 })

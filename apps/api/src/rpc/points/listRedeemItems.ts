@@ -2,6 +2,7 @@ import { ListAgentRedeemCountsQuery, ListRedemptionProductsQuery } from "@reeka-
 import { z } from "zod";
 
 import { rpc } from "../../context";
+import { normalizeImageURL } from "../../lib/image-url";
 import { redeemItemIdSchema } from "./shared";
 
 const inputSchema = z.object({
@@ -30,13 +31,6 @@ function isProductWithinValidity(publishedAt: Date | null, validPeriodMonths: nu
   const expiryAt = new Date(publishedAt)
   expiryAt.setMonth(expiryAt.getMonth() + validPeriodMonths)
   return expiryAt.getTime() >= Date.now()
-}
-
-const normalizeImageURL = (src: string | null | undefined): string | undefined => {
-  if (!src) return undefined
-  if (src.includes("://") || src.startsWith("cloud://")) return src
-  const normalizedPath = src.replace(/^\/+/, "")
-  return `https://${process.env.COS_BUCKET}.tcb.qcloud.la/${normalizedPath}`
 }
 
 export const listRedeemItems = rpc.define({

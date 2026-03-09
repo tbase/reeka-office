@@ -17,6 +17,8 @@ export class ListAgentsQuery {
       .select({
         agentCode: agents.agentCode,
         name: agents.name,
+        joinDate: agents.joinDate,
+        designation: agents.designation,
       })
       .from(agents)
       .orderBy(asc(agents.agentCode))
@@ -24,6 +26,8 @@ export class ListAgentsQuery {
     return rows.map((row) => ({
       agentCode: row.agentCode,
       name: row.name,
+      joinDate: row.joinDate,
+      designation: row.designation,
     }))
   }
 }
