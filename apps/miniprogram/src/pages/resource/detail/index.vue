@@ -118,6 +118,7 @@ const contactManager = () => {
         size="large"
         block
         shape="rectangle"
+        class="w-32 mx-auto"
         @click="contactManager"
       >
         请联系您的上级经理

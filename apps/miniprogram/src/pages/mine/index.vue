@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'wevu'
+import { computed, onShow, ref } from 'wevu'
 
+import { useMutation } from '@/hooks/useMutation'
 import { usePointSummaryStore } from '@/stores/points'
 import { useUserStore } from '@/stores/user'
 
@@ -9,8 +10,13 @@ definePageJson({
   backgroundColor: '#f6f7fb',
 })
 
-const { user } = useUserStore()
+const { user, refetch: refetchUser } = useUserStore()
 const { summary } = usePointSummaryStore()
+const requestingAvatar = ref(false)
+
+const { mutate: updateAvatar, loading: avatarUpdating } = useMutation('user/updateAvatar', {
+  showLoading: '更新头像中...',
+})
 
 const member = computed(() => {
   return {
@@ -19,6 +25,50 @@ const member = computed(() => {
     avatar: user.value?.avatar ?? null,
     currentPoints: summary.value?.currentPoints ?? '',
   }
+})
+
+const syncAvatar = async (avatar: string) => {
+  const result = await updateAvatar({ avatar })
+  if (!result) {
+    wx.showToast({
+      title: '头像更新失败',
+      icon: 'none',
+    })
+    return
+  }
+
+  await refetchUser()
+}
+
+const onChooseAvatar = async (event: WechatMiniprogram.CustomEvent<{ avatarUrl?: string }>) => {
+  if (requestingAvatar.value || avatarUpdating.value) {
+    return
+  }
+
+  const avatarUrl = event.detail?.avatarUrl
+  if (!avatarUrl) {
+    wx.showToast({
+      title: '未获取到头像',
+      icon: 'none',
+    })
+    return
+  }
+
+  requestingAvatar.value = true
+  try {
+    await syncAvatar(avatarUrl)
+  } catch {
+    wx.showToast({
+      title: '头像更新失败',
+      icon: 'none',
+    })
+  } finally {
+    requestingAvatar.value = false
+  }
+}
+
+onShow(() => {
+  void refetchUser()
 })
 
 const goMyPoints = () => {
@@ -32,16 +82,25 @@ const goMyPoints = () => {
   <view class="min-h-screen bg-white text-slate-900">
     <view class="px-4 py-10">
       <view class="flex items-start gap-3">
-        <image
-          v-if="member.avatar"
-          class="h-14 w-14 shrink-0 rounded-full bg-slate-100"
-          mode="aspectFill"
-          :src="member.avatar"
-        />
         <view
-          v-else
-          class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-100"
+          class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
         >
+          <image
+            v-if="member.avatar"
+            class="h-14 w-14 rounded-full bg-slate-100"
+            mode="aspectFill"
+            :src="member.avatar"
+          />
+          <button
+            v-else
+            class="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-slate-100 px-[10rpx] py-[8rpx] text-center text-slate-600 text-xs leading-[1.2]"
+            hover-class="none"
+            open-type="chooseAvatar"
+            @chooseavatar="onChooseAvatar"
+          >
+            <text>选择</text>
+            <text>头像</text>
+          </button>
         </view>
 
         <view class="flex h-14 min-w-0 flex-1 flex-col justify-between">
@@ -75,3 +134,9 @@ const goMyPoints = () => {
     </view>
   </view>
 </template>
+
+<style scoped>
+.avatar-picker::after {
+  border: none;
+}
+</style>
