@@ -93,13 +93,8 @@ const previewBanner = (current: string) => {
       </swiper-item>
     </swiper>
 
-    <view v-else class="flex h-44 items-center justify-center rounded-[24rpx] bg-white shadow-sm">
-      <text class="text-sm text-slate-400">
-        {{ isLoading ? '加载中...' : '请先在 CMS 的 resource 内容中配置 banner 图' }}
-      </text>
-    </view>
-
     <scroll-view
+      v-if="categories.length"
       scroll-x
       enhanced
       show-scrollbar="false"
@@ -125,7 +120,7 @@ const previewBanner = (current: string) => {
       v-if="categories.length === 0 && !isLoading"
       class="mt-4 rounded-[24rpx] bg-white px-4 py-8 text-center shadow-sm"
     >
-      <text class="text-sm text-slate-400">暂无家办类目，请先在 CMS 的 resource 内容中配置类目字段</text>
+      <text class="text-sm text-slate-400">暂无家办内容</text>
     </view>
 
     <view v-else class="mt-4 grid grid-cols-2 gap-4">
@@ -140,10 +135,6 @@ const previewBanner = (current: string) => {
           mode="aspectFill"
           :src="item.fields.banner"
         />
-        <view v-else class="flex h-32 items-center justify-center bg-slate-100">
-          <text class="text-xs text-slate-400">暂无图片</text>
-        </view>
-
         <view class="p-3">
           <text class="block text-base font-semibold text-slate-900">{{ item.name }}</text>
           <view class="mt-1 flex justify-end">
@@ -156,13 +147,6 @@ const previewBanner = (current: string) => {
           </view>
         </view>
       </view>
-    </view>
-
-    <view
-      v-if="resources.length === 0 && categories.length > 0 && !resourcesLoading"
-      class="mt-4 rounded-[24rpx] bg-white px-4 py-8 text-center shadow-sm"
-    >
-      <text class="text-sm text-slate-400">该类目下暂未配置资源</text>
     </view>
   </view>
 </template>

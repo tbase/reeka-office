@@ -48,7 +48,7 @@ const goMyPoints = () => {
           <text class="block text-xl font-semibold tracking-wide text-slate-900">
             {{ member.agentName }}
           </text>
-          <text class="block text-base text-slate-600">
+          <text v-if="member.agentCode" class="block text-base text-slate-600">
             CODE: {{ member.agentCode }}
           </text>
         </view>
