@@ -4,7 +4,6 @@ import { CreatePointRecordCommand } from "@reeka-office/domain-point"
 import { revalidatePath } from "next/cache"
 
 const DEFAULT_OPERATOR_ID = 1
-const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/
 
 function isNextInternalError(e: unknown): boolean {
   return (
@@ -15,12 +14,12 @@ function isNextInternalError(e: unknown): boolean {
   )
 }
 
-function parseAgentCode(value: FormDataEntryValue | null): string {
-  const code = String(value ?? "").trim().toUpperCase()
-  if (!AGENT_CODE_REGEX.test(code)) {
-    throw new Error("代理人编码必须为 8 位字母或数字")
+function parseAgentId(value: FormDataEntryValue | null): number {
+  const id = Number(value)
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("请选择代理人")
   }
-  return code
+  return id
 }
 
 function parseId(value: FormDataEntryValue | null, label: string): number {
@@ -49,13 +48,13 @@ export async function createAgentPointRecordAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
   try {
-    const agentCode = parseAgentCode(formData.get("agentCode"))
+    const agentId = parseAgentId(formData.get("agentId"))
     const pointItemId = parseId(formData.get("pointItemId"), "积分事项")
     const points = parseOptionalPositiveInt(formData.get("points"), "积分值")
     const remark = String(formData.get("remark") ?? "").trim()
 
     await new CreatePointRecordCommand({
-      agentCode,
+      agentId,
       pointItemId,
       points,
       remark: remark || null,

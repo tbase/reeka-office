@@ -15,15 +15,17 @@ export class ListAgentsQuery {
   async query(): Promise<ListAgentsResult> {
     const rows = await this.db
       .select({
+        id: agents.id,
         agentCode: agents.agentCode,
         name: agents.name,
         joinDate: agents.joinDate,
         designation: agents.designation,
       })
       .from(agents)
-      .orderBy(asc(agents.agentCode))
+      .orderBy(asc(agents.id))
 
     return rows.map((row) => ({
+      id: row.id,
       agentCode: row.agentCode,
       name: row.name,
       joinDate: row.joinDate,

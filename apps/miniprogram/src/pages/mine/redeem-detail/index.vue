@@ -4,7 +4,6 @@ import { computed } from 'wevu'
 import { useMutation } from '@/hooks/useMutation'
 import { invalidateQueries } from '@/hooks/useQuery'
 import { usePointSummaryStore, useRedeemItemStore } from '@/stores/points'
-import { useUserStore } from '@/stores/user'
 
 definePageJson({
   navigationBarTitleText: '兑换详情',
@@ -14,7 +13,6 @@ definePageJson({
 const selectedId = wx.getStorageSync('mine_redeem_item_id') as string
 const { summary, refetch: refetchSummary } = usePointSummaryStore()
 const { items, refetch: refetchItem } = useRedeemItemStore(selectedId)
-const { user } = useUserStore()
 
 const memberPoints = computed(() => summary.value?.currentPoints ?? 0)
 const item = computed(
@@ -36,7 +34,6 @@ const item = computed(
   }
 )
 
-const agentCode = computed(() => user.value?.agentCode ?? '')
 const pointsAfterRedeem = computed(() => memberPoints.value - item.value.redeemPoints)
 const redeemLimitReached = computed(() => item.value.redeemedCount >= item.value.maxRedeemPerAgent)
 const canRedeem = computed(() =>
@@ -76,7 +73,6 @@ const handleRedeem = async () => {
 
   await submitRedeem({
     itemId: item.value.id,
-    agentCode: agentCode.value,
   })
 }
 </script>

@@ -15,7 +15,7 @@ export interface PlanEnrollmentDetailItem {
   id: number
   planId: number
   planName: string
-  agentCode: string
+  agentId: number
   status: 'active' | 'eligible' | 'graduated' | 'cancelled'
   assignedAt: Date
   startedAt: Date
@@ -38,7 +38,7 @@ export class GetPlanEnrollmentQuery {
         id: planEnrollments.id,
         planId: planEnrollments.planId,
         planName: plans.name,
-        agentCode: planEnrollments.agentCode,
+        agentId: planEnrollments.agentId,
         status: planEnrollments.status,
         assignedAt: planEnrollments.assignedAt,
         startedAt: planEnrollments.startedAt,
@@ -69,7 +69,7 @@ export class GetPlanEnrollmentQuery {
 
 export interface ListPlanEnrollmentsInput {
   planId?: number
-  agentCode?: string
+  agentId?: number
   statuses?: Array<'active' | 'eligible' | 'graduated' | 'cancelled'>
 }
 
@@ -86,8 +86,8 @@ export class ListPlanEnrollmentsQuery {
       conditions.push(eq(planEnrollments.planId, this.input.planId))
     }
 
-    if (this.input.agentCode) {
-      conditions.push(eq(planEnrollments.agentCode, this.input.agentCode))
+    if (this.input.agentId) {
+      conditions.push(eq(planEnrollments.agentId, this.input.agentId))
     }
 
     if (this.input.statuses && this.input.statuses.length > 0) {
@@ -105,7 +105,7 @@ export class ListPlanEnrollmentsQuery {
         id: planEnrollments.id,
         planId: planEnrollments.planId,
         planName: plans.name,
-        agentCode: planEnrollments.agentCode,
+        agentId: planEnrollments.agentId,
         status: planEnrollments.status,
         assignedAt: planEnrollments.assignedAt,
         startedAt: planEnrollments.startedAt,

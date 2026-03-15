@@ -18,19 +18,19 @@ import { SimpleSelect } from "@/components/ui/simple-select"
 import { Textarea } from "@/components/ui/textarea"
 
 type PointItem = Pick<PointItemRow, "id" | "name">
-type AgentOption = Pick<Agent, "agentCode" | "name">
+type AgentOption = Pick<Agent, "id" | "agentCode" | "name">
 
 export function AgentPointRecordForm({
   pointItems,
   agents,
-  defaultAgentCode,
+  defaultAgentId,
   id,
   onSuccess,
   action,
 }: {
   pointItems: PointItem[]
   agents: AgentOption[]
-  defaultAgentCode?: string
+  defaultAgentId?: string
   id?: string
   onSuccess?: () => void
   action: (
@@ -44,7 +44,7 @@ export function AgentPointRecordForm({
 
   const form = useForm({
     defaultValues: {
-      agentCode: defaultAgentCode ?? "",
+      agentId: defaultAgentId ?? "",
       pointItemId: "",
       points: "",
       remark: "",
@@ -53,7 +53,7 @@ export function AgentPointRecordForm({
       if (!formRef.current) return
 
       const formData = new FormData(formRef.current)
-      formData.set("agentCode", formValue.agentCode)
+      formData.set("agentId", formValue.agentId)
       formData.set("pointItemId", formValue.pointItemId)
       formData.set("points", formValue.points)
       formData.set("remark", formValue.remark)
@@ -82,12 +82,12 @@ export function AgentPointRecordForm({
       className="max-w-xl space-y-4"
     >
       <form.Field
-        name="agentCode"
+        name="agentId"
         validators={{
           onSubmit: ({ value: v }) =>
-            /^[A-Za-z0-9]{8}$/.test(v.trim())
+            /^\d+$/.test(v.trim())
               ? undefined
-              : "代理人编码必须为 8 位字母或数字",
+              : "请选择代理人",
         }}
       >
         {(field) => {
@@ -95,19 +95,19 @@ export function AgentPointRecordForm({
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
-                <FieldLabel htmlFor={field.name}>代理人编码</FieldLabel>
+                <FieldLabel htmlFor={field.name}>代理人</FieldLabel>
                 <SimpleSelect
-                  name="agentCode"
+                  name="agentId"
                   required
                   placeholder={
                     agents.length === 0 ? "暂无代理人" : "请选择代理人"
                   }
                   items={agents.map((agent) => ({
-                    value: agent.agentCode,
-                    label: `${agent.agentCode} - ${agent.name}`,
+                    value: String(agent.id),
+                    label: `${agent.agentCode ?? "-"} - ${agent.name}`,
                   }))}
                   value={field.state.value}
-                  onValueChange={(v) => field.handleChange(String(v).toUpperCase())}
+                  onValueChange={(v) => field.handleChange(String(v))}
                 />
               </FieldContent>
             </Field>

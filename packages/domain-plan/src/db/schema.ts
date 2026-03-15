@@ -81,7 +81,7 @@ export const planTasks = mysqlTable('plan_tasks', {
 export const planEnrollments = mysqlTable('plan_enrollments', {
   id: int('id').autoincrement().primaryKey(),
   planId: int('plan_id').notNull().references(() => plans.id),
-  agentCode: varchar('agent_code', { length: 8 }).notNull(),
+  agentId: int('agent_id').notNull(),
   status: mysqlEnum('status', ['active', 'eligible', 'graduated', 'cancelled'])
     .default('active')
     .$type<PlanEnrollmentStatus>()
@@ -94,9 +94,9 @@ export const planEnrollments = mysqlTable('plan_enrollments', {
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
 }, (t) => [
-  uniqueIndex('plan_enrollments_plan_agent_udx').on(t.planId, t.agentCode),
+  uniqueIndex('plan_enrollments_plan_agent_udx').on(t.planId, t.agentId),
   index('plan_enrollments_plan_status_idx').on(t.planId, t.status),
-  index('plan_enrollments_agent_status_idx').on(t.agentCode, t.status),
+  index('plan_enrollments_agent_status_idx').on(t.agentId, t.status),
 ])
 
 export const planCompletedTasks = mysqlTable('plan_completed_tasks', {

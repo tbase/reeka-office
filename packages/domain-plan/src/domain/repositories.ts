@@ -20,7 +20,7 @@ export interface PlanTaskCategoryRepository {
 
 export interface PlanEnrollmentRepository {
   findById(enrollmentId: number): Promise<PlanEnrollment | null>
-  findByPlanAndAgent(planId: number, agentCode: string): Promise<PlanEnrollment | null>
+  findByPlanAndAgent(planId: number, agentId: number): Promise<PlanEnrollment | null>
   listRecalculableByPlan(planId: number): Promise<PlanEnrollment[]>
   save(enrollment: PlanEnrollment): Promise<void>
 }

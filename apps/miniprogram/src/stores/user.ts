@@ -24,7 +24,7 @@ export function useUserStore(): UserStore {
     queryKey: ['user/getCurrentUser', undefined],
   })
 
-  const isAgent = computed(() => Boolean(data.value?.agentCode))
+  const isAgent = computed(() => Boolean(data.value?.agentId))
 
   userStore = {
     user: data as Ref<GetUserResult | null>,

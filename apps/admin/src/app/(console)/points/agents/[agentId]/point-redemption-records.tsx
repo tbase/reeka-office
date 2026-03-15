@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib/datetime"
 
 type PointRedemptionRecordsProps = {
-  agentCode: string
+  agentId: number
 }
 
 export async function PointRedemptionRecords({
-  agentCode,
+  agentId,
 }: PointRedemptionRecordsProps) {
-  const redemptionResult = await new ListAgentRedemptionRecordsQuery({ agentCode }).query()
+  const redemptionResult = await new ListAgentRedemptionRecordsQuery({ agentId }).query()
 
   if (redemptionResult.records.length === 0) {
     return (

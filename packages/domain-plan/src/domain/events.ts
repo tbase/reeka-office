@@ -22,7 +22,7 @@ export interface PlanAssigned {
   type: 'PlanAssigned'
   enrollmentId: number
   planId: number
-  agentCode: string
+  agentId: number
   occurredAt: Date
 }
 
@@ -32,7 +32,7 @@ export interface PlanTaskCompleted {
   completionId: number
   planId: number
   taskId: number
-  agentCode: string
+  agentId: number
   completionMode: PlanTaskCompletionMode
   pointItemId: number | null
   occurredAt: Date
@@ -42,7 +42,7 @@ export interface PlanEnrollmentBecameEligible {
   type: 'PlanEnrollmentBecameEligible'
   enrollmentId: number
   planId: number
-  agentCode: string
+  agentId: number
   occurredAt: Date
 }
 
@@ -50,7 +50,7 @@ export interface PlanEnrollmentGraduated {
   type: 'PlanEnrollmentGraduated'
   enrollmentId: number
   planId: number
-  agentCode: string
+  agentId: number
   occurredAt: Date
 }
 
@@ -58,7 +58,7 @@ export interface PlanEnrollmentCancelled {
   type: 'PlanEnrollmentCancelled'
   enrollmentId: number
   planId: number
-  agentCode: string
+  agentId: number
   occurredAt: Date
 }
 

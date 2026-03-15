@@ -7,7 +7,7 @@ import {
 } from '../schema'
 
 export interface ListAgentRedemptionRecordsInput {
-  agentCode: string
+  agentId: number
   productId?: number
 }
 
@@ -31,17 +31,17 @@ export class ListAgentRedemptionRecordsQuery {
   async query(): Promise<ListAgentRedemptionRecordsResult> {
     const whereClause = this.input.productId
       ? and(
-          eq(redemptionRecords.agentCode, this.input.agentCode),
+          eq(redemptionRecords.agentId, this.input.agentId),
           eq(redemptionRecords.productId, this.input.productId),
         )
-      : eq(redemptionRecords.agentCode, this.input.agentCode)
+      : eq(redemptionRecords.agentId, this.input.agentId)
 
     const [rows, totalRows] = await Promise.all([
       this.db
         .select({
           id: redemptionRecords.id,
           productId: redemptionRecords.productId,
-          agentCode: redemptionRecords.agentCode,
+          agentId: redemptionRecords.agentId,
           pointsCost: redemptionRecords.pointsCost,
           status: redemptionRecords.status,
           remark: redemptionRecords.remark,

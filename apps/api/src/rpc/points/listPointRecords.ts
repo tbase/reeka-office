@@ -22,8 +22,9 @@ export type ListPointRecordsOutput = Array<{
 export const listPointRecords = rpc.define({
   inputSchema: agentInputSchema,
   execute: async ({ context }): Promise<ListPointRecordsOutput> => {
-    const code = context.user!.agentCode!
-    const result = await new ListAgentPointRecordsQuery({ agentCode: code }).query();
+    const result = await new ListAgentPointRecordsQuery({
+      agentId: context.user!.agentId,
+    }).query();
 
     return result.records.map((record) => {
       const note = record.remark ?? "系统自动结算";

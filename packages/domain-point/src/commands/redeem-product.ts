@@ -4,7 +4,7 @@ import { agentPointBalances, redemptionProducts, redemptionRecords } from '../sc
 
 export interface RedeemProductInput {
   productId: number
-  agentCode: string
+  agentId: number
   remark?: string | null
 }
 
@@ -62,14 +62,14 @@ export class RedeemProductCommand {
           .where(
             and(
               eq(redemptionRecords.productId, this.input.productId),
-              eq(redemptionRecords.agentCode, this.input.agentCode),
+              eq(redemptionRecords.agentId, this.input.agentId),
               eq(redemptionRecords.status, 'success'),
             ),
           ),
         tx
           .select({ currentPoints: agentPointBalances.currentPoints })
           .from(agentPointBalances)
-          .where(eq(agentPointBalances.agentCode, this.input.agentCode))
+          .where(eq(agentPointBalances.agentId, this.input.agentId))
           .limit(1),
       ])
 
@@ -107,7 +107,7 @@ export class RedeemProductCommand {
         })
         .where(
           and(
-            eq(agentPointBalances.agentCode, this.input.agentCode),
+            eq(agentPointBalances.agentId, this.input.agentId),
             gte(agentPointBalances.currentPoints, product.redeemPoints),
           ),
         )
@@ -120,7 +120,7 @@ export class RedeemProductCommand {
         .insert(redemptionRecords)
         .values({
           productId: this.input.productId,
-          agentCode: this.input.agentCode,
+          agentId: this.input.agentId,
           pointsCost: product.redeemPoints,
           status: 'success',
           remark: this.input.remark ?? null,

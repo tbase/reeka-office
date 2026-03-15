@@ -36,11 +36,11 @@ function isProductWithinValidity(publishedAt: Date | null, validPeriodMonths: nu
 export const listRedeemItems = rpc.define({
   inputSchema,
   execute: async ({ input, context }) => {
-    const agentCode = context.user?.agentCode
+    const agentId = context.user?.agentId
 
     const redeemCountMap = new Map<number, number>()
-    if (agentCode) {
-      const counts = await new ListAgentRedeemCountsQuery({ agentCode }).query()
+    if (agentId) {
+      const counts = await new ListAgentRedeemCountsQuery({ agentId }).query()
       for (const item of counts) {
         redeemCountMap.set(item.productId, item.redeemedCount)
       }

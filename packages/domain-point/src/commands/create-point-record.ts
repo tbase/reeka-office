@@ -8,7 +8,7 @@ import {
 } from '../schema'
 
 export interface CreatePointRecordInput {
-  agentCode: string
+  agentId: number
   pointItemId: number
   points?: number
   occurredYear?: number
@@ -76,7 +76,7 @@ export class CreatePointRecordCommand {
         .from(pointRecords)
         .where(
           and(
-            eq(pointRecords.agentCode, this.input.agentCode),
+            eq(pointRecords.agentId, this.input.agentId),
             eq(pointRecords.pointItemId, this.input.pointItemId),
             eq(pointRecords.occurredYear, occurredYear),
           ),
@@ -90,7 +90,7 @@ export class CreatePointRecordCommand {
 
     return this.db.transaction(async (tx) => {
       const values: NewPointRecordRow = {
-        agentCode: this.input.agentCode,
+        agentId: this.input.agentId,
         pointItemId: this.input.pointItemId,
         points,
         occurredYear,
@@ -127,7 +127,7 @@ export class CreatePointRecordCommand {
       await tx
         .insert(agentPointBalances)
         .values({
-          agentCode: this.input.agentCode,
+          agentId: this.input.agentId,
           currentPoints: points,
         })
         .onDuplicateKeyUpdate({

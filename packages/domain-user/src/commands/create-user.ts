@@ -4,7 +4,7 @@ import { agents, users } from '../db/schema'
 
 export interface CreateUserInput {
   openid: string
-  agentCode: string
+  agentId: number
   nickname?: string | null
   avatar?: string | null
 }
@@ -12,7 +12,8 @@ export interface CreateUserInput {
 export interface CreateUserResult {
   id: number
   openid: string
-  agentCode: string
+  agentId: number
+  agentCode: string | null
   agentName: string
 }
 
@@ -27,19 +28,19 @@ export class CreateUserCommand {
     const agentRows = await this.db
       .select()
       .from(agents)
-      .where(eq(agents.agentCode, this.input.agentCode))
+      .where(eq(agents.id, this.input.agentId))
       .limit(1)
 
     const agent = agentRows[0]
     if (!agent) {
-      throw new Error(`Agent not found: ${this.input.agentCode}`)
+      throw new Error(`Agent not found: ${this.input.agentId}`)
     }
 
     const result = await this.db
       .insert(users)
       .values({
         openid: this.input.openid,
-        agentCode: this.input.agentCode,
+        agentId: this.input.agentId,
         nickname: this.input.nickname ?? null,
         avatar: this.input.avatar ?? null,
       })
@@ -53,6 +54,7 @@ export class CreateUserCommand {
     return {
       id,
       openid: this.input.openid,
+      agentId: agent.id,
       agentCode: agent.agentCode,
       agentName: agent.name,
     }

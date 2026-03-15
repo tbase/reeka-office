@@ -36,7 +36,7 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
       root: {
         id: root.id,
         planId: root.planId,
-        agentCode: root.agentCode,
+        agentId: root.agentId,
         status: root.status,
         assignedAt: root.assignedAt,
         startedAt: root.startedAt,
@@ -56,14 +56,14 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
     })
   }
 
-  async findByPlanAndAgent(planId: number, agentCode: string): Promise<PlanEnrollment | null> {
+  async findByPlanAndAgent(planId: number, agentId: number): Promise<PlanEnrollment | null> {
     const [root] = await this.db
       .select()
       .from(planEnrollments)
       .where(
         and(
           eq(planEnrollments.planId, planId),
-          eq(planEnrollments.agentCode, agentCode),
+          eq(planEnrollments.agentId, agentId),
         ),
       )
       .limit(1)
@@ -107,7 +107,7 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
       root: {
         id: row.id,
         planId: row.planId,
-        agentCode: row.agentCode,
+        agentId: row.agentId,
         status: row.status,
         assignedAt: row.assignedAt,
         startedAt: row.startedAt,
@@ -134,7 +134,7 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
     if (!snapshot.root.id) {
       const values: NewPlanEnrollmentRow = {
         planId: snapshot.root.planId,
-        agentCode: snapshot.root.agentCode,
+        agentId: snapshot.root.agentId,
         status: snapshot.root.status,
         assignedAt: snapshot.root.assignedAt,
         startedAt: snapshot.root.startedAt,

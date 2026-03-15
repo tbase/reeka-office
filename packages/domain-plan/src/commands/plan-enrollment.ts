@@ -43,16 +43,16 @@ async function persistEnrollmentAndEvents(
 
 function toRewardEvent(payload: Record<string, unknown>): {
   completionId: number
-  agentCode: string
+  agentId: number
   pointItemId: number
 } | null {
   const completionId = payload.completionId
-  const agentCode = payload.agentCode
+  const agentId = payload.agentId
   const pointItemId = payload.pointItemId
 
   if (
     typeof completionId !== 'number'
-    || typeof agentCode !== 'string'
+    || typeof agentId !== 'number'
     || typeof pointItemId !== 'number'
   ) {
     return null
@@ -60,14 +60,14 @@ function toRewardEvent(payload: Record<string, unknown>): {
 
   return {
     completionId,
-    agentCode,
+    agentId,
     pointItemId,
   }
 }
 
 export interface AssignPlanToAgentInput {
   planId: number
-  agentCode: string
+  agentId: number
   assignedAt?: Date
 }
 
@@ -87,7 +87,7 @@ export class AssignPlanToAgentCommand {
         throw new Error('只有已发布的计划可被指派')
       }
 
-      const existed = await enrollmentRepository.findByPlanAndAgent(input.planId, input.agentCode)
+      const existed = await enrollmentRepository.findByPlanAndAgent(input.planId, input.agentId)
       if (existed) {
         throw new Error('该代理人已参与当前计划')
       }
