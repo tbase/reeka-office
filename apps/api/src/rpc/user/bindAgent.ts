@@ -21,6 +21,7 @@ type RequestContext = {
 
 export type BindAgentInput = z.infer<typeof inputSchema>;
 export type BindAgentOutput = {
+  agentId: number;
   agentCode: string;
   agentName: string;
 };

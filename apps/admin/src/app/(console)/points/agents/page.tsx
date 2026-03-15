@@ -1,13 +1,18 @@
 export const dynamic = "force-dynamic"
 
 import { ListAgentPointBalancesQuery } from "@reeka-office/domain-point"
+import { ListAgentsQuery } from "@reeka-office/domain-user"
 import { PlusIcon, UsersIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { LinkButton } from "@/components/ui/link-button"
 
 export default async function AgentPointsPage() {
-  const balances = await new ListAgentPointBalancesQuery().query()
+  const [balances, agents] = await Promise.all([
+    new ListAgentPointBalancesQuery().query(),
+    new ListAgentsQuery().query(),
+  ])
+  const agentMap = new Map(agents.map((agent) => [agent.id, agent]))
 
   return (
     <div className="space-y-4">
@@ -41,33 +46,37 @@ export default async function AgentPointsPage() {
               </tr>
             </thead>
             <tbody>
-              {balances.map((balance) => (
-                <tr key={balance.agentCode} className="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-mono font-medium">{balance.agentCode}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-semibold">
-                    {balance.currentPoints.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <LinkButton
-                        href={`/points/agents/new?agentCode=${balance.agentCode}`}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <PlusIcon className="size-3.5" />
-                        新增
-                      </LinkButton>
-                      <LinkButton
-                        href={`/points/agents/${balance.agentCode}`}
-                        variant="outline"
-                        size="sm"
-                      >
-                        查看
-                      </LinkButton>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {balances.map((balance) => {
+                const agent = agentMap.get(balance.agentId)
+
+                return (
+                  <tr key={balance.agentId} className="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3 font-mono font-medium">{agent?.agentCode ?? "-"}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                      {balance.currentPoints.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <LinkButton
+                          href={`/points/agents/new?agentId=${balance.agentId}`}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <PlusIcon className="size-3.5" />
+                          新增
+                        </LinkButton>
+                        <LinkButton
+                          href={`/points/agents/${balance.agentId}`}
+                          variant="outline"
+                          size="sm"
+                        >
+                          查看
+                        </LinkButton>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

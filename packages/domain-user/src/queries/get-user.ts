@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agents, users } from '../db/schema'
-import { User } from '../types'
+import type { User } from '../types'
 
 export interface GetUserInput {
   openid: string
@@ -24,13 +24,14 @@ export class GetUserQuery {
         nickname: users.nickname,
         avatar: users.avatar,
         role: users.role,
-        agentCode: users.agentCode,
+        agentId: users.agentId,
+        agentCode: agents.agentCode,
         agentName: agents.name,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })
       .from(users)
-      .leftJoin(agents, eq(users.agentCode, agents.agentCode))
+      .leftJoin(agents, eq(users.agentId, agents.id))
       .where(eq(users.openid, this.input.openid))
       .limit(1)
 
@@ -45,6 +46,7 @@ export class GetUserQuery {
       nickname: row.nickname ?? null,
       avatar: row.avatar ?? null,
       role: row.role,
+      agentId: row.agentId ?? null,
       agentCode: row.agentCode ?? null,
       agentName: row.agentName ?? null,
       createdAt: row.createdAt ?? null,

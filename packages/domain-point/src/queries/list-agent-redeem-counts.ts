@@ -3,7 +3,7 @@ import { getDb, type DB } from '../context'
 import { redemptionRecords } from '../schema'
 
 export interface ListAgentRedeemCountsInput {
-  agentCode: string
+  agentId: number
 }
 
 export interface AgentRedeemCountItem {
@@ -27,7 +27,7 @@ export class ListAgentRedeemCountsQuery {
       .from(redemptionRecords)
       .where(
         and(
-          eq(redemptionRecords.agentCode, this.input.agentCode),
+          eq(redemptionRecords.agentId, this.input.agentId),
           eq(redemptionRecords.status, 'success'),
         ),
       )

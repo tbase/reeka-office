@@ -8,12 +8,12 @@ const SYSTEM_CREATED_BY = 0
 export class DomainPointPlanRewardPort implements PlanRewardPort {
   async grantTaskReward(input: {
     completionId: number
-    agentCode: string
+    agentId: number
     pointItemId: number
     remark?: string | null
   }): Promise<void> {
     await new CreatePointRecordCommand({
-      agentCode: input.agentCode,
+      agentId: input.agentId,
       pointItemId: input.pointItemId,
       remark: input.remark ?? null,
       createdBy: SYSTEM_CREATED_BY,

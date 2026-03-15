@@ -3,7 +3,7 @@ import { getDb, type DB } from '../context'
 import { pointItems, pointRecords, type PointRecordRow } from '../schema'
 
 export interface ListAgentPointRecordsInput {
-  agentCode: string
+  agentId: number
   pointItemId?: number
 }
 
@@ -27,16 +27,16 @@ export class ListAgentPointRecordsQuery {
   async query(): Promise<ListAgentPointRecordsResult> {
     const whereClause = this.input.pointItemId
       ? and(
-          eq(pointRecords.agentCode, this.input.agentCode),
+          eq(pointRecords.agentId, this.input.agentId),
           eq(pointRecords.pointItemId, this.input.pointItemId),
         )
-      : eq(pointRecords.agentCode, this.input.agentCode)
+      : eq(pointRecords.agentId, this.input.agentId)
 
     const [rows, totalRows] = await Promise.all([
       this.db
         .select({
           id: pointRecords.id,
-          agentCode: pointRecords.agentCode,
+          agentId: pointRecords.agentId,
           pointItemId: pointRecords.pointItemId,
           points: pointRecords.points,
           occurredYear: pointRecords.occurredYear,

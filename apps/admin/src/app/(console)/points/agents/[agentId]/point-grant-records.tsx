@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib/datetime"
 
 type PointGrantRecordsProps = {
-  agentCode: string
+  agentId: number
 }
 
-export async function PointGrantRecords({ agentCode }: PointGrantRecordsProps) {
-  const pointResult = await new ListAgentPointRecordsQuery({ agentCode }).query()
+export async function PointGrantRecords({ agentId }: PointGrantRecordsProps) {
+  const pointResult = await new ListAgentPointRecordsQuery({ agentId }).query()
 
   if (pointResult.records.length === 0) {
     return (

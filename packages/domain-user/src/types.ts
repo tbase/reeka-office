@@ -4,6 +4,7 @@ export interface User {
   nickname: string | null
   avatar: string | null
   role: 'agent' | 'admin'
+  agentId: number | null
   agentCode: string | null
   agentName: string | null
   createdAt: Date | null
@@ -11,7 +12,8 @@ export interface User {
 }
 
 export interface Agent {
-  agentCode: string
+  id: number
+  agentCode: string | null
   name: string
   joinDate: string | null
   designation: string | null

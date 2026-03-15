@@ -18,16 +18,16 @@ import type { Agent } from "@reeka-office/domain-user"
 import { createAgentPointRecordAction } from "../../actions"
 
 type PointItem = Pick<PointItemRow, "id" | "name">
-type AgentOption = Pick<Agent, "agentCode" | "name">
+type AgentOption = Pick<Agent, "id" | "agentCode" | "name">
 
 export function AgentPointRecordFormDialog({
   pointItems,
   agents,
-  defaultAgentCode,
+  defaultAgentId,
 }: {
   pointItems: PointItem[]
   agents: AgentOption[]
-  defaultAgentCode?: string
+  defaultAgentId?: string
 }) {
   const router = useRouter()
 
@@ -54,7 +54,7 @@ export function AgentPointRecordFormDialog({
           id="agent-point-record-form"
           pointItems={pointItems}
           agents={agents}
-          defaultAgentCode={defaultAgentCode}
+          defaultAgentId={defaultAgentId}
           onSuccess={() => router.back()}
         />
         <DialogFooter>

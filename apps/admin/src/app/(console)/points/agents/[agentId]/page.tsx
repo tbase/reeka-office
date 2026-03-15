@@ -5,6 +5,7 @@ import {
   ListAgentPointRecordsQuery,
   ListAgentRedemptionRecordsQuery,
 } from "@reeka-office/domain-point"
+import { ListAgentsQuery } from "@reeka-office/domain-user"
 import { ArrowLeftIcon, PlusIcon } from "lucide-react"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
@@ -14,8 +15,6 @@ import { LinkButton } from "@/components/ui/link-button"
 import { PointGrantRecords } from "./point-grant-records"
 import { PointRedemptionRecords } from "./point-redemption-records"
 import { RecordTabs } from "./record-tabs"
-
-const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/
 
 type RecordTab = "grants" | "redemptions"
 
@@ -38,29 +37,30 @@ export default async function AgentPointDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ agentCode: string }>
+  params: Promise<{ agentId: string }>
   searchParams: Promise<{ tab?: string }>
 }) {
-  const [{ agentCode: raw }, { tab }] = await Promise.all([params, searchParams])
-  const agentCode = raw.toUpperCase()
+  const [{ agentId: raw }, { tab }] = await Promise.all([params, searchParams])
+  const agentId = Number(raw)
   const activeTab = parseRecordTab(tab)
 
-  if (!AGENT_CODE_REGEX.test(agentCode)) {
+  if (!Number.isInteger(agentId) || agentId <= 0) {
     notFound()
   }
 
-  const [balance, pointResult, redemptionResult] = await Promise.all([
-    new GetAgentPointBalanceQuery({ agentCode }).query(),
-    new ListAgentPointRecordsQuery({ agentCode }).query(),
-    new ListAgentRedemptionRecordsQuery({ agentCode }).query(),
+  const [agent, balance, pointResult, redemptionResult] = await Promise.all([
+    new ListAgentsQuery().query().then((items) => items.find((item) => item.id === agentId) ?? null),
+    new GetAgentPointBalanceQuery({ agentId }).query(),
+    new ListAgentPointRecordsQuery({ agentId }).query(),
+    new ListAgentRedemptionRecordsQuery({ agentId }).query(),
   ])
 
-  if (!balance) {
+  if (!agent) {
     notFound()
   }
 
   const recordsSection =
-    activeTab === "grants" ? <PointGrantRecords agentCode={agentCode} /> : <PointRedemptionRecords agentCode={agentCode} />
+    activeTab === "grants" ? <PointGrantRecords agentId={agentId} /> : <PointRedemptionRecords agentId={agentId} />
 
   return (
     <div className="space-y-6">
@@ -72,10 +72,11 @@ export default async function AgentPointDetailPage({
               返回列表
             </LinkButton>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight font-mono">{agentCode}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{agent.name}</h1>
+          <p className="font-mono text-sm text-muted-foreground">{agent.agentCode ?? "-"}</p>
           <p className="text-muted-foreground text-sm">代理人积分详情</p>
         </div>
-        <LinkButton href={`/points/agents/new?agentCode=${agentCode}`} size="sm">
+        <LinkButton href={`/points/agents/new?agentId=${agentId}`} size="sm">
           <PlusIcon className="size-4" />
           新增积分
         </LinkButton>
@@ -85,7 +86,7 @@ export default async function AgentPointDetailPage({
         <div className="rounded-lg border bg-card px-5 py-4 min-w-[140px]">
           <p className="text-muted-foreground text-xs">当前积分余额</p>
           <p className="mt-1 text-3xl font-bold tabular-nums">
-            {balance.currentPoints.toLocaleString()}
+            {(balance?.currentPoints ?? 0).toLocaleString()}
           </p>
         </div>
         <div className="rounded-lg border bg-card px-5 py-4 min-w-[140px]">

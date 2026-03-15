@@ -3,7 +3,7 @@ import { getDb, type DB } from '../context'
 import { agentPointBalances, type AgentPointBalanceRow } from '../schema'
 
 export interface GetAgentPointBalanceInput {
-  agentCode: string
+  agentId: number
 }
 
 export class GetAgentPointBalanceQuery {
@@ -17,7 +17,7 @@ export class GetAgentPointBalanceQuery {
     const rows = await this.db
       .select()
       .from(agentPointBalances)
-      .where(eq(agentPointBalances.agentCode, this.input.agentCode))
+      .where(eq(agentPointBalances.agentId, this.input.agentId))
       .limit(1)
 
     return rows[0] ?? null

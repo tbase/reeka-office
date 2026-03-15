@@ -4,7 +4,8 @@ export type RequestContext = {
   openid: string;
   envid: string;
   user: {
-    agentCode: string;
+    agentId: number;
+    agentCode: string | null;
   };
 };
 

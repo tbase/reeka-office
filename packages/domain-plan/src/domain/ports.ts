@@ -3,7 +3,7 @@ import type { DomainEvent } from './events'
 export interface PlanRewardPort {
   grantTaskReward(input: {
     completionId: number
-    agentCode: string
+    agentId: number
     pointItemId: number
     remark?: string | null
   }): Promise<void>

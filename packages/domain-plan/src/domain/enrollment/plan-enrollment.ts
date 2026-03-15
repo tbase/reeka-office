@@ -9,7 +9,6 @@ import type {
 import type { CheckinEvidence, GraduationEvaluation, PlanEnrollmentStatus } from '../types'
 import type { PlanTaskSnapshot } from '../plan/plan-task'
 import { AggregateRoot } from '../shared/aggregate-root'
-import { normalizeRequiredText } from '../shared/validation'
 import {
   CompletedTask,
   type CompletedTaskSnapshot,
@@ -18,7 +17,7 @@ import {
 export interface PlanEnrollmentSnapshot {
   id: number | null
   planId: number
-  agentCode: string
+  agentId: number
   status: PlanEnrollmentStatus
   assignedAt: Date
   startedAt: Date
@@ -41,13 +40,13 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
     this.pendingAssigned = pendingAssigned
   }
 
-  static assign(input: { planId: number; agentCode: string; assignedAt?: Date }): PlanEnrollment {
+  static assign(input: { planId: number; agentId: number; assignedAt?: Date }): PlanEnrollment {
     const assignedAt = input.assignedAt ?? new Date()
 
     return new PlanEnrollment({
       id: null,
       planId: input.planId,
-      agentCode: normalizeRequiredText(input.agentCode, '代理人编码'),
+      agentId: input.agentId,
       status: 'active',
       assignedAt,
       startedAt: assignedAt,
@@ -72,8 +71,8 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
     return this.props.planId
   }
 
-  get agentCode() {
-    return this.props.agentCode
+  get agentId() {
+    return this.props.agentId
   }
 
   get status() {
@@ -150,7 +149,7 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
         type: 'PlanEnrollmentBecameEligible',
         enrollmentId: this.requireId('计划实例尚未持久化'),
         planId: this.props.planId,
-        agentCode: this.props.agentCode,
+        agentId: this.props.agentId,
         occurredAt: now,
       } satisfies PlanEnrollmentBecameEligible)
     }
@@ -174,7 +173,7 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
       type: 'PlanEnrollmentGraduated',
       enrollmentId: this.requireId('计划实例尚未持久化'),
       planId: this.props.planId,
-      agentCode: this.props.agentCode,
+      agentId: this.props.agentId,
       occurredAt: now,
     } satisfies PlanEnrollmentGraduated)
   }
@@ -194,7 +193,7 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
       type: 'PlanEnrollmentCancelled',
       enrollmentId: this.requireId('计划实例尚未持久化'),
       planId: this.props.planId,
-      agentCode: this.props.agentCode,
+      agentId: this.props.agentId,
       occurredAt: now,
     } satisfies PlanEnrollmentCancelled)
   }
@@ -218,7 +217,7 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
       type: 'PlanAssigned',
       enrollmentId: this.requireId('计划实例尚未持久化'),
       planId: this.props.planId,
-      agentCode: this.props.agentCode,
+      agentId: this.props.agentId,
       occurredAt: this.props.assignedAt,
     }
   }
@@ -236,7 +235,7 @@ export class PlanEnrollment extends AggregateRoot<PlanEnrollmentSnapshot, Domain
         completionId: completedTask.id,
         planId: this.props.planId,
         taskId: meta.taskId,
-        agentCode: this.props.agentCode,
+        agentId: this.props.agentId,
         completionMode: meta.completionMode,
         pointItemId: meta.pointItemId,
         occurredAt: meta.occurredAt,

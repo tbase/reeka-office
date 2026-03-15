@@ -9,6 +9,7 @@ export interface BindAgentInput {
 }
 
 export interface BindAgentResult {
+  agentId: number
   agentCode: string
   agentName: string
 }
@@ -31,12 +32,22 @@ export class BindAgentCommand {
       const existingAgent = agentRows[0]
       const agentCode = existingAgent?.agentCode ?? this.input.agentCode
       const agentName = existingAgent?.name ?? this.input.agentName
+      let agentId = existingAgent?.id
 
       if (!existingAgent) {
-        await tx.insert(agents).values({
+        const result = await tx.insert(agents).values({
           agentCode,
           name: agentName,
-        })
+        }).$returningId()
+
+        agentId = result[0]?.id
+        if (!agentId) {
+          throw new Error('创建代理人失败')
+        }
+      }
+
+      if (!agentId) {
+        throw new Error('代理人不存在')
       }
 
       const userRows = await tx
@@ -49,13 +60,13 @@ export class BindAgentCommand {
       if (!user) {
         await tx.insert(users).values({
           openid: this.input.openid,
-          agentCode,
+          agentId,
         })
-      } else if (!user.agentCode) {
+      } else if (!user.agentId) {
         await tx
           .update(users)
           .set({
-            agentCode,
+            agentId,
           })
           .where(eq(users.id, user.id))
       } else {
@@ -63,6 +74,7 @@ export class BindAgentCommand {
       }
 
       return {
+        agentId,
         agentCode,
         agentName,
       }

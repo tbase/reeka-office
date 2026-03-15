@@ -32,7 +32,7 @@ async function createContext(req: Request): Promise<APIContext> {
   }
 
   const user = await new GetUserQuery({ openid }).query();
-  if (!user?.agentCode) {
+  if (!user?.agentId) {
     throw new RpcError(RpcErrorCode.FORBIDDEN, "非代理人，无访问权限");
   }
 

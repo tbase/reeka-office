@@ -30,7 +30,7 @@ export const pointItems = mysqlTable('point_items', {
 
 export const pointRecords = mysqlTable('point_records', {
   id: int('id').autoincrement().primaryKey(),
-  agentCode: varchar('agent_code', { length: 8 }).notNull(),
+  agentId: int('agent_id').notNull(),
   pointItemId: int('point_item_id').notNull().references(() => pointItems.id),
   points: int('points').notNull(),
   occurredYear: int('occurred_year').notNull(),
@@ -40,13 +40,13 @@ export const pointRecords = mysqlTable('point_records', {
   createdBy: int('created_by').notNull(),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('point_records_agent_created_idx').on(t.agentCode, t.createdAt),
-  index('point_records_limit_check_idx').on(t.agentCode, t.pointItemId, t.occurredYear),
+  index('point_records_agent_created_idx').on(t.agentId, t.createdAt),
+  index('point_records_limit_check_idx').on(t.agentId, t.pointItemId, t.occurredYear),
   uniqueIndex('point_records_source_udx').on(t.sourceType, t.sourceRef),
 ])
 
 export const agentPointBalances = mysqlTable('agent_point_balances', {
-  agentCode: varchar('agent_code', { length: 8 }).primaryKey(),
+  agentId: int('agent_id').primaryKey(),
   currentPoints: int('current_points').notNull().default(0),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
@@ -77,15 +77,15 @@ export const redemptionProducts = mysqlTable('redemption_products', {
 export const redemptionRecords = mysqlTable('redemption_records', {
   id: int('id').autoincrement().primaryKey(),
   productId: int('product_id').notNull().references(() => redemptionProducts.id),
-  agentCode: varchar('agent_code', { length: 8 }).notNull(),
+  agentId: int('agent_id').notNull(),
   pointsCost: int('points_cost').notNull(),
   status: mysqlEnum('status', ['success', 'cancelled']).default('success').notNull(),
   remark: text('remark'),
   redeemedAt: timestamp('redeemed_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('redemption_records_agent_time_idx').on(t.agentCode, t.redeemedAt),
-  index('redemption_records_agent_product_idx').on(t.agentCode, t.productId),
+  index('redemption_records_agent_time_idx').on(t.agentId, t.redeemedAt),
+  index('redemption_records_agent_product_idx').on(t.agentId, t.productId),
   index('redemption_records_product_time_idx').on(t.productId, t.redeemedAt),
 ])
 

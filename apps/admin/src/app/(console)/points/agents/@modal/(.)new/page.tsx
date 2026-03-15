@@ -3,12 +3,10 @@ import { ListAgentsQuery } from "@reeka-office/domain-user";
 
 import { AgentPointRecordFormDialog } from "./form-dialog";
 
-const AGENT_CODE_REGEX = /^[A-Za-z0-9]{8}$/;
-
-function parseOptionalAgentCode(value: string | undefined): string | undefined {
+function parseOptionalAgentId(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const code = value.trim().toUpperCase();
-  return AGENT_CODE_REGEX.test(code) ? code : undefined;
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? String(id) : undefined;
 }
 
 export default async function AgentPointRecordNewModal({
@@ -17,8 +15,8 @@ export default async function AgentPointRecordNewModal({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  const defaultAgentCode = parseOptionalAgentCode(
-    typeof params.agentCode === "string" ? params.agentCode : undefined,
+  const defaultAgentId = parseOptionalAgentId(
+    typeof params.agentId === "string" ? params.agentId : undefined,
   );
 
   const [pointItems, agents] = await Promise.all([
@@ -30,7 +28,7 @@ export default async function AgentPointRecordNewModal({
     <AgentPointRecordFormDialog
       pointItems={pointItems}
       agents={agents}
-      defaultAgentCode={defaultAgentCode}
+      defaultAgentId={defaultAgentId}
     />
   );
 }
