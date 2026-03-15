@@ -8,6 +8,7 @@ import {
   mysqlTable,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/mysql-core'
 
@@ -33,12 +34,15 @@ export const pointRecords = mysqlTable('point_records', {
   pointItemId: int('point_item_id').notNull().references(() => pointItems.id),
   points: int('points').notNull(),
   occurredYear: int('occurred_year').notNull(),
+  sourceType: varchar('source_type', { length: 100 }),
+  sourceRef: varchar('source_ref', { length: 100 }),
   remark: text('remark'),
   createdBy: int('created_by').notNull(),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
   index('point_records_agent_created_idx').on(t.agentCode, t.createdAt),
   index('point_records_limit_check_idx').on(t.agentCode, t.pointItemId, t.occurredYear),
+  uniqueIndex('point_records_source_udx').on(t.sourceType, t.sourceRef),
 ])
 
 export const agentPointBalances = mysqlTable('agent_point_balances', {

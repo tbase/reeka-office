@@ -10,6 +10,7 @@ export default defineConfig({
     "../../packages/domain-cms/src/db/schema.ts",
     "../../packages/domain-point/src/db/schema.ts",
     "../../packages/domain-newbie/src/db/schema.ts",
+    "../../packages/domain-plan/src/db/schema.ts",
   ],
   out: "./drizzle",
   dialect: "mysql",

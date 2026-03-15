@@ -12,6 +12,8 @@ export interface CreatePointRecordInput {
   pointItemId: number
   points?: number
   occurredYear?: number
+  sourceType?: string | null
+  sourceRef?: string | null
   remark?: string | null
   createdBy: number
 }
@@ -24,6 +26,28 @@ export class CreatePointRecordCommand {
   }
 
   async execute(): Promise<number | null> {
+    const sourceType = this.input.sourceType?.trim() ?? null
+    const sourceRef = this.input.sourceRef?.trim() ?? null
+
+    if ((sourceType && !sourceRef) || (!sourceType && sourceRef)) {
+      throw new Error('Source type and source ref must be provided together')
+    }
+
+    if (sourceType && sourceRef) {
+      const existingRows = await this.db
+        .select({ id: pointRecords.id })
+        .from(pointRecords)
+        .where(and(
+          eq(pointRecords.sourceType, sourceType),
+          eq(pointRecords.sourceRef, sourceRef),
+        ))
+        .limit(1)
+
+      if (existingRows[0]?.id) {
+        return existingRows[0].id
+      }
+    }
+
     const pointItemRows = await this.db
       .select({
         id: pointItems.id,
@@ -70,11 +94,35 @@ export class CreatePointRecordCommand {
         pointItemId: this.input.pointItemId,
         points,
         occurredYear,
+        sourceType,
+        sourceRef,
         remark: this.input.remark ?? null,
         createdBy: this.input.createdBy,
       }
 
-      const result = await tx.insert(pointRecords).values(values).$returningId()
+      let result: Array<{ id: number }>
+      try {
+        result = await tx.insert(pointRecords).values(values).$returningId()
+      } catch (error) {
+        if (!sourceType || !sourceRef) {
+          throw error
+        }
+
+        const existingRows = await tx
+          .select({ id: pointRecords.id })
+          .from(pointRecords)
+          .where(and(
+            eq(pointRecords.sourceType, sourceType),
+            eq(pointRecords.sourceRef, sourceRef),
+          ))
+          .limit(1)
+
+        if (existingRows[0]?.id) {
+          return existingRows[0].id
+        }
+
+        throw error
+      }
 
       await tx
         .insert(agentPointBalances)

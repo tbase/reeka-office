@@ -40,6 +40,8 @@ export class ListAgentPointRecordsQuery {
           pointItemId: pointRecords.pointItemId,
           points: pointRecords.points,
           occurredYear: pointRecords.occurredYear,
+          sourceType: pointRecords.sourceType,
+          sourceRef: pointRecords.sourceRef,
           remark: pointRecords.remark,
           createdBy: pointRecords.createdBy,
           createdAt: pointRecords.createdAt,
