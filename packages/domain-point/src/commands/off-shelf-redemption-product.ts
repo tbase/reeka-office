@@ -1,7 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { redemptionProducts } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface OffShelfRedemptionProductInput {
   id: number
@@ -9,12 +8,10 @@ export interface OffShelfRedemptionProductInput {
 
 export class OffShelfRedemptionProductCommand {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: OffShelfRedemptionProductInput
 
-  constructor(scope: TenantScope, input: OffShelfRedemptionProductInput) {
+  constructor(input: OffShelfRedemptionProductInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -26,7 +23,6 @@ export class OffShelfRedemptionProductCommand {
         offShelfAt: new Date(),
       })
       .where(and(
-        eq(redemptionProducts.tenantId, this.scope.tenantId),
         eq(redemptionProducts.id, this.input.id),
         eq(redemptionProducts.status, 'published'),
       ))

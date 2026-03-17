@@ -27,15 +27,15 @@ async function createContext(req: Request): Promise<APIContext> {
   const method = body.method;
 
   if (method === "user/bindAgent") {
-    return { openid, envid, tenantId: null, user: null };
+    return { openid, envid, user: null };
   }
 
   const user = await new GetUserQuery({ openid }).query();
-  if (!user?.agentId || !user.tenantId) {
+  if (!user?.agentId) {
     throw new RpcError(RpcErrorCode.FORBIDDEN, "非代理人，无访问权限");
   }
 
-  return { openid, envid, tenantId: user.tenantId, user };
+  return { openid, envid, user };
 }
 
 

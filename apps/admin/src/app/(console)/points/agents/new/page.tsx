@@ -13,8 +13,8 @@ import {
 } from "../actions";
 
 export default async function AgentPointsCreatePage() {
-  const ctx = await getRequiredAdminContext();
-  const pointItems = await new ListPointItemsQuery(ctx).query();
+  await getRequiredAdminContext();
+  const pointItems = await new ListPointItemsQuery().query();
 
   return (
     <div className="space-y-4">

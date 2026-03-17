@@ -46,14 +46,14 @@ export default async function AgentPointDetailPage({
     notFound();
   }
 
-  const ctx = await getRequiredAdminContext();
+  await getRequiredAdminContext();
   const [agent, balance, pointResult, redemptionResult] = await Promise.all([
-    new ListAgentsQuery(ctx)
+    new ListAgentsQuery({})
       .query()
       .then((items) => items.find((item) => item.id === agentId) ?? null),
-    new GetAgentPointBalanceQuery(ctx, { agentId }).query(),
-    new ListAgentPointRecordsQuery(ctx, { agentId }).query(),
-    new ListAgentRedemptionRecordsQuery(ctx, { agentId }).query(),
+    new GetAgentPointBalanceQuery({ agentId }).query(),
+    new ListAgentPointRecordsQuery({ agentId }).query(),
+    new ListAgentRedemptionRecordsQuery({ agentId }).query(),
   ]);
 
   if (!agent) {

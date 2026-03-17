@@ -32,8 +32,8 @@ export default async function CmsCategoryEditPage({
   const { id: idParam } = await params;
   const id = parseId(idParam);
 
-  const ctx = await getRequiredAdminContext();
-  const categories = await new ListCategoriesQuery(ctx).query();
+  await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery().query();
   const category = categories.find((item) => item.id === id) ?? null;
 
   if (!category) {

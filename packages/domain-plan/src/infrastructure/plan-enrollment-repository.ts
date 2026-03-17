@@ -14,19 +14,13 @@ import {
 } from '../schema'
 
 export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository {
-  constructor(
-    private readonly db: DBExecutor,
-    private readonly tenantId: number,
-  ) { }
+  constructor(private readonly db: DBExecutor) { }
 
   async findById(enrollmentId: number): Promise<PlanEnrollment | null> {
     const [root] = await this.db
       .select()
       .from(planEnrollments)
-      .where(and(
-        eq(planEnrollments.tenantId, this.tenantId),
-        eq(planEnrollments.id, enrollmentId),
-      ))
+      .where(eq(planEnrollments.id, enrollmentId))
       .limit(1)
 
     if (!root) {
@@ -36,10 +30,7 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
     const completedRows = await this.db
       .select()
       .from(planCompletedTasks)
-      .where(and(
-        eq(planCompletedTasks.tenantId, this.tenantId),
-        eq(planCompletedTasks.enrollmentId, enrollmentId),
-      ))
+      .where(eq(planCompletedTasks.enrollmentId, enrollmentId))
 
     return PlanEnrollment.restore({
       root: {
@@ -71,7 +62,6 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
       .from(planEnrollments)
       .where(
         and(
-          eq(planEnrollments.tenantId, this.tenantId),
           eq(planEnrollments.planId, planId),
           eq(planEnrollments.agentId, agentId),
         ),
@@ -91,7 +81,6 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
       .from(planEnrollments)
       .where(
         and(
-          eq(planEnrollments.tenantId, this.tenantId),
           eq(planEnrollments.planId, planId),
           inArray(planEnrollments.status, ['active', 'eligible']),
         ),
@@ -105,10 +94,7 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
     const completedRows = await this.db
       .select()
       .from(planCompletedTasks)
-      .where(and(
-        eq(planCompletedTasks.tenantId, this.tenantId),
-        inArray(planCompletedTasks.enrollmentId, enrollmentIds),
-      ))
+      .where(inArray(planCompletedTasks.enrollmentId, enrollmentIds))
 
     const completedByEnrollmentId = new Map<number, typeof completedRows>()
     for (const completedRow of completedRows) {
@@ -147,7 +133,6 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
 
     if (!snapshot.root.id) {
       const values: NewPlanEnrollmentRow = {
-        tenantId: this.tenantId,
         planId: snapshot.root.planId,
         agentId: snapshot.root.agentId,
         status: snapshot.root.status,
@@ -176,10 +161,7 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
           graduatedAt: snapshot.root.graduatedAt,
           cancelledAt: snapshot.root.cancelledAt,
         })
-        .where(and(
-          eq(planEnrollments.tenantId, this.tenantId),
-          eq(planEnrollments.id, snapshot.root.id),
-        ))
+        .where(eq(planEnrollments.id, snapshot.root.id))
     }
 
     for (const completedTask of persistenceState.completedTasks) {
@@ -189,7 +171,6 @@ export class DrizzlePlanEnrollmentRepository implements PlanEnrollmentRepository
       }
 
       const values: NewPlanCompletedTaskRow = {
-        tenantId: this.tenantId,
         enrollmentId: enrollment.id!,
         taskId: completedSnapshot.taskId,
         completionMode: completedSnapshot.completionMode,

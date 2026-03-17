@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
 
@@ -17,7 +17,6 @@ export interface ImportedAgentInput {
 }
 
 export interface ImportAgentsInput {
-  tenantId: number
   agents: ImportedAgentInput[]
 }
 
@@ -178,10 +177,7 @@ export class ImportAgentsCommand {
           unit: agents.unit,
         })
         .from(agents)
-        .where(and(
-          eq(agents.tenantId, this.input.tenantId),
-          inArray(agents.agentCode, importedCodes),
-        ))
+        .where(inArray(agents.agentCode, importedCodes))
 
       const existingByCode = new Map(
         existingRows
@@ -212,7 +208,6 @@ export class ImportAgentsCommand {
 
         if (!existing) {
           await tx.insert(agents).values({
-            tenantId: this.input.tenantId,
             agentCode: agent.agentCode,
             name: agent.name,
             joinDate: agent.joinDate,
@@ -277,10 +272,7 @@ export class ImportAgentsCommand {
           leaderCode: agents.leaderCode,
         })
         .from(agents)
-        .where(and(
-          eq(agents.tenantId, this.input.tenantId),
-          inArray(agents.agentCode, importedCodes),
-        ))
+        .where(inArray(agents.agentCode, importedCodes))
 
       const currentByCode = new Map(
         currentRows

@@ -99,11 +99,7 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  tenantName: string;
-}
-
-export function AppSidebar({ tenantName, ...props }: AppSidebarProps) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -122,7 +118,7 @@ export function AppSidebar({ tenantName, ...props }: AppSidebarProps) {
                 R
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{tenantName}</span>
+                <span className="truncate font-medium">Reeka Office</span>
                 <span className="text-muted-foreground truncate text-xs">
                   Admin Panel
                 </span>

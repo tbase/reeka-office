@@ -10,10 +10,10 @@ import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
 export default async function AgentPointsPage() {
-  const ctx = await getRequiredAdminContext();
+  await getRequiredAdminContext();
   const [balances, agents] = await Promise.all([
-    new ListAgentPointBalancesQuery(ctx).query(),
-    new ListAgentsQuery(ctx).query(),
+    new ListAgentPointBalancesQuery().query(),
+    new ListAgentsQuery({}).query(),
   ]);
   const agentMap = new Map(agents.map((agent) => [agent.id, agent]));
 

@@ -35,10 +35,10 @@ function parseAgentPointRecordInput(formData: FormData) {
 export async function createAgentPointRecordAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const { agentId, pointItemId, points, remark } = parseAgentPointRecordInput(formData)
 
-  await new CreatePointRecordCommand(ctx, {
+  await new CreatePointRecordCommand({
     agentId,
     pointItemId,
     points,
@@ -51,13 +51,12 @@ export async function createAgentPointRecordAction(
 }
 
 export async function searchAgentsAction(input: SearchAgentsInput) {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const trimmedKeyword = input.keyword?.trim()
   const agentId = Number(input.agentId)
 
   if (Number.isInteger(agentId) && agentId > 0) {
     const agents = await new ListAgentsQuery({
-      tenantId: ctx.tenantId,
       agentId,
       limit: 1,
     }).query()
@@ -74,7 +73,6 @@ export async function searchAgentsAction(input: SearchAgentsInput) {
   }
 
   const agents = await new ListAgentsQuery({
-    tenantId: ctx.tenantId,
     keyword: trimmedKeyword,
     limit: AGENT_SEARCH_LIMIT,
   }).query()

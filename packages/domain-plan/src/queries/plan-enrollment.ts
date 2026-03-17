@@ -1,7 +1,6 @@
 import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
-import type { TenantScope } from '../scope'
 import {
   planCompletedTasks,
   planEnrollments,
@@ -28,12 +27,10 @@ export interface PlanEnrollmentDetailItem {
 
 export class GetPlanEnrollmentQuery {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: GetPlanEnrollmentInput
 
-  constructor(scope: TenantScope, input: GetPlanEnrollmentInput) {
+  constructor(input: GetPlanEnrollmentInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -53,10 +50,7 @@ export class GetPlanEnrollmentQuery {
       })
       .from(planEnrollments)
       .innerJoin(plans, eq(plans.id, planEnrollments.planId))
-      .where(and(
-        eq(planEnrollments.tenantId, this.scope.tenantId),
-        eq(planEnrollments.id, this.input.id),
-      ))
+      .where(eq(planEnrollments.id, this.input.id))
       .limit(1)
 
     if (!row) {
@@ -66,10 +60,7 @@ export class GetPlanEnrollmentQuery {
     const completedRows = await this.db
       .select({ taskId: planCompletedTasks.taskId })
       .from(planCompletedTasks)
-      .where(and(
-        eq(planCompletedTasks.tenantId, this.scope.tenantId),
-        eq(planCompletedTasks.enrollmentId, row.id),
-      ))
+      .where(eq(planCompletedTasks.enrollmentId, row.id))
 
     return {
       ...row,
@@ -86,17 +77,15 @@ export interface ListPlanEnrollmentsInput {
 
 export class ListPlanEnrollmentsQuery {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: ListPlanEnrollmentsInput
 
-  constructor(scope: TenantScope, input: ListPlanEnrollmentsInput = {}) {
+  constructor(input: ListPlanEnrollmentsInput = {}) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
   async query() {
-    const conditions = [eq(planEnrollments.tenantId, this.scope.tenantId)]
+    const conditions = []
     if (this.input.planId) {
       conditions.push(eq(planEnrollments.planId, this.input.planId))
     }

@@ -32,8 +32,8 @@ export default async function ProductEditPage({
   const { id: idParam } = await params;
   const id = parseId(idParam);
 
-  const ctx = await getRequiredAdminContext();
-  const products = await new ListRedemptionProductsQuery(ctx).query();
+  await getRequiredAdminContext();
+  const products = await new ListRedemptionProductsQuery().query();
   const product = products.find((row) => row.id === id) ?? null;
 
   if (!product) {

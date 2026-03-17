@@ -1,7 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb, type DB } from "../context";
 import { categories, contents, type ContentFields, type NewContentRow } from "../schema";
-import type { TenantScope } from "../scope";
 
 export interface CreateContentInput {
   categoryId: number;
@@ -12,15 +11,10 @@ export interface CreateContentInput {
 
 export class CreateContentCommand {
   private readonly db: DB;
-  private readonly scope: TenantScope;
   private readonly input: CreateContentInput;
 
-  constructor(
-    scope: TenantScope,
-    input: CreateContentInput,
-  ) {
+  constructor(input: CreateContentInput) {
     this.db = getDb();
-    this.scope = scope;
     this.input = input;
   }
 
@@ -28,10 +22,7 @@ export class CreateContentCommand {
     const categoryRows = await this.db
       .select({ id: categories.id })
       .from(categories)
-      .where(and(
-        eq(categories.tenantId, this.scope.tenantId),
-        eq(categories.id, this.input.categoryId),
-      ))
+      .where(eq(categories.id, this.input.categoryId))
       .limit(1);
 
     if (!categoryRows[0]) {
@@ -39,7 +30,6 @@ export class CreateContentCommand {
     }
 
     const values: NewContentRow = {
-      tenantId: this.scope.tenantId,
       categoryId: this.input.categoryId,
       name: this.input.name,
       content: this.input.content,

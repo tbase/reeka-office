@@ -10,8 +10,8 @@ type PointGrantRecordsProps = {
 };
 
 export async function PointGrantRecords({ agentId }: PointGrantRecordsProps) {
-  const ctx = await getRequiredAdminContext();
-  const pointResult = await new ListAgentPointRecordsQuery(ctx, {
+  await getRequiredAdminContext();
+  const pointResult = await new ListAgentPointRecordsQuery({
     agentId,
   }).query();
 

@@ -7,7 +7,6 @@ export {
   type DB as PointDB,
   type PointSchema,
 } from './context'
-export type { TenantScope } from './scope'
 export * from './commands'
 export * from './queries'
 export type {

@@ -14,8 +14,8 @@ import { getRequiredAdminContext } from "@/lib/admin-context";
 import { deleteCategoryAction } from "./actions";
 
 export default async function CmsCategoriesPage() {
-  const ctx = await getRequiredAdminContext();
-  const categories = await new ListCategoriesQuery(ctx).query();
+  await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery().query();
 
   return (
     <div className="space-y-4">

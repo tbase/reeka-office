@@ -33,9 +33,9 @@ export default async function CmsContentsPage({
   const categoryFilterId = parseOptionalId(
     typeof params.categoryId === "string" ? params.categoryId : undefined,
   );
-  const ctx = await getRequiredAdminContext();
+  await getRequiredAdminContext();
 
-  const categories = await new ListCategoriesQuery(ctx).query();
+  const categories = await new ListCategoriesQuery().query();
 
   const categoryTabs = categories.map((category) => ({
     id: category.id,

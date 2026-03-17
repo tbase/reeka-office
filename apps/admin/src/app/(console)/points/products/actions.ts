@@ -62,7 +62,7 @@ function revalidateProducts(): void {
 }
 
 export async function createProductAction(formData: FormData): Promise<{ success: true }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const {
     redeemCategory,
     title,
@@ -75,7 +75,7 @@ export async function createProductAction(formData: FormData): Promise<{ success
     validPeriodMonths,
   } = parseProductInput(formData)
 
-  await new CreateRedemptionProductCommand(ctx, {
+  await new CreateRedemptionProductCommand({
     redeemCategory,
     title,
     description,
@@ -93,7 +93,7 @@ export async function createProductAction(formData: FormData): Promise<{ success
 }
 
 export async function updateProductAction(formData: FormData): Promise<{ success: true }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const {
     id,
     redeemCategory,
@@ -107,7 +107,7 @@ export async function updateProductAction(formData: FormData): Promise<{ success
     validPeriodMonths,
   } = parseProductInput(formData)
 
-  await new UpdateRedemptionProductCommand(ctx, {
+  await new UpdateRedemptionProductCommand({
     id: parseRequiredId(id, "无效兑换商品 ID"),
     redeemCategory,
     title,
@@ -125,9 +125,9 @@ export async function updateProductAction(formData: FormData): Promise<{ success
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const id = parseProductId(formData)
-  const ok = await new DeleteRedemptionProductCommand(ctx, { id }).execute()
+  const ok = await new DeleteRedemptionProductCommand({ id }).execute()
   if (!ok) {
     throw new Error("仅草稿状态商品可删除")
   }
@@ -136,9 +136,9 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
 }
 
 export async function publishProductAction(formData: FormData): Promise<void> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const id = parseProductId(formData)
-  const ok = await new PublishRedemptionProductCommand(ctx, { id }).execute()
+  const ok = await new PublishRedemptionProductCommand({ id }).execute()
   if (!ok) {
     throw new Error("仅草稿状态商品可发布")
   }
@@ -147,9 +147,9 @@ export async function publishProductAction(formData: FormData): Promise<void> {
 }
 
 export async function offShelfProductAction(formData: FormData): Promise<void> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const id = parseProductId(formData)
-  const ok = await new OffShelfRedemptionProductCommand(ctx, { id }).execute()
+  const ok = await new OffShelfRedemptionProductCommand({ id }).execute()
   if (!ok) {
     throw new Error("仅已发布商品可下架")
   }

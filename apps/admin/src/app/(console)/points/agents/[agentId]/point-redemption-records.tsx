@@ -12,8 +12,8 @@ type PointRedemptionRecordsProps = {
 export async function PointRedemptionRecords({
   agentId,
 }: PointRedemptionRecordsProps) {
-  const ctx = await getRequiredAdminContext();
-  const redemptionResult = await new ListAgentRedemptionRecordsQuery(ctx, {
+  await getRequiredAdminContext();
+  const redemptionResult = await new ListAgentRedemptionRecordsQuery({
     agentId,
   }).query();
 

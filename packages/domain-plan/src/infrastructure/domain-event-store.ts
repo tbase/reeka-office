@@ -33,10 +33,7 @@ function getAggregateId(event: DomainEvent): number {
 }
 
 export class DrizzleDomainEventStore implements DomainEventStore {
-  constructor(
-    private readonly db: DBExecutor,
-    private readonly tenantId: number,
-  ) {}
+  constructor(private readonly db: DBExecutor) {}
 
   async append(events: DomainEvent[]): Promise<void> {
     if (events.length === 0) {
@@ -44,7 +41,6 @@ export class DrizzleDomainEventStore implements DomainEventStore {
     }
 
     const values: NewPlanDomainEventRow[] = events.map((event) => ({
-      tenantId: this.tenantId,
       aggregateType: getAggregateType(event),
       aggregateId: getAggregateId(event),
       eventType: event.type,

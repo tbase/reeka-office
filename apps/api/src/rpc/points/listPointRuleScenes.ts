@@ -10,8 +10,8 @@ export type ListPointRuleScenesOutput = string[];
 
 export const listPointRuleScenes = rpc.define({
   inputSchema,
-  execute: mustAgent(async ({ context }) => {
-    const items = await new ListPointItemsQuery(context).query();
+  execute: mustAgent(async () => {
+    const items = await new ListPointItemsQuery().query();
     return Array.from(new Set(items.map((item) => item.category)));
   }),
 });

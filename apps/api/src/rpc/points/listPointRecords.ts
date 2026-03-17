@@ -22,7 +22,7 @@ export type ListPointRecordsOutput = Array<{
 export const listPointRecords = rpc.define({
   inputSchema: agentInputSchema,
   execute: mustAgent(async ({ context }): Promise<ListPointRecordsOutput> => {
-    const result = await new ListAgentPointRecordsQuery(context, {
+    const result = await new ListAgentPointRecordsQuery({
       agentId: context.agent.agentId,
     }).query();
 

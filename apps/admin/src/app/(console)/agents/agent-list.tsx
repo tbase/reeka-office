@@ -6,7 +6,6 @@ import { Empty } from "@/components/ui/empty";
 import type { AgentSort } from "./search-params";
 
 interface AgentListProps {
-  tenantId: number;
   agency: string | null;
   sort: AgentSort;
 }
@@ -23,9 +22,8 @@ function formatOrganization(parts: Array<string | null>) {
   return parts.filter((item) => !!item).join(" / ") || "-";
 }
 
-export async function AgentList({ tenantId, agency, sort }: AgentListProps) {
+export async function AgentList({ agency, sort }: AgentListProps) {
   const agents = await new ListAgentsQuery({
-    tenantId,
     agency,
     sort,
   }).query();
@@ -54,7 +52,7 @@ export async function AgentList({ tenantId, agency, sort }: AgentListProps) {
         description={
           agency
             ? "当前筛选机构下还没有可展示的代理人数据。"
-            : "当前租户下还没有可展示的代理人数据。"
+            : "当前还没有可展示的代理人数据。"
         }
         icon={<UsersIcon className="size-9 opacity-60" />}
         centered

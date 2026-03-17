@@ -1,7 +1,6 @@
 import { and, count, eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { redemptionRecords } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface ListAgentRedeemCountsInput {
   agentId: number
@@ -14,12 +13,10 @@ export interface AgentRedeemCountItem {
 
 export class ListAgentRedeemCountsQuery {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: ListAgentRedeemCountsInput
 
-  constructor(scope: TenantScope, input: ListAgentRedeemCountsInput) {
+  constructor(input: ListAgentRedeemCountsInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -32,7 +29,6 @@ export class ListAgentRedeemCountsQuery {
       .from(redemptionRecords)
       .where(
         and(
-          eq(redemptionRecords.tenantId, this.scope.tenantId),
           eq(redemptionRecords.agentId, this.input.agentId),
           eq(redemptionRecords.status, 'success'),
         ),

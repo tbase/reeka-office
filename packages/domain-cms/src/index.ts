@@ -14,7 +14,6 @@ export {
   ListContentsQuery
 } from "./queries";
 export { cmsSchema, close, setup, type SetupOptions, type DB as CmsDB, type CmsSchema } from "./context";
-export type { TenantScope } from "./scope";
 export type {
   CreateCategoryInput,
   CreateContentInput,

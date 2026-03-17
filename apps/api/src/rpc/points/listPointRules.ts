@@ -14,8 +14,8 @@ export type ListPointRulesOutput = Array<{
 
 export const listPointRules = rpc.define({
   inputSchema,
-  execute: mustAgent(async ({ context }) => {
-    const items = await new ListPointItemsQuery(context).query();
+  execute: mustAgent(async () => {
+    const items = await new ListPointItemsQuery().query();
 
     return items.map((item) => ({
       task: item.name,

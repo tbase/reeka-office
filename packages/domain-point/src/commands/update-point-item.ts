@@ -1,7 +1,6 @@
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { pointItems, type NewPointItemRow, type PointItemStandard } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface UpdatePointItemInput {
   id: number
@@ -14,12 +13,10 @@ export interface UpdatePointItemInput {
 
 export class UpdatePointItemCommand {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: UpdatePointItemInput
 
-  constructor(scope: TenantScope, input: UpdatePointItemInput) {
+  constructor(input: UpdatePointItemInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -35,10 +32,7 @@ export class UpdatePointItemCommand {
     const [result] = await this.db
       .update(pointItems)
       .set(values)
-      .where(and(
-        eq(pointItems.tenantId, this.scope.tenantId),
-        eq(pointItems.id, this.input.id),
-      ))
+      .where(eq(pointItems.id, this.input.id))
 
     return result.affectedRows > 0
   }

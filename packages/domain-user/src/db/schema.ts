@@ -7,21 +7,11 @@ import {
   json,
   mysqlEnum,
   mysqlTable,
-  uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core"
 
-export const tenants = mysqlTable('tenants', {
-  id: int('id').primaryKey().autoincrement(),
-  name: varchar('name', { length: 255 }).notNull(),
-  status: mysqlEnum('status', ['active', 'inactive']).default('active').notNull(),
-  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
-})
-
 export const agents = mysqlTable('agents', {
   id: int('id').primaryKey().autoincrement(),
-  tenantId: int('tenant_id').notNull().references(() => tenants.id),
   agentCode: varchar('agent_code', { length: 8 }).unique(),
   name: varchar('name', { length: 100 }).notNull(),
   joinDate: date('join_date', { mode: 'string' }),
@@ -36,7 +26,6 @@ export const agents = mysqlTable('agents', {
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
 }, (t) => [
-  uniqueIndex('agents_tenant_code_udx').on(t.tenantId, t.agentCode),
   foreignKey({
     name: 'agents_leader_code_fk',
     columns: [t.leaderCode],

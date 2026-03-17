@@ -1,7 +1,6 @@
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { redemptionProducts, type NewRedemptionProductRow } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface UpdateRedemptionProductInput {
   id: number
@@ -18,12 +17,10 @@ export interface UpdateRedemptionProductInput {
 
 export class UpdateRedemptionProductCommand {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: UpdateRedemptionProductInput
 
-  constructor(scope: TenantScope, input: UpdateRedemptionProductInput) {
+  constructor(input: UpdateRedemptionProductInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -31,10 +28,7 @@ export class UpdateRedemptionProductCommand {
     const existingRows = await this.db
       .select({ status: redemptionProducts.status })
       .from(redemptionProducts)
-      .where(and(
-        eq(redemptionProducts.tenantId, this.scope.tenantId),
-        eq(redemptionProducts.id, this.input.id),
-      ))
+      .where(eq(redemptionProducts.id, this.input.id))
       .limit(1)
 
     const existing = existingRows[0]
@@ -77,10 +71,7 @@ export class UpdateRedemptionProductCommand {
     const [result] = await this.db
       .update(redemptionProducts)
       .set(values)
-      .where(and(
-        eq(redemptionProducts.tenantId, this.scope.tenantId),
-        eq(redemptionProducts.id, this.input.id),
-      ))
+      .where(eq(redemptionProducts.id, this.input.id))
 
     return result.affectedRows > 0
   }

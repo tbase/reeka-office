@@ -5,16 +5,14 @@ import { DrizzleDomainEventStore } from '../infrastructure/domain-event-store'
 import { DrizzlePlanEnrollmentRepository } from '../infrastructure/plan-enrollment-repository'
 import { DrizzlePlanRepository } from '../infrastructure/plan-repository'
 import { DrizzlePlanTaskCategoryRepository } from '../infrastructure/plan-task-category-repository'
-import type { TenantScope } from '../scope'
 
 async function recalculatePlanEnrollments(
   db: DBExecutor,
-  scope: TenantScope,
   planId: number,
   eventStore: DomainEventStore,
 ) {
-  const planRepository = new DrizzlePlanRepository(db, scope.tenantId)
-  const enrollmentRepository = new DrizzlePlanEnrollmentRepository(db, scope.tenantId)
+  const planRepository = new DrizzlePlanRepository(db)
+  const enrollmentRepository = new DrizzlePlanEnrollmentRepository(db)
   const plan = await planRepository.findById(planId)
   if (!plan) {
     return
@@ -37,21 +35,21 @@ async function recalculatePlanEnrollments(
   }
 }
 
-async function savePlanAndHandleEvents(db: DBExecutor, scope: TenantScope, plan: Plan) {
-  const planRepository = new DrizzlePlanRepository(db, scope.tenantId)
-  const eventStore = new DrizzleDomainEventStore(db, scope.tenantId)
+async function savePlanAndHandleEvents(db: DBExecutor, plan: Plan) {
+  const planRepository = new DrizzlePlanRepository(db)
+  const eventStore = new DrizzleDomainEventStore(db)
 
   await planRepository.save(plan)
   const events = plan.pullDomainEvents()
   await eventStore.append(events)
 
   if (events.some((event) => event.type === 'PlanStructureChanged')) {
-    await recalculatePlanEnrollments(db, scope, plan.id!, eventStore)
+    await recalculatePlanEnrollments(db, plan.id!, eventStore)
   }
 }
 
-async function requirePlan(db: DBExecutor, scope: TenantScope, planId: number): Promise<Plan> {
-  const repository = new DrizzlePlanRepository(db, scope.tenantId)
+async function requirePlan(db: DBExecutor, planId: number): Promise<Plan> {
+  const repository = new DrizzlePlanRepository(db)
   const plan = await repository.findById(planId)
   if (!plan) {
     throw new Error('计划不存在')
@@ -60,8 +58,8 @@ async function requirePlan(db: DBExecutor, scope: TenantScope, planId: number): 
   return plan
 }
 
-async function ensureCategoryExists(db: DBExecutor, scope: TenantScope, categoryId: number) {
-  const repository = new DrizzlePlanTaskCategoryRepository(db, scope.tenantId)
+async function ensureCategoryExists(db: DBExecutor, categoryId: number) {
+  const repository = new DrizzlePlanTaskCategoryRepository(db)
   const category = await repository.findById(categoryId)
   if (!category || !category.isActive) {
     throw new Error('任务分类不存在')
@@ -75,17 +73,15 @@ export interface CreatePlanInput {
 }
 
 export class CreatePlanCommand {
-  private readonly scope: TenantScope
   private readonly input: CreatePlanInput
 
-  constructor(scope: TenantScope, input: CreatePlanInput) {
-    this.scope = scope
+  constructor(input: CreatePlanInput) {
     this.input = input
   }
 
   async execute(): Promise<number | null> {
     const db = getDb()
-    const repository = new DrizzlePlanRepository(db, this.scope.tenantId)
+    const repository = new DrizzlePlanRepository(db)
     if (await repository.existsByName(this.input.name)) {
       throw new Error('计划名称已存在')
     }
@@ -103,19 +99,17 @@ export interface UpdatePlanInput {
 }
 
 export class UpdatePlanCommand {
-  private readonly scope: TenantScope
   private readonly input: UpdatePlanInput
 
-  constructor(scope: TenantScope, input: UpdatePlanInput) {
-    this.scope = scope
+  constructor(input: UpdatePlanInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.id)
+      const plan = await requirePlan(tx, this.input.id)
       plan.rename(this.input.name, this.input.description)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -126,19 +120,17 @@ export interface PublishPlanInput {
 }
 
 export class PublishPlanCommand {
-  private readonly scope: TenantScope
   private readonly input: PublishPlanInput
 
-  constructor(scope: TenantScope, input: PublishPlanInput) {
-    this.scope = scope
+  constructor(input: PublishPlanInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.id)
+      const plan = await requirePlan(tx, this.input.id)
       plan.publish()
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -149,19 +141,17 @@ export interface ArchivePlanInput {
 }
 
 export class ArchivePlanCommand {
-  private readonly scope: TenantScope
   private readonly input: ArchivePlanInput
 
-  constructor(scope: TenantScope, input: ArchivePlanInput) {
-    this.scope = scope
+  constructor(input: ArchivePlanInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.id)
+      const plan = await requirePlan(tx, this.input.id)
       plan.archive()
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -175,19 +165,17 @@ export interface CreatePlanStageInput {
 }
 
 export class CreatePlanStageCommand {
-  private readonly scope: TenantScope
   private readonly input: CreatePlanStageInput
 
-  constructor(scope: TenantScope, input: CreatePlanStageInput) {
-    this.scope = scope
+  constructor(input: CreatePlanStageInput) {
     this.input = input
   }
 
   async execute(): Promise<number | null> {
     return withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       const stage = plan.addStage(this.input)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
       return stage.id
     })
   }
@@ -201,23 +189,21 @@ export interface UpdatePlanStageInput {
 }
 
 export class UpdatePlanStageCommand {
-  private readonly scope: TenantScope
   private readonly input: UpdatePlanStageInput
 
-  constructor(scope: TenantScope, input: UpdatePlanStageInput) {
-    this.scope = scope
+  constructor(input: UpdatePlanStageInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       plan.updateStage({
         id: this.input.id,
         title: this.input.title,
         description: this.input.description,
       })
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -229,19 +215,17 @@ export interface DeletePlanStageInput {
 }
 
 export class DeletePlanStageCommand {
-  private readonly scope: TenantScope
   private readonly input: DeletePlanStageInput
 
-  constructor(scope: TenantScope, input: DeletePlanStageInput) {
-    this.scope = scope
+  constructor(input: DeletePlanStageInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       plan.removeStage(this.input.id)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -253,19 +237,17 @@ export interface ReorderPlanStagesInput {
 }
 
 export class ReorderPlanStagesCommand {
-  private readonly scope: TenantScope
   private readonly input: ReorderPlanStagesInput
 
-  constructor(scope: TenantScope, input: ReorderPlanStagesInput) {
-    this.scope = scope
+  constructor(input: ReorderPlanStagesInput) {
     this.input = input
   }
 
   async execute(): Promise<number> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       plan.reorderStages(this.input.orderedStageIds)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return this.input.orderedStageIds.length
   }
@@ -284,21 +266,19 @@ export interface CreatePlanTaskInput {
 }
 
 export class CreatePlanTaskCommand {
-  private readonly scope: TenantScope
   private readonly input: CreatePlanTaskInput
 
-  constructor(scope: TenantScope, input: CreatePlanTaskInput) {
-    this.scope = scope
+  constructor(input: CreatePlanTaskInput) {
     this.input = input
   }
 
   async execute(): Promise<number | null> {
     return withTransaction(async (tx) => {
-      await ensureCategoryExists(tx, this.scope, this.input.categoryId)
+      await ensureCategoryExists(tx, this.input.categoryId)
 
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       const task = plan.addTask(this.input)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
       return task.id
     })
   }
@@ -318,21 +298,19 @@ export interface UpdatePlanTaskInput {
 }
 
 export class UpdatePlanTaskCommand {
-  private readonly scope: TenantScope
   private readonly input: UpdatePlanTaskInput
 
-  constructor(scope: TenantScope, input: UpdatePlanTaskInput) {
-    this.scope = scope
+  constructor(input: UpdatePlanTaskInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      await ensureCategoryExists(tx, this.scope, this.input.categoryId)
+      await ensureCategoryExists(tx, this.input.categoryId)
 
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       plan.updateTask(this.input)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -344,19 +322,17 @@ export interface ArchivePlanTaskInput {
 }
 
 export class ArchivePlanTaskCommand {
-  private readonly scope: TenantScope
   private readonly input: ArchivePlanTaskInput
 
-  constructor(scope: TenantScope, input: ArchivePlanTaskInput) {
-    this.scope = scope
+  constructor(input: ArchivePlanTaskInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       plan.archiveTask(this.input.id)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return true
   }
@@ -369,19 +345,17 @@ export interface ReorderPlanTasksInput {
 }
 
 export class ReorderPlanTasksCommand {
-  private readonly scope: TenantScope
   private readonly input: ReorderPlanTasksInput
 
-  constructor(scope: TenantScope, input: ReorderPlanTasksInput) {
-    this.scope = scope
+  constructor(input: ReorderPlanTasksInput) {
     this.input = input
   }
 
   async execute(): Promise<number> {
     await withTransaction(async (tx) => {
-      const plan = await requirePlan(tx, this.scope, this.input.planId)
+      const plan = await requirePlan(tx, this.input.planId)
       plan.reorderTasks(this.input.stageId, this.input.orderedTaskIds)
-      await savePlanAndHandleEvents(tx, this.scope, plan)
+      await savePlanAndHandleEvents(tx, plan)
     })
     return this.input.orderedTaskIds.length
   }

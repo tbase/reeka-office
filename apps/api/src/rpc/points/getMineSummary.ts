@@ -13,7 +13,7 @@ export type GetMineSummaryOutput = {
 export const getMineSummary = rpc.define({
   inputSchema: agentInputSchema,
   execute: mustAgent(async ({ context }): Promise<GetMineSummaryOutput> => {
-    const balance = await new GetAgentPointBalanceQuery(context, {
+    const balance = await new GetAgentPointBalanceQuery({
       agentId: context.agent.agentId,
     }).query();
 

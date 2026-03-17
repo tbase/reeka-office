@@ -12,16 +12,17 @@ export interface CreateUserResult {
   id: number
   openid: string
   agentId: number
-  tenantId: number
   agentCode: string | null
   agentName: string
 }
 
 export class CreateUserCommand {
   private readonly db: DB
+  private readonly input: CreateUserInput
 
-  constructor(private readonly input: CreateUserInput) {
+  constructor(input: CreateUserInput) {
     this.db = getDb()
+    this.input = input
   }
 
   async execute(): Promise<CreateUserResult> {
@@ -53,7 +54,6 @@ export class CreateUserCommand {
       id,
       openid: this.input.openid,
       agentId: agent.id,
-      tenantId: agent.tenantId,
       agentCode: agent.agentCode,
       agentName: agent.name,
     }

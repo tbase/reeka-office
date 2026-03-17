@@ -14,9 +14,8 @@ export async function ContentsCardList({
 }: {
   categoryId: number | null;
 }) {
-  const ctx = await getRequiredAdminContext();
+  await getRequiredAdminContext();
   const { contents, total } = await new ListContentsQuery(
-    ctx,
     categoryId ? { categoryId } : {},
   ).query();
 

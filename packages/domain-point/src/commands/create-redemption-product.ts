@@ -1,6 +1,5 @@
 import { getDb, type DB } from '../context'
 import { redemptionProducts, type NewRedemptionProductRow } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface CreateRedemptionProductInput {
   redeemCategory: string
@@ -17,12 +16,10 @@ export interface CreateRedemptionProductInput {
 
 export class CreateRedemptionProductCommand {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: CreateRedemptionProductInput
 
-  constructor(scope: TenantScope, input: CreateRedemptionProductInput) {
+  constructor(input: CreateRedemptionProductInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -40,7 +37,6 @@ export class CreateRedemptionProductCommand {
     }
 
     const values: NewRedemptionProductRow = {
-      tenantId: this.scope.tenantId,
       redeemCategory: this.input.redeemCategory,
       title: this.input.title,
       description: this.input.description ?? null,

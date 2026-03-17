@@ -21,8 +21,8 @@ export default async function PointItemEditModal({
   const { id: idParam } = await params;
   const id = parseId(idParam);
 
-  const ctx = await getRequiredAdminContext();
-  const items = await new ListPointItemsQuery(ctx).query();
+  await getRequiredAdminContext();
+  const items = await new ListPointItemsQuery().query();
   const item = items.find((row) => row.id === id) ?? null;
 
   if (!item) {

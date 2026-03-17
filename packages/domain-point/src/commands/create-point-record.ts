@@ -6,7 +6,6 @@ import {
   pointRecords,
   type NewPointRecordRow,
 } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface CreatePointRecordInput {
   agentId: number
@@ -21,12 +20,10 @@ export interface CreatePointRecordInput {
 
 export class CreatePointRecordCommand {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: CreatePointRecordInput
 
-  constructor(scope: TenantScope, input: CreatePointRecordInput) {
+  constructor(input: CreatePointRecordInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -43,7 +40,6 @@ export class CreatePointRecordCommand {
         .select({ id: pointRecords.id })
         .from(pointRecords)
         .where(and(
-          eq(pointRecords.tenantId, this.scope.tenantId),
           eq(pointRecords.sourceType, sourceType),
           eq(pointRecords.sourceRef, sourceRef),
         ))
@@ -61,10 +57,7 @@ export class CreatePointRecordCommand {
         annualLimit: pointItems.annualLimit,
       })
       .from(pointItems)
-      .where(and(
-        eq(pointItems.tenantId, this.scope.tenantId),
-        eq(pointItems.id, this.input.pointItemId),
-      ))
+      .where(eq(pointItems.id, this.input.pointItemId))
       .limit(1)
 
     const pointItem = pointItemRows[0]
@@ -85,7 +78,6 @@ export class CreatePointRecordCommand {
         .from(pointRecords)
         .where(
           and(
-            eq(pointRecords.tenantId, this.scope.tenantId),
             eq(pointRecords.agentId, this.input.agentId),
             eq(pointRecords.pointItemId, this.input.pointItemId),
             eq(pointRecords.occurredYear, occurredYear),
@@ -100,7 +92,6 @@ export class CreatePointRecordCommand {
 
     return this.db.transaction(async (tx) => {
       const values: NewPointRecordRow = {
-        tenantId: this.scope.tenantId,
         agentId: this.input.agentId,
         pointItemId: this.input.pointItemId,
         points,
@@ -123,7 +114,6 @@ export class CreatePointRecordCommand {
           .select({ id: pointRecords.id })
           .from(pointRecords)
           .where(and(
-            eq(pointRecords.tenantId, this.scope.tenantId),
             eq(pointRecords.sourceType, sourceType),
             eq(pointRecords.sourceRef, sourceRef),
           ))
@@ -140,7 +130,6 @@ export class CreatePointRecordCommand {
         .insert(agentPointBalances)
         .values({
           agentId: this.input.agentId,
-          tenantId: this.scope.tenantId,
           currentPoints: points,
         })
         .onDuplicateKeyUpdate({

@@ -1,20 +1,16 @@
-import { asc, eq } from 'drizzle-orm'
+import { asc } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
 
-export interface ListAgentAgenciesInput {
-  tenantId: number
-}
+export interface ListAgentAgenciesInput {}
 
 export type ListAgentAgenciesResult = string[]
 
 export class ListAgentAgenciesQuery {
   private readonly db: DB
-  private readonly input: ListAgentAgenciesInput
 
-  constructor(input: ListAgentAgenciesInput) {
-    this.input = input
+  constructor(_input: ListAgentAgenciesInput = {}) {
     this.db = getDb()
   }
 
@@ -24,7 +20,6 @@ export class ListAgentAgenciesQuery {
         agency: agents.agency,
       })
       .from(agents)
-      .where(eq(agents.tenantId, this.input.tenantId))
       .groupBy(agents.agency)
       .orderBy(asc(agents.agency))
 

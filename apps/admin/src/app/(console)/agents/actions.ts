@@ -277,7 +277,7 @@ export async function importAgentsAction(
   formData: FormData,
 ): Promise<ImportAgentsActionResult> {
   try {
-    const ctx = await getRequiredAdminContext()
+    await getRequiredAdminContext()
     const fields = getFormDataValues(formData, importAgentFieldNames)
     const file = fields.file
 
@@ -294,7 +294,6 @@ export async function importAgentsAction(
     }
 
     const result = await new ImportAgentsCommand({
-      tenantId: ctx.tenantId,
       agents: parseImportPayload(await file.text()),
     }).execute()
 

@@ -36,10 +36,10 @@ function parseContentId(formData: FormData): number {
 }
 
 export async function createContentAction(formData: FormData): Promise<{ success: true }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const { categoryId, name, content, fields } = parseContentInput(formData)
 
-  await new CreateContentCommand(ctx, {
+  await new CreateContentCommand({
     categoryId,
     name,
     content,
@@ -51,10 +51,10 @@ export async function createContentAction(formData: FormData): Promise<{ success
 }
 
 export async function updateContentAction(formData: FormData): Promise<{ success: true }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const { id, categoryId, name, content, fields } = parseContentInput(formData)
 
-  await new UpdateContentCommand(ctx, {
+  await new UpdateContentCommand({
     id: parseRequiredId(id, "无效内容 ID"),
     categoryId,
     name,
@@ -67,9 +67,9 @@ export async function updateContentAction(formData: FormData): Promise<{ success
 }
 
 export async function deleteContentAction(formData: FormData) {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const id = parseContentId(formData)
-  await new DeleteContentCommand(ctx, { id }).execute()
+  await new DeleteContentCommand({ id }).execute()
 
   revalidatePath("/cms/contents")
 }

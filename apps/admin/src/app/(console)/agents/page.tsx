@@ -17,8 +17,8 @@ export default async function AgentsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = (await searchParams) ?? {}
-  const ctx = await getRequiredAdminContext()
-  const agencies = await new ListAgentAgenciesQuery(ctx).query()
+  await getRequiredAdminContext()
+  const agencies = await new ListAgentAgenciesQuery().query()
   const requestedAgency = parseAgencyFilter(
     typeof params.agency === "string" ? params.agency : undefined,
   )
@@ -36,7 +36,7 @@ export default async function AgentsPage({
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">代理人管理</h1>
             <p className="text-muted-foreground text-sm">
-              查看当前租户下的代理人基础信息。
+              查看代理人基础信息。
             </p>
           </div>
           <ImportAgentsDialog />
@@ -53,7 +53,7 @@ export default async function AgentsPage({
         key={`${agency ?? "all"}:${sort}`}
         fallback={<Empty title="正在加载代理人..." />}
       >
-        <AgentList tenantId={ctx.tenantId} agency={agency} sort={sort} />
+        <AgentList agency={agency} sort={sort} />
       </Suspense>
     </div>
   )

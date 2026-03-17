@@ -33,7 +33,6 @@ export type ContentFields = Record<string, unknown>;
 
 export const categories = mysqlTable("cms_categories", {
   id: int("id").autoincrement().primaryKey(),
-  tenantId: int("tenant_id").notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
@@ -42,12 +41,11 @@ export const categories = mysqlTable("cms_categories", {
   createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull()
 }, (t) => [
-  uniqueIndex("cms_categories_tenant_slug_udx").on(t.tenantId, t.slug),
+  uniqueIndex("cms_categories_slug_udx").on(t.slug),
 ]);
 
 export const contents = mysqlTable("cms_contents", {
   id: int("id").autoincrement().primaryKey(),
-  tenantId: int("tenant_id").notNull(),
   categoryId: int("category_id")
     .notNull()
     .references(() => categories.id),

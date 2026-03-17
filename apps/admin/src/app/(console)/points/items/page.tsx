@@ -14,8 +14,8 @@ import { getRequiredAdminContext } from "@/lib/admin-context";
 import { deletePointItemAction } from "./actions";
 
 export default async function PointItemsPage() {
-  const ctx = await getRequiredAdminContext();
-  const items = await new ListPointItemsQuery(ctx).query();
+  await getRequiredAdminContext();
+  const items = await new ListPointItemsQuery().query();
 
   return (
     <div className="space-y-4">

@@ -11,7 +11,7 @@ export const submitRedeem = rpc.define({
   inputSchema: redeemSubmitInputSchema,
   execute: mustAgent(async ({ input, context }) => {
     try {
-      await new RedeemProductCommand(context, {
+      await new RedeemProductCommand({
         productId: Number(input.itemId),
         agentId: context.agent.agentId,
         remark: "来自小程序兑换",

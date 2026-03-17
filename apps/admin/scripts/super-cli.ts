@@ -2,11 +2,10 @@ import { hashPassword } from "better-auth/crypto"
 import { config } from "dotenv"
 import { and, eq } from "drizzle-orm"
 import { formatISO9075 } from "date-fns"
-import mysql, { type ResultSetHeader, type RowDataPacket } from "mysql2/promise"
 import { stdin as input, stdout as output } from "node:process"
 import { createInterface, type Interface } from "node:readline/promises"
 
-import { closeDB, getDB, getDBConfig } from "../src/db"
+import { closeDB, getDB } from "../src/db"
 import * as schema from "../src/db/schema"
 import { auth } from "../src/lib/auth"
 
@@ -15,17 +14,10 @@ type ParsedArgs = {
   flags: Map<string, string | boolean>
 }
 
-type TenantRecord = {
-  id: number
-  name: string
-}
-
 type AdminCreateOptions = {
   email: string
   password: string
-  tenantId: number
   adminName: string
-  allowTenantTransfer: boolean
 }
 
 function loadEnv() {
@@ -52,9 +44,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     const withoutPrefix = token.slice(2)
     const equalIndex = withoutPrefix.indexOf("=")
     if (equalIndex >= 0) {
-      const key = withoutPrefix.slice(0, equalIndex)
-      const value = withoutPrefix.slice(equalIndex + 1)
-      flags.set(key, value)
+      flags.set(withoutPrefix.slice(0, equalIndex), withoutPrefix.slice(equalIndex + 1))
       continue
     }
 
@@ -105,15 +95,6 @@ function ensureValue(value: string | undefined, message: string): string {
 
 function normalizeEmail(value: string | undefined): string {
   return ensureValue(value, "Admin email is required").toLowerCase()
-}
-
-function parsePositiveInt(value: string | undefined, label: string): number {
-  const parsed = Number(value)
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`${label} must be a positive integer`)
-  }
-
-  return parsed
 }
 
 async function promptHidden(question: string): Promise<string> {
@@ -175,11 +156,7 @@ async function withPrompter<T>(callback: (rl: Interface) => Promise<T>): Promise
   }
 }
 
-async function promptForValue(
-  rl: Interface,
-  question: string,
-  value?: string,
-): Promise<string> {
+async function promptForValue(rl: Interface, question: string, value?: string): Promise<string> {
   const trimmed = value?.trim()
   if (trimmed) {
     return trimmed
@@ -192,149 +169,7 @@ async function promptForValue(
   return ensureValue(await rl.question(question), `${question.replace(/: $/, "")} is required`)
 }
 
-function getRequiredDBConfig() {
-  const dbConfig = getDBConfig()
-  const missing = [
-    !dbConfig.host && "DB_HOST",
-    !dbConfig.user && "DB_USER",
-    dbConfig.password === undefined && "DB_PASSWORD",
-    !dbConfig.database && "DB_NAME",
-  ].filter(Boolean)
-
-  if (missing.length > 0) {
-    throw new Error(`Missing database config: ${missing.join(", ")}`)
-  }
-
-  return dbConfig
-}
-
-async function createConnection() {
-  return mysql.createConnection(getRequiredDBConfig())
-}
-
-async function getTenantById(id: number): Promise<TenantRecord | null> {
-  const connection = await createConnection()
-
-  try {
-    const [rows] = await connection.execute<RowDataPacket[]>(
-      "select `id`, `name` from tenants where `id` = ? limit 1",
-      [id],
-    )
-    const row = rows[0] as TenantRecord | undefined
-    return row ?? null
-  } finally {
-    await connection.end()
-  }
-}
-
-async function getTenantByName(name: string): Promise<TenantRecord | null> {
-  const connection = await createConnection()
-
-  try {
-    const [rows] = await connection.execute<RowDataPacket[]>(
-      "select `id`, `name` from tenants where `name` = ? order by `id` asc limit 1",
-      [name],
-    )
-    const row = rows[0] as TenantRecord | undefined
-    return row ?? null
-  } finally {
-    await connection.end()
-  }
-}
-
-async function listTenantRecords(): Promise<TenantRecord[]> {
-  const connection = await createConnection()
-
-  try {
-    const [rows] = await connection.execute<RowDataPacket[]>(
-      "select `id`, `name` from tenants order by `id` asc",
-    )
-
-    return rows as TenantRecord[]
-  } finally {
-    await connection.end()
-  }
-}
-
-async function createTenantRecord(name: string): Promise<TenantRecord> {
-  const connection = await createConnection()
-
-  try {
-    const [result] = await connection.execute<ResultSetHeader>(
-      "insert into tenants (`name`, `status`) values (?, 'active')",
-      [name],
-    )
-
-    if (!result.insertId) {
-      throw new Error("Failed to create tenant")
-    }
-
-    return {
-      id: result.insertId,
-      name,
-    }
-  } finally {
-    await connection.end()
-  }
-}
-
-async function resolveTenantForAdmin(args: ParsedArgs, rl: Interface): Promise<TenantRecord> {
-  const tenantIdRaw = getFlagString(args, "tenant-id")
-  const tenantNameArg = getFlagString(args, "tenant-name")
-
-  if (tenantIdRaw && tenantNameArg) {
-    throw new Error("Use either --tenant-id or --tenant-name, not both")
-  }
-
-  if (tenantIdRaw) {
-    const tenant = await getTenantById(parsePositiveInt(tenantIdRaw, "Tenant ID"))
-    if (!tenant) {
-      throw new Error(`Tenant not found: ${tenantIdRaw}`)
-    }
-    return tenant
-  }
-
-  const tenantName = await promptForValue(rl, "Tenant name: ", tenantNameArg)
-  const existingTenant = await getTenantByName(tenantName)
-
-  if (existingTenant) {
-    return existingTenant
-  }
-
-  throw new Error(`Tenant not found: ${tenantName}`)
-}
-
-async function collectTenantName(args: ParsedArgs): Promise<string> {
-  const argName = getFlagString(args, "name") ?? args.positionals.slice(2).join(" ").trim()
-
-  return withPrompter(async (rl) => promptForValue(rl, "Tenant name: ", argName))
-}
-
-async function createTenantCommand(args: ParsedArgs) {
-  const tenantName = await collectTenantName(args)
-  const tenant = await createTenantRecord(tenantName)
-
-  console.log(`Created tenant: ${tenant.name} (#${tenant.id})`)
-}
-
-async function listTenantsCommand() {
-  const tenants = await listTenantRecords()
-
-  if (tenants.length === 0) {
-    console.log("No tenants found")
-    return
-  }
-
-  for (const tenant of tenants) {
-    console.log(`${tenant.id}\t${tenant.name}`)
-  }
-}
-
 async function collectAdminCreateOptions(args: ParsedArgs): Promise<AdminCreateOptions> {
-  if (hasFlag(args, "create-tenant")) {
-    throw new Error("`admin create` no longer supports --create-tenant")
-  }
-
   return withPrompter(async (rl) => {
     const email = normalizeEmail(await promptForValue(rl, "Admin email: ", getFlagString(args, "email")))
 
@@ -350,16 +185,13 @@ async function collectAdminCreateOptions(args: ParsedArgs): Promise<AdminCreateO
       throw new Error("Admin password must be at least 8 characters")
     }
 
-    const tenant = await resolveTenantForAdmin(args, rl)
     const adminName =
       getFlagString(args, "admin-name", "name") ?? process.env.ADMIN_NAME?.trim() ?? "Administrator"
 
     return {
       email,
       password,
-      tenantId: tenant.id,
       adminName,
-      allowTenantTransfer: hasFlag(args, "allow-tenant-transfer"),
     }
   })
 }
@@ -376,27 +208,11 @@ async function createOrUpdateAdmin(options: AdminCreateOptions) {
         email: options.email,
         password: options.password,
         name: options.adminName,
-        tenantId: options.tenantId,
       },
     })
 
-    await db
-      .update(schema.admin)
-      .set({
-        tenantId: options.tenantId,
-        updatedAt: formatISO9075(new Date()),
-      })
-      .where(eq(schema.admin.email, options.email))
-
-    console.log(`Created admin account: ${options.email} (tenant #${options.tenantId})`)
+    console.log(`Created admin account: ${options.email}`)
     return
-  }
-
-  if (existingUser.tenantId !== options.tenantId && !options.allowTenantTransfer) {
-    throw new Error(
-      `Admin ${options.email} already belongs to tenant #${existingUser.tenantId}. ` +
-        "Pass --allow-tenant-transfer to move it.",
-    )
   }
 
   const passwordHash = await hashPassword(options.password)
@@ -420,12 +236,12 @@ async function createOrUpdateAdmin(options: AdminCreateOptions) {
   await db
     .update(schema.admin)
     .set({
-      tenantId: options.tenantId,
+      name: options.adminName,
       updatedAt: formatISO9075(new Date()),
     })
     .where(eq(schema.admin.id, existingUser.id))
 
-  console.log(`Updated admin account: ${options.email} (tenant #${options.tenantId})`)
+  console.log(`Updated admin account: ${options.email}`)
 }
 
 async function createAdminCommand(args: ParsedArgs) {
@@ -433,77 +249,19 @@ async function createAdminCommand(args: ParsedArgs) {
   await createOrUpdateAdmin(options)
 }
 
-async function bootstrapCommand(args: ParsedArgs) {
-  const tenantNameArg = getFlagString(args, "tenant-name") ?? getFlagString(args, "tenant")
-
-  const bootstrapInput = await withPrompter(async (rl) => {
-    const tenantName = await promptForValue(rl, "Tenant name: ", tenantNameArg)
-    const email = normalizeEmail(await promptForValue(rl, "Admin email: ", getFlagString(args, "email")))
-
-    let password = getFlagString(args, "password")
-    if (!password) {
-      if (!isInteractive()) {
-        throw new Error("Admin password is required")
-      }
-      password = ensureValue(await promptHidden("Admin password: "), "Admin password is required")
-    }
-
-    if (password.length < 8) {
-      throw new Error("Admin password must be at least 8 characters")
-    }
-
-    return {
-      tenantName,
-      email,
-      password,
-      adminName:
-        getFlagString(args, "admin-name", "name") ?? process.env.ADMIN_NAME?.trim() ?? "Administrator",
-    }
-  })
-
-  const existingTenant = await getTenantByName(bootstrapInput.tenantName)
-  if (existingTenant) {
-    throw new Error(
-      `Tenant already exists: ${bootstrapInput.tenantName} (#${existingTenant.id}). ` +
-        "Use `admin create --tenant-id` to add an admin to it.",
-    )
-  }
-
-  const tenant = await createTenantRecord(bootstrapInput.tenantName)
-  console.log(`Created tenant: ${tenant.name} (#${tenant.id})`)
-
-  await createOrUpdateAdmin({
-    email: bootstrapInput.email,
-    password: bootstrapInput.password,
-    tenantId: tenant.id,
-    adminName: bootstrapInput.adminName,
-    allowTenantTransfer: false,
-  })
-}
-
 function printHelp() {
   console.log(`
 Usage:
-  pnpm --filter admin super:cli -- tenant create --name <tenant-name>
-  pnpm --filter admin super:cli -- tenant list
-  pnpm --filter admin super:cli -- admin create --email <email> --password <password> --tenant-id <id>
-  pnpm --filter admin super:cli -- bootstrap --tenant-name <name> --email <email> --password <password>
+  pnpm --filter admin super -- admin create --email <email> --password <password>
 
 Commands:
-  tenant create     Create a tenant
-  tenant list       List all tenants
-  admin create      Create or update a tenant admin
-  bootstrap         Create a new tenant and its first admin
+  admin create      Create or update an admin account
 
 Options:
-  --name                    Tenant name for \`tenant create\`
-  --admin-name              Admin display name for admin commands
-  --tenant-id               Existing tenant ID
-  --tenant-name             Existing tenant name, or new tenant name for \`bootstrap\`
-  --allow-tenant-transfer   Reassign an existing admin email to another tenant
-  --email                   Admin email
-  --password                Admin password
-  -h, --help                Show this help message
+  --admin-name      Admin display name
+  --email           Admin email
+  --password        Admin password
+  -h, --help        Show this help message
 `.trim())
 }
 
@@ -515,21 +273,6 @@ async function main() {
 
   if (hasFlag(args, "help") || !scope) {
     printHelp()
-    return
-  }
-
-  if (scope === "bootstrap") {
-    await bootstrapCommand(args)
-    return
-  }
-
-  if (scope === "tenant" && action === "create") {
-    await createTenantCommand(args)
-    return
-  }
-
-  if (scope === "tenant" && action === "list") {
-    await listTenantsCommand()
     return
   }
 

@@ -1,7 +1,6 @@
 import { getDb } from '../context'
 import { PlanTaskCategory } from '../domain/task-category/plan-task-category'
 import { DrizzlePlanTaskCategoryRepository } from '../infrastructure/plan-task-category-repository'
-import type { TenantScope } from '../scope'
 
 export interface CreatePlanTaskCategoryInput {
   name: string
@@ -10,16 +9,14 @@ export interface CreatePlanTaskCategoryInput {
 }
 
 export class CreatePlanTaskCategoryCommand {
-  private readonly scope: TenantScope
   private readonly input: CreatePlanTaskCategoryInput
 
-  constructor(scope: TenantScope, input: CreatePlanTaskCategoryInput) {
-    this.scope = scope
+  constructor(input: CreatePlanTaskCategoryInput) {
     this.input = input
   }
 
   async execute(): Promise<number | null> {
-    const repository = new DrizzlePlanTaskCategoryRepository(getDb(), this.scope.tenantId)
+    const repository = new DrizzlePlanTaskCategoryRepository(getDb())
     if (await repository.findByName(this.input.name)) {
       throw new Error('任务分类已存在')
     }
@@ -43,16 +40,14 @@ export interface UpdatePlanTaskCategoryInput {
 }
 
 export class UpdatePlanTaskCategoryCommand {
-  private readonly scope: TenantScope
   private readonly input: UpdatePlanTaskCategoryInput
 
-  constructor(scope: TenantScope, input: UpdatePlanTaskCategoryInput) {
-    this.scope = scope
+  constructor(input: UpdatePlanTaskCategoryInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
-    const repository = new DrizzlePlanTaskCategoryRepository(getDb(), this.scope.tenantId)
+    const repository = new DrizzlePlanTaskCategoryRepository(getDb())
     const category = await repository.findById(this.input.id)
     if (!category) {
       throw new Error('任务分类不存在')
@@ -79,16 +74,14 @@ export interface DisablePlanTaskCategoryInput {
 }
 
 export class DisablePlanTaskCategoryCommand {
-  private readonly scope: TenantScope
   private readonly input: DisablePlanTaskCategoryInput
 
-  constructor(scope: TenantScope, input: DisablePlanTaskCategoryInput) {
-    this.scope = scope
+  constructor(input: DisablePlanTaskCategoryInput) {
     this.input = input
   }
 
   async execute(): Promise<boolean> {
-    const repository = new DrizzlePlanTaskCategoryRepository(getDb(), this.scope.tenantId)
+    const repository = new DrizzlePlanTaskCategoryRepository(getDb())
     const category = await repository.findById(this.input.id)
     if (!category) {
       throw new Error('任务分类不存在')

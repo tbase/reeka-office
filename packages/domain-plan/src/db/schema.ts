@@ -23,7 +23,6 @@ import type { DomainEventPayload } from '../domain/events'
 
 export const plans = mysqlTable('plans', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   status: mysqlEnum('status', ['draft', 'published', 'archived']).default('draft').$type<PlanStatus>().notNull(),
@@ -31,12 +30,11 @@ export const plans = mysqlTable('plans', {
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  uniqueIndex('plans_tenant_name_udx').on(t.tenantId, t.name),
+  uniqueIndex('plans_name_udx').on(t.name),
 ])
 
 export const planStages = mysqlTable('plan_stages', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   planId: int('plan_id').notNull().references(() => plans.id),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
@@ -44,12 +42,11 @@ export const planStages = mysqlTable('plan_stages', {
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('plan_stages_tenant_plan_order_idx').on(t.tenantId, t.planId, t.displayOrder),
+  index('plan_stages_plan_order_idx').on(t.planId, t.displayOrder),
 ])
 
 export const planTaskCategories = mysqlTable('plan_task_categories', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   displayOrder: int('display_order').notNull().default(0),
@@ -57,13 +54,12 @@ export const planTaskCategories = mysqlTable('plan_task_categories', {
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  uniqueIndex('plan_task_categories_tenant_name_udx').on(t.tenantId, t.name),
-  index('plan_task_categories_tenant_active_order_idx').on(t.tenantId, t.isActive, t.displayOrder),
+  uniqueIndex('plan_task_categories_name_udx').on(t.name),
+  index('plan_task_categories_active_order_idx').on(t.isActive, t.displayOrder),
 ])
 
 export const planTasks = mysqlTable('plan_tasks', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   planId: int('plan_id').notNull().references(() => plans.id),
   stageId: int('stage_id').notNull().references(() => planStages.id),
   categoryId: int('category_id').notNull().references(() => planTaskCategories.id),
@@ -77,14 +73,13 @@ export const planTasks = mysqlTable('plan_tasks', {
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('plan_tasks_tenant_plan_stage_order_idx').on(t.tenantId, t.planId, t.stageId, t.displayOrder),
-  index('plan_tasks_tenant_category_idx').on(t.tenantId, t.categoryId),
-  index('plan_tasks_tenant_point_item_idx').on(t.tenantId, t.pointItemId),
+  index('plan_tasks_plan_stage_order_idx').on(t.planId, t.stageId, t.displayOrder),
+  index('plan_tasks_category_idx').on(t.categoryId),
+  index('plan_tasks_point_item_idx').on(t.pointItemId),
 ])
 
 export const planEnrollments = mysqlTable('plan_enrollments', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   planId: int('plan_id').notNull().references(() => plans.id),
   agentId: int('agent_id').notNull(),
   status: mysqlEnum('status', ['active', 'eligible', 'graduated', 'cancelled'])
@@ -99,14 +94,13 @@ export const planEnrollments = mysqlTable('plan_enrollments', {
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  uniqueIndex('plan_enrollments_tenant_plan_agent_udx').on(t.tenantId, t.planId, t.agentId),
-  index('plan_enrollments_tenant_plan_status_idx').on(t.tenantId, t.planId, t.status),
-  index('plan_enrollments_tenant_agent_status_idx').on(t.tenantId, t.agentId, t.status),
+  uniqueIndex('plan_enrollments_plan_agent_udx').on(t.planId, t.agentId),
+  index('plan_enrollments_plan_status_idx').on(t.planId, t.status),
+  index('plan_enrollments_agent_status_idx').on(t.agentId, t.status),
 ])
 
 export const planCompletedTasks = mysqlTable('plan_completed_tasks', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   enrollmentId: int('enrollment_id').notNull().references(() => planEnrollments.id),
   taskId: int('task_id').notNull().references(() => planTasks.id),
   completionMode: mysqlEnum('completion_mode', ['checkin', 'metric'])
@@ -117,13 +111,12 @@ export const planCompletedTasks = mysqlTable('plan_completed_tasks', {
   remark: text('remark'),
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  uniqueIndex('plan_completed_tasks_tenant_enrollment_task_udx').on(t.tenantId, t.enrollmentId, t.taskId),
-  index('plan_completed_tasks_tenant_task_idx').on(t.tenantId, t.taskId),
+  uniqueIndex('plan_completed_tasks_enrollment_task_udx').on(t.enrollmentId, t.taskId),
+  index('plan_completed_tasks_task_idx').on(t.taskId),
 ])
 
 export const planDomainEvents = mysqlTable('plan_domain_events', {
   id: int('id').autoincrement().primaryKey(),
-  tenantId: int('tenant_id').notNull(),
   aggregateType: varchar('aggregate_type', { length: 50 }).notNull(),
   aggregateId: int('aggregate_id').notNull(),
   eventType: varchar('event_type', { length: 100 }).notNull(),
@@ -131,8 +124,8 @@ export const planDomainEvents = mysqlTable('plan_domain_events', {
   occurredAt: datetime('occurred_at').notNull(),
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('plan_domain_events_tenant_aggregate_idx').on(t.tenantId, t.aggregateType, t.aggregateId),
-  index('plan_domain_events_tenant_type_idx').on(t.tenantId, t.eventType),
+  index('plan_domain_events_aggregate_idx').on(t.aggregateType, t.aggregateId),
+  index('plan_domain_events_type_idx').on(t.eventType),
 ])
 
 export type PlanRow = typeof plans.$inferSelect

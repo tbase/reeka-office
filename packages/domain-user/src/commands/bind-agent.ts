@@ -11,16 +11,17 @@ export interface BindAgentInput {
 
 export interface BindAgentResult {
   agentId: number
-  tenantId: number
   agentCode: string
   agentName: string
 }
 
 export class BindAgentCommand {
   private readonly db: DB
+  private readonly input: BindAgentInput
 
-  constructor(private readonly input: BindAgentInput) {
+  constructor(input: BindAgentInput) {
     this.db = getDb()
+    this.input = input
   }
 
   async execute(): Promise<BindAgentResult> {
@@ -28,7 +29,6 @@ export class BindAgentCommand {
       const agentRows = await tx
         .select({
           id: agents.id,
-          tenantId: agents.tenantId,
           agentCode: agents.agentCode,
           name: agents.name,
         })
@@ -72,7 +72,6 @@ export class BindAgentCommand {
 
       return {
         agentId,
-        tenantId: existingAgent.tenantId,
         agentCode: existingAgent.agentCode ?? this.input.code,
         agentName: existingAgent.name,
       }

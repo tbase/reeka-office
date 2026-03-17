@@ -37,14 +37,14 @@ export const listRedeemItems = rpc.define({
   inputSchema,
   execute: mustAgent(async ({ input, context }) => {
     const redeemCountMap = new Map<number, number>()
-    const counts = await new ListAgentRedeemCountsQuery(context, {
+    const counts = await new ListAgentRedeemCountsQuery({
       agentId: context.agent.agentId,
     }).query()
     for (const item of counts) {
       redeemCountMap.set(item.productId, item.redeemedCount)
     }
 
-    const products = await new ListRedemptionProductsQuery(context, {
+    const products = await new ListRedemptionProductsQuery({
       status: "published",
     }).query();
     const validProducts = products.filter((product) =>

@@ -23,11 +23,11 @@ export default async function CmsContentEditModal({
 }) {
   const { id: idParam } = await params;
   const id = parseId(idParam);
-  const ctx = await getRequiredAdminContext();
+  await getRequiredAdminContext();
 
   const [categories, { contents }] = await Promise.all([
-    new ListCategoriesQuery(ctx).query(),
-    new ListContentsQuery(ctx).query(),
+    new ListCategoriesQuery().query(),
+    new ListContentsQuery().query(),
   ]);
 
   const content = contents.find((item) => item.id === id) ?? null;

@@ -11,9 +11,11 @@ export type GetUserResult = User | null
 
 export class GetUserQuery {
   private readonly db: DB
+  private readonly input: GetUserInput
 
-  constructor(private readonly input: GetUserInput) {
+  constructor(input: GetUserInput) {
     this.db = getDb()
+    this.input = input
   }
 
   async query(): Promise<GetUserResult | null> {
@@ -25,7 +27,6 @@ export class GetUserQuery {
         avatar: users.avatar,
         role: users.role,
         agentId: users.agentId,
-        tenantId: agents.tenantId,
         agentCode: agents.agentCode,
         agentName: agents.name,
         createdAt: users.createdAt,
@@ -48,7 +49,6 @@ export class GetUserQuery {
       avatar: row.avatar ?? null,
       role: row.role,
       agentId: row.agentId ?? null,
-      tenantId: row.tenantId ?? null,
       agentCode: row.agentCode ?? null,
       agentName: row.agentName ?? null,
       createdAt: row.createdAt ?? null,

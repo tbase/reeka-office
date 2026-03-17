@@ -10,19 +10,13 @@ import {
 } from '../schema'
 
 export class DrizzlePlanTaskCategoryRepository implements PlanTaskCategoryRepository {
-  constructor(
-    private readonly db: DBExecutor,
-    private readonly tenantId: number,
-  ) {}
+  constructor(private readonly db: DBExecutor) {}
 
   async findById(categoryId: number): Promise<PlanTaskCategory | null> {
     const [row] = await this.db
       .select()
       .from(planTaskCategories)
-      .where(and(
-        eq(planTaskCategories.tenantId, this.tenantId),
-        eq(planTaskCategories.id, categoryId),
-      ))
+      .where(eq(planTaskCategories.id, categoryId))
       .limit(1)
 
     if (!row) {
@@ -42,10 +36,7 @@ export class DrizzlePlanTaskCategoryRepository implements PlanTaskCategoryReposi
     const [row] = await this.db
       .select()
       .from(planTaskCategories)
-      .where(and(
-        eq(planTaskCategories.tenantId, this.tenantId),
-        eq(planTaskCategories.name, name.trim()),
-      ))
+      .where(eq(planTaskCategories.name, name.trim()))
       .limit(1)
 
     if (!row) {
@@ -65,10 +56,7 @@ export class DrizzlePlanTaskCategoryRepository implements PlanTaskCategoryReposi
     const rows = await this.db
       .select()
       .from(planTaskCategories)
-      .where(and(
-        eq(planTaskCategories.tenantId, this.tenantId),
-        eq(planTaskCategories.isActive, true),
-      ))
+      .where(eq(planTaskCategories.isActive, true))
 
     return rows.map((row) => PlanTaskCategory.restore({
       id: row.id,
@@ -84,7 +72,6 @@ export class DrizzlePlanTaskCategoryRepository implements PlanTaskCategoryReposi
 
     if (!snapshot.id) {
       const values: NewPlanTaskCategoryRow = {
-        tenantId: this.tenantId,
         name: snapshot.name,
         description: snapshot.description,
         displayOrder: snapshot.displayOrder,
@@ -109,27 +96,18 @@ export class DrizzlePlanTaskCategoryRepository implements PlanTaskCategoryReposi
         displayOrder: snapshot.displayOrder,
         isActive: snapshot.isActive,
       })
-      .where(and(
-        eq(planTaskCategories.tenantId, this.tenantId),
-        eq(planTaskCategories.id, snapshot.id),
-      ))
+      .where(eq(planTaskCategories.id, snapshot.id))
   }
 
   async remove(categoryId: number): Promise<void> {
-    await this.db.delete(planTaskCategories).where(and(
-      eq(planTaskCategories.tenantId, this.tenantId),
-      eq(planTaskCategories.id, categoryId),
-    ))
+    await this.db.delete(planTaskCategories).where(eq(planTaskCategories.id, categoryId))
   }
 
   async isInUse(categoryId: number): Promise<boolean> {
     const rows = await this.db
       .select({ id: planTasks.id })
       .from(planTasks)
-      .where(and(
-        eq(planTasks.tenantId, this.tenantId),
-        eq(planTasks.categoryId, categoryId),
-      ))
+      .where(eq(planTasks.categoryId, categoryId))
       .limit(1)
 
     return Boolean(rows[0]?.id)

@@ -8,7 +8,6 @@ export {
   type PlanSchema,
   type SetupOptions
 } from './context'
-export type { TenantScope } from './scope'
 export {
   PlanEnrollment
 } from './domain/enrollment/plan-enrollment'

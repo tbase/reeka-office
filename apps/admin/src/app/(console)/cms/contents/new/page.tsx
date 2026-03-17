@@ -26,8 +26,8 @@ export default async function CmsContentCreatePage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  const ctx = await getRequiredAdminContext();
-  const categories = await new ListCategoriesQuery(ctx).query();
+  await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery().query();
   const defaultCategoryId = parseOptionalId(
     typeof params.categoryId === "string" ? params.categoryId : undefined,
   );

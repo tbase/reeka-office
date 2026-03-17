@@ -4,7 +4,6 @@ import { createRpc } from "@reeka-office/jsonrpc";
 export type APIContext = {
   openid: string;
   envid: string;
-  tenantId: number | null;
   user: User | null;
 };
 
@@ -17,7 +16,6 @@ export type AgentContext = {
     agentCode: string | null;
     agentName: string | null;
   };
-  tenantId: number;
 };
 
 export const rpc = createRpc<APIContext>();
@@ -32,13 +30,11 @@ export function mustAgentContext(context: APIContext) {
     agentCode: user.agentCode,
     agentName: user.agentName,
   };
-  const tenantId = context.tenantId!;
   return {
     openid: context.openid,
     envid: context.envid,
     user,
     agent,
-    tenantId,
   };
 }
 

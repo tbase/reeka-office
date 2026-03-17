@@ -1,7 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { pointItems, pointRecords, type PointRecordRow } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface ListAgentPointRecordsInput {
   agentId: number
@@ -20,24 +19,20 @@ export interface ListAgentPointRecordsResult {
 
 export class ListAgentPointRecordsQuery {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: ListAgentPointRecordsInput
 
-  constructor(scope: TenantScope, input: ListAgentPointRecordsInput) {
+  constructor(input: ListAgentPointRecordsInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
   async query(): Promise<ListAgentPointRecordsResult> {
     const whereClause = this.input.pointItemId
       ? and(
-          eq(pointRecords.tenantId, this.scope.tenantId),
           eq(pointRecords.agentId, this.input.agentId),
           eq(pointRecords.pointItemId, this.input.pointItemId),
         )
       : and(
-          eq(pointRecords.tenantId, this.scope.tenantId),
           eq(pointRecords.agentId, this.input.agentId),
         )
 
@@ -45,7 +40,6 @@ export class ListAgentPointRecordsQuery {
       this.db
         .select({
           id: pointRecords.id,
-          tenantId: pointRecords.tenantId,
           agentId: pointRecords.agentId,
           pointItemId: pointRecords.pointItemId,
           points: pointRecords.points,
@@ -59,10 +53,7 @@ export class ListAgentPointRecordsQuery {
           pointItemCategory: pointItems.category,
         })
         .from(pointRecords)
-        .innerJoin(pointItems, and(
-          eq(pointItems.id, pointRecords.pointItemId),
-          eq(pointItems.tenantId, this.scope.tenantId),
-        ))
+        .innerJoin(pointItems, eq(pointItems.id, pointRecords.pointItemId))
         .where(whereClause)
         .orderBy(desc(pointRecords.createdAt)),
       this.db.select({ value: count() }).from(pointRecords).where(whereClause),

@@ -37,13 +37,18 @@ export function createRpc<TContext>() {
 }
 
 export class RpcError extends Error {
+  readonly code: number
+  readonly data?: RpcErrorData
+
   constructor(
-    public code: number,
+    code: number,
     message: string,
-    public data?: RpcErrorData
+    data?: RpcErrorData
   ) {
     super(message);
     this.name = "RpcError";
+    this.code = code
+    this.data = data
   }
 }
 

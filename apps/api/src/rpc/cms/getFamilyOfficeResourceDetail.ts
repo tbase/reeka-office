@@ -29,7 +29,7 @@ export type GetFamilyOfficeResourceDetailOutput = {
 
 export const getFamilyOfficeResourceDetail = rpc.define({
   inputSchema,
-  execute: mustAgent(async ({ input, context }): Promise<GetFamilyOfficeResourceDetailOutput> => {
-    return getFamilyOfficeResourceDetailData(context.tenantId, input.id);
+  execute: mustAgent(async ({ input }): Promise<GetFamilyOfficeResourceDetailOutput> => {
+    return getFamilyOfficeResourceDetailData(input.id);
   }),
 });

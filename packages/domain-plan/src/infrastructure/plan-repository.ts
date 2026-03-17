@@ -14,19 +14,13 @@ import {
 } from '../schema'
 
 export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
-  constructor(
-    private readonly db: DBExecutor,
-    private readonly tenantId: number,
-  ) {}
+  constructor(private readonly db: DBExecutor) {}
 
   async findById(planId: number): Promise<Plan | null> {
     const [root] = await this.db
       .select()
       .from(plans)
-      .where(and(
-        eq(plans.tenantId, this.tenantId),
-        eq(plans.id, planId),
-      ))
+      .where(eq(plans.id, planId))
       .limit(1)
 
     if (!root) {
@@ -37,17 +31,11 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
       this.db
         .select()
         .from(planStages)
-        .where(and(
-          eq(planStages.tenantId, this.tenantId),
-          eq(planStages.planId, planId),
-        )),
+        .where(eq(planStages.planId, planId)),
       this.db
         .select()
         .from(planTasks)
-        .where(and(
-          eq(planTasks.tenantId, this.tenantId),
-          eq(planTasks.planId, planId),
-        )),
+        .where(eq(planTasks.planId, planId)),
     ])
 
     return Plan.restore({
@@ -85,10 +73,7 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
     const [row] = await this.db
       .select()
       .from(planTasks)
-      .where(and(
-        eq(planTasks.tenantId, this.tenantId),
-        eq(planTasks.id, taskId),
-      ))
+      .where(eq(planTasks.id, taskId))
       .limit(1)
 
     if (!row) {
@@ -114,10 +99,7 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
     const rows = await this.db
       .select({ id: plans.id })
       .from(plans)
-      .where(and(
-        eq(plans.tenantId, this.tenantId),
-        eq(plans.name, name.trim()),
-      ))
+      .where(eq(plans.name, name.trim()))
       .limit(1)
 
     return Boolean(rows[0]?.id)
@@ -129,7 +111,6 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
 
     if (!snapshot.root.id) {
       const values: NewPlanRow = {
-        tenantId: this.tenantId,
         name: snapshot.root.name,
         description: snapshot.root.description,
         status: snapshot.root.status,
@@ -153,18 +134,12 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
         description: snapshot.root.description,
         status: snapshot.root.status,
       })
-      .where(and(
-        eq(plans.tenantId, this.tenantId),
-        eq(plans.id, snapshot.root.id),
-      ))
+      .where(eq(plans.id, snapshot.root.id))
 
     const existingStageRows = await this.db
       .select({ id: planStages.id })
       .from(planStages)
-      .where(and(
-        eq(planStages.tenantId, this.tenantId),
-        eq(planStages.planId, snapshot.root.id),
-      ))
+      .where(eq(planStages.planId, snapshot.root.id))
 
     const currentStageIds = new Set<number>()
     for (const stage of persistenceState.stages) {
@@ -172,7 +147,6 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
 
       if (!stageSnapshot.id) {
         const values: NewPlanStageRow = {
-          tenantId: this.tenantId,
           planId: snapshot.root.id,
           title: stageSnapshot.title,
           description: stageSnapshot.description,
@@ -198,32 +172,20 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
           description: stageSnapshot.description,
           displayOrder: stageSnapshot.displayOrder,
         })
-        .where(and(
-          eq(planStages.tenantId, this.tenantId),
-          eq(planStages.id, stageSnapshot.id),
-        ))
+        .where(eq(planStages.id, stageSnapshot.id))
     }
 
     for (const existingStage of existingStageRows) {
       if (!currentStageIds.has(existingStage.id)) {
-        await this.db.delete(planTasks).where(and(
-          eq(planTasks.tenantId, this.tenantId),
-          eq(planTasks.stageId, existingStage.id),
-        ))
-        await this.db.delete(planStages).where(and(
-          eq(planStages.tenantId, this.tenantId),
-          eq(planStages.id, existingStage.id),
-        ))
+        await this.db.delete(planTasks).where(eq(planTasks.stageId, existingStage.id))
+        await this.db.delete(planStages).where(eq(planStages.id, existingStage.id))
       }
     }
 
     const existingTaskRows = await this.db
       .select({ id: planTasks.id })
       .from(planTasks)
-      .where(and(
-        eq(planTasks.tenantId, this.tenantId),
-        eq(planTasks.planId, snapshot.root.id),
-      ))
+      .where(eq(planTasks.planId, snapshot.root.id))
 
     const currentTaskIds = new Set<number>()
     for (const task of persistenceState.tasks) {
@@ -231,7 +193,6 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
 
       if (!taskSnapshot.id) {
         const values: NewPlanTaskRow = {
-          tenantId: this.tenantId,
           planId: snapshot.root.id,
           stageId: taskSnapshot.stageId,
           categoryId: taskSnapshot.categoryId,
@@ -269,18 +230,12 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
           status: taskSnapshot.status,
           pointItemId: taskSnapshot.pointItemId,
         })
-        .where(and(
-          eq(planTasks.tenantId, this.tenantId),
-          eq(planTasks.id, taskSnapshot.id),
-        ))
+        .where(eq(planTasks.id, taskSnapshot.id))
     }
 
     for (const existingTask of existingTaskRows) {
       if (!currentTaskIds.has(existingTask.id)) {
-        await this.db.delete(planTasks).where(and(
-          eq(planTasks.tenantId, this.tenantId),
-          eq(planTasks.id, existingTask.id),
-        ))
+        await this.db.delete(planTasks).where(eq(planTasks.id, existingTask.id))
       }
     }
   }

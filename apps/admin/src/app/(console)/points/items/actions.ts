@@ -37,10 +37,10 @@ function parsePointItemId(formData: FormData): number {
 }
 
 export async function createPointItemAction(formData: FormData): Promise<{ success: true }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const { name, category, pointAmount, annualLimit } = parsePointItemInput(formData)
 
-  await new CreatePointItemCommand(ctx, {
+  await new CreatePointItemCommand({
     name,
     category,
     pointAmount,
@@ -55,10 +55,10 @@ export async function createPointItemAction(formData: FormData): Promise<{ succe
 }
 
 export async function updatePointItemAction(formData: FormData): Promise<{ success: true }> {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const { id, name, category, pointAmount, annualLimit } = parsePointItemInput(formData)
 
-  await new UpdatePointItemCommand(ctx, {
+  await new UpdatePointItemCommand({
     id: parseRequiredId(id, "无效积分事项 ID"),
     name,
     category,
@@ -73,9 +73,9 @@ export async function updatePointItemAction(formData: FormData): Promise<{ succe
 }
 
 export async function deletePointItemAction(formData: FormData) {
-  const ctx = await getRequiredAdminContext()
+  await getRequiredAdminContext()
   const id = parsePointItemId(formData)
-  const ok = await new DeletePointItemCommand(ctx, { id }).execute()
+  const ok = await new DeletePointItemCommand({ id }).execute()
   if (!ok) {
     throw new Error("删除失败，积分事项不存在")
   }

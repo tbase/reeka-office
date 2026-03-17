@@ -1,7 +1,6 @@
 import { and, count, eq, gte, gt, sql } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agentPointBalances, redemptionProducts, redemptionRecords } from '../schema'
-import type { TenantScope } from '../scope'
 
 export interface RedeemProductInput {
   productId: number
@@ -11,12 +10,10 @@ export interface RedeemProductInput {
 
 export class RedeemProductCommand {
   private readonly db: DB
-  private readonly scope: TenantScope
   private readonly input: RedeemProductInput
 
-  constructor(scope: TenantScope, input: RedeemProductInput) {
+  constructor(input: RedeemProductInput) {
     this.db = getDb()
-    this.scope = scope
     this.input = input
   }
 
@@ -43,10 +40,7 @@ export class RedeemProductCommand {
           validPeriodMonths: redemptionProducts.validPeriodMonths,
         })
         .from(redemptionProducts)
-        .where(and(
-          eq(redemptionProducts.tenantId, this.scope.tenantId),
-          eq(redemptionProducts.id, this.input.productId),
-        ))
+        .where(eq(redemptionProducts.id, this.input.productId))
         .limit(1)
 
       const product = productRows[0]
@@ -69,7 +63,6 @@ export class RedeemProductCommand {
           .from(redemptionRecords)
           .where(
             and(
-              eq(redemptionRecords.tenantId, this.scope.tenantId),
               eq(redemptionRecords.productId, this.input.productId),
               eq(redemptionRecords.agentId, this.input.agentId),
               eq(redemptionRecords.status, 'success'),
@@ -78,10 +71,7 @@ export class RedeemProductCommand {
         tx
           .select({ currentPoints: agentPointBalances.currentPoints })
           .from(agentPointBalances)
-          .where(and(
-            eq(agentPointBalances.tenantId, this.scope.tenantId),
-            eq(agentPointBalances.agentId, this.input.agentId),
-          ))
+          .where(eq(agentPointBalances.agentId, this.input.agentId))
           .limit(1),
       ])
 
@@ -102,7 +92,6 @@ export class RedeemProductCommand {
         })
         .where(
           and(
-            eq(redemptionProducts.tenantId, this.scope.tenantId),
             eq(redemptionProducts.id, this.input.productId),
             gt(redemptionProducts.stock, 0),
             eq(redemptionProducts.status, 'published'),
@@ -120,7 +109,6 @@ export class RedeemProductCommand {
         })
         .where(
           and(
-            eq(agentPointBalances.tenantId, this.scope.tenantId),
             eq(agentPointBalances.agentId, this.input.agentId),
             gte(agentPointBalances.currentPoints, product.redeemPoints),
           ),
@@ -133,7 +121,6 @@ export class RedeemProductCommand {
       const result = await tx
         .insert(redemptionRecords)
         .values({
-          tenantId: this.scope.tenantId,
           productId: this.input.productId,
           agentId: this.input.agentId,
           pointsCost: product.redeemPoints,

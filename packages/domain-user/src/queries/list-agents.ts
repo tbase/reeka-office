@@ -14,7 +14,6 @@ export const LIST_AGENT_SORTS = [
 export type ListAgentSort = (typeof LIST_AGENT_SORTS)[number]
 
 export interface ListAgentsInput {
-  tenantId: number
   agency?: string | null
   sort?: ListAgentSort
   agentId?: number
@@ -34,7 +33,7 @@ export class ListAgentsQuery {
   }
 
   async query(): Promise<ListAgentsResult> {
-    const conditions = [eq(agents.tenantId, this.input.tenantId)]
+    const conditions = []
     const agency = this.input.agency?.trim()
     const keyword = this.input.keyword?.trim()
 
@@ -62,7 +61,6 @@ export class ListAgentsQuery {
     const query = this.db
       .select({
         id: agents.id,
-        tenantId: agents.tenantId,
         agentCode: agents.agentCode,
         name: agents.name,
         joinDate: agents.joinDate,
@@ -76,7 +74,7 @@ export class ListAgentsQuery {
         unit: agents.unit,
       })
       .from(agents)
-      .where(and(...conditions))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(
         ...(sort === 'designation_asc'
           ? [

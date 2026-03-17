@@ -6,8 +6,8 @@ import { searchAgentsAction } from "../../actions";
 import { AgentPointRecordFormDialog } from "./form-dialog";
 
 export default async function AgentPointRecordNewModal() {
-  const ctx = await getRequiredAdminContext();
-  const pointItems = await new ListPointItemsQuery(ctx).query();
+  await getRequiredAdminContext();
+  const pointItems = await new ListPointItemsQuery().query();
 
   return (
     <AgentPointRecordFormDialog

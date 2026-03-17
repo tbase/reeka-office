@@ -44,8 +44,8 @@ type ProductListProps = {
 };
 
 export async function ProductList({ status }: ProductListProps) {
-  const ctx = await getRequiredAdminContext();
-  const products = await new ListRedemptionProductsQuery(ctx, {
+  await getRequiredAdminContext();
+  const products = await new ListRedemptionProductsQuery({
     status,
   }).query();
 

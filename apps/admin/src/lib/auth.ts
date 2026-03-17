@@ -13,15 +13,6 @@ export const auth = betterAuth({
       verification: schema.adminVerification,
     },
   }),
-  user: {
-    additionalFields: {
-      tenantId: {
-        type: "number",
-        required: true,
-        input: true,
-      },
-    },
-  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,

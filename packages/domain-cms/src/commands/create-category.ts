@@ -1,6 +1,5 @@
 import { getDb, type DB } from "../context";
 import { categories, type FieldSchemaItem, type NewCategoryRow } from "../schema";
-import type { TenantScope } from "../scope";
 
 export interface CreateCategoryInput {
   slug?: string;
@@ -21,21 +20,15 @@ function toSlug(value: string): string {
 
 export class CreateCategoryCommand {
   private readonly db: DB;
-  private readonly scope: TenantScope;
   private readonly input: CreateCategoryInput;
 
-  constructor(
-    scope: TenantScope,
-    input: CreateCategoryInput,
-  ) {
+  constructor(input: CreateCategoryInput) {
     this.db = getDb();
-    this.scope = scope;
     this.input = input;
   }
 
   async execute(): Promise<number | null> {
     const values: NewCategoryRow = {
-      tenantId: this.scope.tenantId,
       slug: this.input.slug ?? toSlug(this.input.name),
       name: this.input.name,
       description: this.input.description ?? null,
