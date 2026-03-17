@@ -1,7 +1,13 @@
-import { mysqlTable, varchar, datetime, index, uniqueIndex, boolean } from "drizzle-orm/mysql-core";
+import { mysqlTable, varchar, datetime, index, uniqueIndex, boolean, int } from "drizzle-orm/mysql-core";
+
+export const tenants = mysqlTable("tenants", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+})
 
 export const admin = mysqlTable("admin", {
   id: varchar("id", { length: 128 }).primaryKey(),
+  tenantId: int("tenant_id").notNull(),
   name: varchar("name", { length: 256 }),
   email: varchar("email", { length: 256 }).notNull(),
   emailVerified: boolean("email_verified"),

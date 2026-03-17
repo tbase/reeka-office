@@ -1,5 +1,6 @@
 import { getDb, type DB } from '../context'
 import { pointItems, type NewPointItemRow, type PointItemStandard } from '../schema'
+import type { TenantScope } from '../scope'
 
 export interface CreatePointItemInput {
   name: string
@@ -12,13 +13,18 @@ export interface CreatePointItemInput {
 
 export class CreatePointItemCommand {
   private readonly db: DB
+  private readonly scope: TenantScope
+  private readonly input: CreatePointItemInput
 
-  constructor(private readonly input: CreatePointItemInput) {
+  constructor(scope: TenantScope, input: CreatePointItemInput) {
     this.db = getDb()
+    this.scope = scope
+    this.input = input
   }
 
   async execute(): Promise<number | null> {
     const values: NewPointItemRow = {
+      tenantId: this.scope.tenantId,
       name: this.input.name,
       category: this.input.category,
       pointAmount: this.input.pointAmount ?? null,

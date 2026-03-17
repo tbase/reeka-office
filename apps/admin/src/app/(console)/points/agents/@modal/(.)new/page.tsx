@@ -1,34 +1,18 @@
 import { ListPointItemsQuery } from "@reeka-office/domain-point";
-import { ListAgentsQuery } from "@reeka-office/domain-user";
 
+import { getRequiredAdminContext } from "@/lib/admin-context";
+
+import { searchAgentsAction } from "../../actions";
 import { AgentPointRecordFormDialog } from "./form-dialog";
 
-function parseOptionalAgentId(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? String(id) : undefined;
-}
-
-export default async function AgentPointRecordNewModal({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = (await searchParams) ?? {};
-  const defaultAgentId = parseOptionalAgentId(
-    typeof params.agentId === "string" ? params.agentId : undefined,
-  );
-
-  const [pointItems, agents] = await Promise.all([
-    new ListPointItemsQuery().query(),
-    new ListAgentsQuery().query(),
-  ]);
+export default async function AgentPointRecordNewModal() {
+  const ctx = await getRequiredAdminContext();
+  const pointItems = await new ListPointItemsQuery(ctx).query();
 
   return (
     <AgentPointRecordFormDialog
       pointItems={pointItems}
-      agents={agents}
-      defaultAgentId={defaultAgentId}
+      searchAgentsAction={searchAgentsAction}
     />
   );
 }

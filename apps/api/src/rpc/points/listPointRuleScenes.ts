@@ -1,7 +1,7 @@
 import { ListPointItemsQuery } from "@reeka-office/domain-point";
 import { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 
 const inputSchema = z.void();
 
@@ -10,8 +10,8 @@ export type ListPointRuleScenesOutput = string[];
 
 export const listPointRuleScenes = rpc.define({
   inputSchema,
-  execute: async () => {
-    const items = await new ListPointItemsQuery().query();
+  execute: mustAgent(async ({ context }) => {
+    const items = await new ListPointItemsQuery(context).query();
     return Array.from(new Set(items.map((item) => item.category)));
-  },
+  }),
 });

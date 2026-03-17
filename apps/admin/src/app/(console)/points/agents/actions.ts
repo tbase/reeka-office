@@ -1,70 +1,87 @@
 "use server"
 
 import { CreatePointRecordCommand } from "@reeka-office/domain-point"
+import { ListAgentsQuery } from "@reeka-office/domain-user"
 import { revalidatePath } from "next/cache"
 
+import { getRequiredAdminContext } from "@/lib/admin-context"
+import {
+  getFormDataValues,
+  parseOptionalPositiveInt,
+  parseOptionalText,
+  parseRequiredId,
+} from "@/lib/form-data"
+
 const DEFAULT_OPERATOR_ID = 1
+const AGENT_SEARCH_LIMIT = 10
+const agentPointRecordFieldNames = ["agentId", "pointItemId", "points", "remark"] as const
 
-function isNextInternalError(e: unknown): boolean {
-  return (
-    typeof e === "object" &&
-    e !== null &&
-    "digest" in e &&
-    typeof (e as Record<string, unknown>).digest === "string"
-  )
+type SearchAgentsInput = {
+  keyword?: string
+  agentId?: string
 }
 
-function parseAgentId(value: FormDataEntryValue | null): number {
-  const id = Number(value)
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("请选择代理人")
-  }
-  return id
-}
+function parseAgentPointRecordInput(formData: FormData) {
+  const fields = getFormDataValues(formData, agentPointRecordFieldNames)
 
-function parseId(value: FormDataEntryValue | null, label: string): number {
-  const id = Number(value)
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error(`${label}无效`)
+  return {
+    agentId: parseRequiredId(fields.agentId, "请选择代理人"),
+    pointItemId: parseRequiredId(fields.pointItemId, "积分事项无效"),
+    points: parseOptionalPositiveInt(fields.points, "积分值") ?? undefined,
+    remark: parseOptionalText(fields.remark),
   }
-  return id
-}
-
-function parseOptionalPositiveInt(value: FormDataEntryValue | null, label: string): number | undefined {
-  const raw = String(value ?? "").trim()
-  if (!raw) {
-    return undefined
-  }
-
-  const num = Number(raw)
-  if (!Number.isInteger(num) || num <= 0) {
-    throw new Error(`${label}必须为正整数`)
-  }
-
-  return num
 }
 
 export async function createAgentPointRecordAction(
   formData: FormData,
 ): Promise<{ success: true } | { error: string }> {
-  try {
-    const agentId = parseAgentId(formData.get("agentId"))
-    const pointItemId = parseId(formData.get("pointItemId"), "积分事项")
-    const points = parseOptionalPositiveInt(formData.get("points"), "积分值")
-    const remark = String(formData.get("remark") ?? "").trim()
+  const ctx = await getRequiredAdminContext()
+  const { agentId, pointItemId, points, remark } = parseAgentPointRecordInput(formData)
 
-    await new CreatePointRecordCommand({
+  await new CreatePointRecordCommand(ctx, {
+    agentId,
+    pointItemId,
+    points,
+    remark: remark || null,
+    createdBy: DEFAULT_OPERATOR_ID,
+  }).execute()
+
+  revalidatePath("/points/agents")
+  return { success: true }
+}
+
+export async function searchAgentsAction(input: SearchAgentsInput) {
+  const ctx = await getRequiredAdminContext()
+  const trimmedKeyword = input.keyword?.trim()
+  const agentId = Number(input.agentId)
+
+  if (Number.isInteger(agentId) && agentId > 0) {
+    const agents = await new ListAgentsQuery({
+      tenantId: ctx.tenantId,
       agentId,
-      pointItemId,
-      points,
-      remark: remark || null,
-      createdBy: DEFAULT_OPERATOR_ID,
-    }).execute()
+      limit: 1,
+    }).query()
 
-    revalidatePath("/points/agents")
-    return { success: true }
-  } catch (e) {
-    if (isNextInternalError(e)) throw e
-    return { error: e instanceof Error ? e.message : "操作失败，请重试" }
+    return agents.map((agent) => ({
+      id: agent.id,
+      agentCode: agent.agentCode,
+      name: agent.name,
+    }))
   }
+
+  if (!trimmedKeyword) {
+    return []
+  }
+
+  const agents = await new ListAgentsQuery({
+    tenantId: ctx.tenantId,
+    keyword: trimmedKeyword,
+    limit: AGENT_SEARCH_LIMIT,
+  }).query()
+
+  return agents.map((agent) => ({
+    id: agent.id,
+    agentCode: agent.agentCode,
+    name: agent.name,
+  }))
 }

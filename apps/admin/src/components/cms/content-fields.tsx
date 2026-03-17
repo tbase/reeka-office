@@ -2,6 +2,7 @@
 
 import type { FieldSchemaItem } from "@reeka-office/domain-cms";
 
+import { Empty } from "@/components/ui/empty";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
@@ -96,19 +97,11 @@ export function ContentFields({
   onUpdateField: (fieldName: string, value: unknown) => void;
 }) {
   if (!category) {
-    return (
-      <div className="text-muted-foreground rounded-md border border-dashed px-3 py-4 text-sm">
-        请先创建分类。
-      </div>
-    );
+    return <Empty title="请先创建分类。" className="py-4" />;
   }
 
   if (category.fieldSchema.length === 0) {
-    return (
-      <div className="text-muted-foreground rounded-md border border-dashed px-3 py-4 text-sm">
-        该分类暂无扩展字段。
-      </div>
-    );
+    return <Empty title="该分类暂无扩展字段。" className="py-4" />;
   }
 
   return (

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 import { getFamilyOfficeResourceDetail as getFamilyOfficeResourceDetailData } from "./shared";
 
 const inputSchema = z.object({
@@ -29,7 +29,7 @@ export type GetFamilyOfficeResourceDetailOutput = {
 
 export const getFamilyOfficeResourceDetail = rpc.define({
   inputSchema,
-  execute: async ({ input }): Promise<GetFamilyOfficeResourceDetailOutput> => {
-    return getFamilyOfficeResourceDetailData(input.id);
-  },
+  execute: mustAgent(async ({ input, context }): Promise<GetFamilyOfficeResourceDetailOutput> => {
+    return getFamilyOfficeResourceDetailData(context.tenantId, input.id);
+  }),
 });

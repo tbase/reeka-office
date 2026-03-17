@@ -1,5 +1,4 @@
 import { type CmsDB, cmsSchema, setup as setupDomainCms } from "@reeka-office/domain-cms";
-import { type NewbieDB, newbieSchema, setup as setupDomainNewbie } from "@reeka-office/domain-newbie";
 import { type PointDB, pointSchema, setup as setupDomainPoint } from "@reeka-office/domain-point";
 import { GetUserQuery, setup as setupDomainUser, type UserDB, userSchema } from "@reeka-office/domain-user";
 import { handleRPC, RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
@@ -28,15 +27,15 @@ async function createContext(req: Request): Promise<APIContext> {
   const method = body.method;
 
   if (method === "user/bindAgent") {
-    return { openid, envid, user: null };
+    return { openid, envid, tenantId: null, user: null };
   }
 
   const user = await new GetUserQuery({ openid }).query();
-  if (!user?.agentId) {
+  if (!user?.agentId || !user.tenantId) {
     throw new RpcError(RpcErrorCode.FORBIDDEN, "非代理人，无访问权限");
   }
 
-  return { openid, envid, user };
+  return { openid, envid, tenantId: user.tenantId, user };
 }
 
 
@@ -95,9 +94,6 @@ setupDomainCms({ db: cmsDb as unknown as CmsDB })
 
 const pointDb = createDb(pointSchema)
 setupDomainPoint({ db: pointDb as unknown as PointDB })
-
-const newbieDb = createDb(newbieSchema)
-setupDomainNewbie({ db: newbieDb as unknown as NewbieDB })
 
 const server = Bun.serve({
   port: config.server.port,

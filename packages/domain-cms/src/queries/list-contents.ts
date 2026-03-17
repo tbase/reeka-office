@@ -1,6 +1,7 @@
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { getDb, type DB } from "../context";
 import { categories, contents, type ContentRow } from "../schema";
+import type { TenantScope } from "../scope";
 
 export interface ListContentsInput {
   categoryId?: number;
@@ -17,19 +18,31 @@ export interface ListContentsResult {
 
 export class ListContentsQuery {
   private readonly db: DB;
-  constructor(private readonly input: ListContentsInput = {}) {
+  private readonly scope: TenantScope;
+  private readonly input: ListContentsInput;
+
+  constructor(
+    scope: TenantScope,
+    input: ListContentsInput = {},
+  ) {
     this.db = getDb();
+    this.scope = scope;
+    this.input = input;
   }
 
   async query(): Promise<ListContentsResult> {
-    const whereClause = this.input.categoryId
-      ? eq(contents.categoryId, this.input.categoryId)
-      : undefined;
+    const filters = [
+      eq(contents.tenantId, this.scope.tenantId),
+      this.input.categoryId ? eq(contents.categoryId, this.input.categoryId) : undefined,
+    ].filter((item) => item !== undefined);
+
+    const whereClause = filters.length === 1 ? filters[0] : and(...filters);
 
     const [contentRows, totalRows] = await Promise.all([
       this.db
         .select({
           id: contents.id,
+          tenantId: contents.tenantId,
           categoryId: contents.categoryId,
           categoryName: categories.name,
           name: contents.name,
@@ -39,7 +52,10 @@ export class ListContentsQuery {
           updatedAt: contents.updatedAt
         })
         .from(contents)
-        .innerJoin(categories, eq(categories.id, contents.categoryId))
+        .innerJoin(categories, and(
+          eq(categories.id, contents.categoryId),
+          eq(categories.tenantId, this.scope.tenantId),
+        ))
         .where(whereClause)
         .orderBy(desc(contents.createdAt)),
       this.db.select({ value: count() }).from(contents).where(whereClause)
@@ -57,9 +73,20 @@ export interface ListContentsByCategoryInput {
 }
 
 export class ListContentsByCategoryQuery {
-  constructor(private readonly input: ListContentsByCategoryInput) {}
+  private readonly scope: TenantScope;
+  private readonly input: ListContentsByCategoryInput;
+
+  constructor(
+    scope: TenantScope,
+    input: ListContentsByCategoryInput,
+  ) {
+    this.scope = scope;
+    this.input = input;
+  }
 
   async query(): Promise<ListContentsResult> {
-    return new ListContentsQuery({ categoryId: this.input.categoryId }).query();
+    return new ListContentsQuery(this.scope, {
+      categoryId: this.input.categoryId,
+    }).query();
   }
 }

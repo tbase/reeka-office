@@ -1,33 +1,35 @@
-import { ListPointItemsQuery } from "@reeka-office/domain-point"
-import { notFound } from "next/navigation"
+import { ListPointItemsQuery } from "@reeka-office/domain-point";
+import { notFound } from "next/navigation";
 
-import { Button } from "@/components/ui/button"
-import { LinkButton } from "@/components/ui/link-button"
-import { PointItemFormEdit } from "@/components/points/point-item-form-edit"
+import { PointItemFormEdit } from "@/components/points/point-item-form-edit";
+import { Button } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { updatePointItemAction } from "../../actions"
+import { updatePointItemAction } from "../../actions";
 
 function parseId(value: string): number {
-  const id = Number(value)
+  const id = Number(value);
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("无效积分事项 ID")
+    throw new Error("无效积分事项 ID");
   }
-  return id
+  return id;
 }
 
 export default async function PointItemEditPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id: idParam } = await params
-  const id = parseId(idParam)
+  const { id: idParam } = await params;
+  const id = parseId(idParam);
 
-  const items = await new ListPointItemsQuery().query()
-  const item = items.find((row) => row.id === id) ?? null
+  const ctx = await getRequiredAdminContext();
+  const items = await new ListPointItemsQuery(ctx).query();
+  const item = items.find((row) => row.id === id) ?? null;
 
   if (!item) {
-    notFound()
+    notFound();
   }
 
   return (
@@ -36,7 +38,9 @@ export default async function PointItemEditPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           编辑积分事项：{item.name}
         </h1>
-        <p className="text-muted-foreground text-sm">修改后会影响后续积分发放规则。</p>
+        <p className="text-muted-foreground text-sm">
+          修改后会影响后续积分发放规则。
+        </p>
       </div>
 
       <PointItemFormEdit
@@ -60,5 +64,5 @@ export default async function PointItemEditPage({
         </LinkButton>
       </div>
     </div>
-  )
+  );
 }

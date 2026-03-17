@@ -7,38 +7,39 @@ import {
 } from "@reeka-office/domain-cms"
 import { revalidatePath } from "next/cache"
 
-function parseId(value: FormDataEntryValue | null, label: string): number {
-  const id = Number(value)
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error(`无效${label} ID`)
+import { getRequiredAdminContext } from "@/lib/admin-context"
+import {
+  getFormDataValues,
+  parseJsonObject,
+  parseOptionalId,
+  parseRequiredId,
+  parseRequiredText,
+} from "@/lib/form-data"
+
+const contentFieldNames = ["id", "categoryId", "name", "content", "fieldsJson"] as const
+
+function parseContentInput(formData: FormData) {
+  const fields = getFormDataValues(formData, contentFieldNames)
+
+  return {
+    id: parseOptionalId(fields.id, "无效内容 ID"),
+    categoryId: parseRequiredId(fields.categoryId, "无效分类 ID"),
+    name: parseRequiredText(fields.name, "标题"),
+    content: String(fields.content ?? ""),
+    fields: parseJsonObject(fields.fieldsJson),
   }
-  return id
 }
 
-function parseFields(value: FormDataEntryValue | null): Record<string, unknown> {
-  if (typeof value !== "string" || !value.trim()) {
-    return {}
-  }
-
-  const parsed: unknown = JSON.parse(value)
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return {}
-  }
-
-  return parsed as Record<string, unknown>
+function parseContentId(formData: FormData): number {
+  const { id } = getFormDataValues(formData, ["id"] as const)
+  return parseRequiredId(id, "无效内容 ID")
 }
 
 export async function createContentAction(formData: FormData): Promise<{ success: true }> {
-  const categoryId = parseId(formData.get("categoryId"), "分类")
-  const name = String(formData.get("name") ?? "").trim()
-  const content = String(formData.get("content") ?? "")
-  const fields = parseFields(formData.get("fieldsJson"))
+  const ctx = await getRequiredAdminContext()
+  const { categoryId, name, content, fields } = parseContentInput(formData)
 
-  if (!name) {
-    throw new Error("标题不能为空")
-  }
-
-  await new CreateContentCommand({
+  await new CreateContentCommand(ctx, {
     categoryId,
     name,
     content,
@@ -50,18 +51,11 @@ export async function createContentAction(formData: FormData): Promise<{ success
 }
 
 export async function updateContentAction(formData: FormData): Promise<{ success: true }> {
-  const id = parseId(formData.get("id"), "ID")
-  const categoryId = parseId(formData.get("categoryId"), "分类")
-  const name = String(formData.get("name") ?? "").trim()
-  const content = String(formData.get("content") ?? "")
-  const fields = parseFields(formData.get("fieldsJson"))
+  const ctx = await getRequiredAdminContext()
+  const { id, categoryId, name, content, fields } = parseContentInput(formData)
 
-  if (!name) {
-    throw new Error("标题不能为空")
-  }
-
-  await new UpdateContentCommand({
-    id,
+  await new UpdateContentCommand(ctx, {
+    id: parseRequiredId(id, "无效内容 ID"),
     categoryId,
     name,
     content,
@@ -73,8 +67,9 @@ export async function updateContentAction(formData: FormData): Promise<{ success
 }
 
 export async function deleteContentAction(formData: FormData) {
-  const id = parseId(formData.get("id"), "内容")
-  await new DeleteContentCommand({ id }).execute()
+  const ctx = await getRequiredAdminContext()
+  const id = parseContentId(formData)
+  await new DeleteContentCommand(ctx, { id }).execute()
 
   revalidatePath("/cms/contents")
 }

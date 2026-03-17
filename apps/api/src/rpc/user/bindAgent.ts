@@ -2,16 +2,12 @@ import { BindAgentCommand } from "@reeka-office/domain-user";
 import { createRpcError } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
-import { config } from "../../config";
 import { rpc } from "../../context";
 
 const inputSchema = z.object({
-  token: z.string().min(1),
-});
-
-const agentInfoSchema = z.object({
-  agent_code: z.string().min(1),
-  pinyin: z.string().min(1),
+  code: z.string().trim().min(1),
+  leaderCode: z.string().trim().min(1),
+  unit: z.string().trim().min(1),
 });
 
 type RequestContext = {
@@ -22,6 +18,7 @@ type RequestContext = {
 export type BindAgentInput = z.infer<typeof inputSchema>;
 export type BindAgentOutput = {
   agentId: number;
+  tenantId: number;
   agentCode: string;
   agentName: string;
 };
@@ -31,46 +28,19 @@ export const bindAgent = rpc.define({
   execute: async ({ input, context }) => {
     const { openid } = context as RequestContext;
 
-    let response: Response;
-    try {
-      response = await fetch(config.externalApi.agentInfoUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${input.token}`,
-        },
-      });
-    } catch {
-      throw createRpcError.internalError("网络错误，请稍后重试");
-    }
-
-    if (!response.ok) {
-      throw createRpcError.badRequest("代理人 token 无效或已过期");
-    }
-
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      throw createRpcError.badRequest("代理人 token 无效或已过期");
-    }
-
-    const parsedAgentInfo = agentInfoSchema.safeParse(payload);
-    if (!parsedAgentInfo.success) {
-      throw createRpcError.badRequest("代理人 token 无效或已过期");
-    }
-
-    const agentCode = parsedAgentInfo.data.agent_code;
-    const agentName = parsedAgentInfo.data.pinyin;
-
     try {
       return await new BindAgentCommand({
         openid,
-        agentCode,
-        agentName,
+        code: input.code,
+        leaderCode: input.leaderCode,
+        unit: input.unit,
       }).execute();
     } catch (error) {
       if (error instanceof Error && error.message === "用户已绑定代理人") {
         throw createRpcError.badRequest("您已绑定代理人，无需重复操作");
+      }
+      if (error instanceof Error && error.message === "代理人不存在") {
+        throw createRpcError.badRequest("信息不匹配，请核对后重试");
       }
       throw error;
     }

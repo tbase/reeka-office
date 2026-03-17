@@ -1,6 +1,5 @@
-import { eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
-import { agents, users } from '../db/schema'
+import { users } from '../db/schema'
 
 export interface CreateUserInput {
   openid: string
@@ -13,6 +12,7 @@ export interface CreateUserResult {
   id: number
   openid: string
   agentId: number
+  tenantId: number
   agentCode: string | null
   agentName: string
 }
@@ -25,13 +25,10 @@ export class CreateUserCommand {
   }
 
   async execute(): Promise<CreateUserResult> {
-    const agentRows = await this.db
-      .select()
-      .from(agents)
-      .where(eq(agents.id, this.input.agentId))
-      .limit(1)
+    const agent = await this.db.query.agents.findFirst({
+      where: (table, { eq }) => eq(table.id, this.input.agentId),
+    })
 
-    const agent = agentRows[0]
     if (!agent) {
       throw new Error(`Agent not found: ${this.input.agentId}`)
     }
@@ -43,6 +40,7 @@ export class CreateUserCommand {
         agentId: this.input.agentId,
         nickname: this.input.nickname ?? null,
         avatar: this.input.avatar ?? null,
+        role: 'agent',
       })
       .$returningId()
 
@@ -55,6 +53,7 @@ export class CreateUserCommand {
       id,
       openid: this.input.openid,
       agentId: agent.id,
+      tenantId: agent.tenantId,
       agentCode: agent.agentCode,
       agentName: agent.name,
     }

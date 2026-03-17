@@ -1,6 +1,8 @@
 import { ListCategoriesQuery } from "@reeka-office/domain-cms";
 import { notFound } from "next/navigation";
 
+import { getRequiredAdminContext } from "@/lib/admin-context";
+
 import { CategoryEditFormDialog } from "./form-dialog";
 
 function parseId(value: string): number {
@@ -19,7 +21,8 @@ export default async function CmsCategoryEditModal({
   const { id: idParam } = await params;
   const id = parseId(idParam);
 
-  const categories = await new ListCategoriesQuery().query();
+  const ctx = await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery(ctx).query();
   const category = categories.find((item) => item.id === id) ?? null;
 
   if (!category) {

@@ -4,6 +4,8 @@ import {
 } from "@reeka-office/domain-cms";
 import { notFound } from "next/navigation";
 
+import { getRequiredAdminContext } from "@/lib/admin-context";
+
 import { ContentEditFormDialog } from "./form-dialog";
 
 function parseId(value: string): number {
@@ -21,10 +23,11 @@ export default async function CmsContentEditModal({
 }) {
   const { id: idParam } = await params;
   const id = parseId(idParam);
+  const ctx = await getRequiredAdminContext();
 
   const [categories, { contents }] = await Promise.all([
-    new ListCategoriesQuery().query(),
-    new ListContentsQuery().query(),
+    new ListCategoriesQuery(ctx).query(),
+    new ListContentsQuery(ctx).query(),
   ]);
 
   const content = contents.find((item) => item.id === id) ?? null;

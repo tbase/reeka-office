@@ -7,12 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmAction } from "@/components/ui/confirm-action";
+import { Empty } from "@/components/ui/empty";
 import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { deleteCategoryAction } from "./actions";
 
 export default async function CmsCategoriesPage() {
-  const categories = await new ListCategoriesQuery().query();
+  const ctx = await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery(ctx).query();
 
   return (
     <div className="space-y-4">
@@ -35,9 +38,7 @@ export default async function CmsCategoriesPage() {
       </div>
 
       {categories.length === 0 ? (
-        <div className="text-muted-foreground rounded-md border border-dashed px-3 py-6 text-sm">
-          暂无分类。
-        </div>
+        <Empty title="暂无分类" />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {categories.map((category) => {

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  MilestoneIcon,
   FileTextIcon,
   FolderTreeIcon,
   GiftIcon,
@@ -9,6 +8,7 @@ import {
   LogInIcon,
   ScrollTextIcon,
   TicketPlusIcon,
+  UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,7 +28,20 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-const menuGroups = [
+
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  hidden?: boolean;
+}
+
+interface MenuGroup {
+  title: string;
+  items: MenuItem[];
+}
+
+const menuGroups: MenuGroup[] = [
   {
     title: "Workspace",
     items: [
@@ -55,18 +68,12 @@ const menuGroups = [
     ],
   },
   {
-    title: "新手任务",
+    title: "用户管理",
     items: [
       {
-        title: "阶段管理",
-        url: "/newbie/stages",
-        icon: MilestoneIcon,
-        hidden: true,
-      },
-      {
-        title: "任务管理",
-        url: "/newbie/tasks",
-        icon: FileTextIcon,
+        title: "代理人管理",
+        url: "/agents",
+        icon: UsersIcon,
       },
     ],
   },
@@ -92,9 +99,14 @@ const menuGroups = [
   },
 ];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  tenantName: string;
+}
+
+export function AppSidebar({ tenantName, ...props }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+
   async function handleSignOut() {
     await signOut();
     router.push("/login");
@@ -110,7 +122,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 R
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Reeka Office</span>
+                <span className="truncate font-medium">{tenantName}</span>
                 <span className="text-muted-foreground truncate text-xs">
                   Admin Panel
                 </span>

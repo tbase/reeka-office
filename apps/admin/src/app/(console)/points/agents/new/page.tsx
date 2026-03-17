@@ -1,34 +1,20 @@
 export const dynamic = "force-dynamic";
 
 import { ListPointItemsQuery } from "@reeka-office/domain-point";
-import { ListAgentsQuery } from "@reeka-office/domain-user";
 
 import { AgentPointRecordForm } from "@/components/points/agent-point-record-form";
 import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { createAgentPointRecordAction } from "../actions";
+import {
+  createAgentPointRecordAction,
+  searchAgentsAction,
+} from "../actions";
 
-function parseOptionalAgentId(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? String(id) : undefined;
-}
-
-export default async function AgentPointsCreatePage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = (await searchParams) ?? {};
-  const defaultAgentId = parseOptionalAgentId(
-    typeof params.agentId === "string" ? params.agentId : undefined,
-  );
-
-  const [pointItems, agents] = await Promise.all([
-    new ListPointItemsQuery().query(),
-    new ListAgentsQuery().query(),
-  ]);
+export default async function AgentPointsCreatePage() {
+  const ctx = await getRequiredAdminContext();
+  const pointItems = await new ListPointItemsQuery(ctx).query();
 
   return (
     <div className="space-y-4">
@@ -42,11 +28,10 @@ export default async function AgentPointsCreatePage({
       </div>
 
       <AgentPointRecordForm
-        action={createAgentPointRecordAction}
         id="agent-point-record-form"
+        action={createAgentPointRecordAction}
         pointItems={pointItems}
-        agents={agents}
-        defaultAgentId={defaultAgentId}
+        searchAgentsAction={searchAgentsAction}
       />
 
       <div className="flex gap-2">

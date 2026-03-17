@@ -129,12 +129,13 @@ function getFamilyOfficeGroup(fields: UnknownRecord) {
   };
 }
 
-async function getResourceCategory() {
-  return new GetCategoryQuery({ slug: RESOURCE_CATEGORY_SLUG }).query();
+async function getResourceCategory(tenantId: number) {
+  return new GetCategoryQuery({ tenantId }, { slug: RESOURCE_CATEGORY_SLUG }).query();
 }
 
-export async function listFamilyOfficeResources(): Promise<ListFamilyOfficeResourcesResult> {
-  const resourceCategory = await getResourceCategory();
+export async function listFamilyOfficeResources(tenantId: number): Promise<ListFamilyOfficeResourcesResult> {
+  const scope = { tenantId };
+  const resourceCategory = await getResourceCategory(tenantId);
   if (!resourceCategory) {
     return {
       categories: [],
@@ -143,7 +144,9 @@ export async function listFamilyOfficeResources(): Promise<ListFamilyOfficeResou
     };
   }
 
-  const contentResult = await new ListContentsQuery({ categoryId: resourceCategory.id }).query();
+  const contentResult = await new ListContentsQuery(scope, {
+    categoryId: resourceCategory.id,
+  }).query();
   const contents = contentResult.contents.map((item) => normalizeFamilyOfficeResourceItem(item));
 
   const categoryMap = new Map<string, FamilyOfficeResourceCategory>();
@@ -174,10 +177,11 @@ export async function listFamilyOfficeResources(): Promise<ListFamilyOfficeResou
   };
 }
 
-export async function getFamilyOfficeResourceDetail(id: string): Promise<FamilyOfficeResourceContent> {
+export async function getFamilyOfficeResourceDetail(tenantId: number, id: string): Promise<FamilyOfficeResourceContent> {
+  const scope = { tenantId };
   const [resourceCategory, content] = await Promise.all([
-    getResourceCategory(),
-    new GetContentQuery({ id: Number(id) }).query(),
+    getResourceCategory(tenantId),
+    new GetContentQuery(scope, { id: Number(id) }).query(),
   ]);
 
   if (!content) {

@@ -12,7 +12,6 @@
         "@ai-sdk/openai": "^3.0.37",
         "@base-ui/react": "^1.2.0",
         "@reeka-office/domain-cms": "workspace:*",
-        "@reeka-office/domain-newbie": "workspace:*",
         "@reeka-office/domain-point": "workspace:*",
         "@reeka-office/domain-user": "workspace:*",
         "@tanstack/react-form": "^1.28.3",
@@ -52,7 +51,6 @@
       "name": "api",
       "dependencies": {
         "@reeka-office/domain-cms": "workspace:*",
-        "@reeka-office/domain-newbie": "workspace:*",
         "@reeka-office/domain-point": "workspace:*",
         "@reeka-office/domain-user": "workspace:*",
         "@reeka-office/jsonrpc": "workspace:*",
@@ -90,17 +88,6 @@
     },
     "packages/domain-cms": {
       "name": "@reeka-office/domain-cms",
-      "dependencies": {
-        "drizzle-orm": "^0.45.1",
-        "mysql2": "^3.16.3",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "typescript": "^5.9.3",
-      },
-    },
-    "packages/domain-newbie": {
-      "name": "@reeka-office/domain-newbie",
       "dependencies": {
         "drizzle-orm": "^0.45.1",
         "mysql2": "^3.16.3",
@@ -645,8 +632,6 @@
     "@parcel/watcher-win32-x64": ["@parcel/watcher-win32-x64@2.5.6", "", { "os": "win32", "cpu": "x64" }, "sha512-hbQlYcCq5dlAX9Qx+kFb0FHue6vbjlf0FrNzSKdYK2APUf7tGfGxQCk2ihEREmbR6ZMc0MVAD5RIX/41gpUzTw=="],
 
     "@reeka-office/domain-cms": ["@reeka-office/domain-cms@workspace:packages/domain-cms"],
-
-    "@reeka-office/domain-newbie": ["@reeka-office/domain-newbie@workspace:packages/domain-newbie"],
 
     "@reeka-office/domain-point": ["@reeka-office/domain-point@workspace:packages/domain-point"],
 
@@ -2261,8 +2246,6 @@
     "@next/eslint-plugin-next/fast-glob": ["fast-glob@3.3.1", "", { "dependencies": { "@nodelib/fs.stat": "^2.0.2", "@nodelib/fs.walk": "^1.2.3", "glob-parent": "^5.1.2", "merge2": "^1.3.0", "micromatch": "^4.0.4" } }, "sha512-kNFPyjhh5cKjrUltxs+wFx+ZkbRaxxmZ+X0ZU31SOsxCEtP9VPgtq2teZw1DebupL5GmDaNQ6yKMMVcM41iqDg=="],
 
     "@noble/curves/@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
-
-    "@reeka-office/domain-newbie/mysql2": ["mysql2@3.18.0", "", { "dependencies": { "aws-ssl-profiles": "^1.1.2", "denque": "^2.1.0", "generate-function": "^2.3.1", "iconv-lite": "^0.7.2", "long": "^5.3.2", "lru.min": "^1.1.4", "named-placeholders": "^1.1.6", "sql-escaper": "^1.3.3" }, "peerDependencies": { "@types/node": ">= 8" } }, "sha512-3rupyOFks7Vq0jcjBpmg1gtgfGuCcmgrRJPEfpGzzrB/ydutupbjKkoDJGsGkrJRU6j44o2tb0McduL03/v/dQ=="],
 
     "@tailwindcss/node/jiti": ["jiti@2.6.1", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ=="],
 

@@ -9,5 +9,6 @@ export {
 } from './context'
 export { BindAgentCommand, type BindAgentInput, type BindAgentResult } from './commands/bind-agent'
 export * from './commands'
+export { DESIGNATION_NAME, getDesignationName, type DesignationName } from './designation'
 export * from './queries'
-export type { Agent, User } from './types'
+export type { Agent, Tenant, User } from './types'

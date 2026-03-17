@@ -1,78 +1,85 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
-import { useRef } from "react"
-import { toast } from "sonner"
+import { useForm } from "@tanstack/react-form";
+import { useSearchParams } from "next/navigation";
+import { useRef } from "react";
+import { toast } from "sonner";
 
-import type { PointItemRow } from "@reeka-office/domain-point"
-import type { Agent } from "@reeka-office/domain-user"
+import type { PointItemRow } from "@reeka-office/domain-point";
 
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { SimpleSelect } from "@/components/ui/simple-select"
-import { Textarea } from "@/components/ui/textarea"
+import { AgentSearchSelect } from "@/components/agents/agent-search-select";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { SimpleSelect } from "@/components/ui/simple-select";
+import { Textarea } from "@/components/ui/textarea";
 
-type PointItem = Pick<PointItemRow, "id" | "name">
-type AgentOption = Pick<Agent, "id" | "agentCode" | "name">
+type PointItem = Pick<PointItemRow, "id" | "name">;
+
+function parseOptionalAgentId(value: string | null) {
+  if (!value) return "";
+
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? String(id) : "";
+}
 
 export function AgentPointRecordForm({
   pointItems,
-  agents,
-  defaultAgentId,
+  searchAgentsAction,
   id,
   onSuccess,
   action,
 }: {
-  pointItems: PointItem[]
-  agents: AgentOption[]
-  defaultAgentId?: string
-  id?: string
-  onSuccess?: () => void
+  pointItems: PointItem[];
+  searchAgentsAction: (
+    input: {
+      keyword?: string;
+      agentId?: string;
+    },
+  ) => Promise<Array<{ id: number; agentCode: string | null; name: string }>>;
+  id?: string;
+  onSuccess?: () => void;
   action: (
     formData: FormData,
   ) =>
     | { success: true }
     | { error: string }
-    | Promise<{ success: true } | { error: string }>
+    | Promise<{ success: true } | { error: string }>;
 }) {
-  const formRef = useRef<HTMLFormElement>(null)
+  const formRef = useRef<HTMLFormElement>(null);
+  const searchParams = useSearchParams();
+  const initialAgentId = parseOptionalAgentId(searchParams.get("agentId"));
 
   const form = useForm({
     defaultValues: {
-      agentId: defaultAgentId ?? "",
+      agentId: initialAgentId,
       pointItemId: "",
       points: "",
       remark: "",
     },
     onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) return
+      if (!formRef.current) return;
 
-      const formData = new FormData(formRef.current)
-      formData.set("agentId", formValue.agentId)
-      formData.set("pointItemId", formValue.pointItemId)
-      formData.set("points", formValue.points)
-      formData.set("remark", formValue.remark)
+      const formData = new FormData(formRef.current);
+      formData.set("agentId", formValue.agentId);
+      formData.set("pointItemId", formValue.pointItemId);
+      formData.set("points", formValue.points);
+      formData.set("remark", formValue.remark);
 
-      const result = await action(formData)
+      const result = await action(formData);
       if ("error" in result) {
-        toast.error(result.error)
-        return
+        toast.error(result.error);
+        return;
       }
-      toast.success("积分已发放")
-      onSuccess?.()
+      toast.success("积分已发放");
+      onSuccess?.();
     },
-  })
+  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    await form.handleSubmit()
-  }
+    event.preventDefault();
+    event.stopPropagation();
+    await form.handleSubmit();
+  };
 
   return (
     <form
@@ -85,45 +92,36 @@ export function AgentPointRecordForm({
         name="agentId"
         validators={{
           onSubmit: ({ value: v }) =>
-            /^\d+$/.test(v.trim())
-              ? undefined
-              : "请选择代理人",
+            /^\d+$/.test(v.trim()) ? undefined : "请选择代理人",
         }}
       >
         {(field) => {
-          const hasError = field.state.meta.errors.length > 0
+          const hasError = field.state.meta.errors.length > 0;
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
                 <FieldLabel htmlFor={field.name}>代理人</FieldLabel>
-                <SimpleSelect
+                <AgentSearchSelect
                   name="agentId"
                   required
-                  placeholder={
-                    agents.length === 0 ? "暂无代理人" : "请选择代理人"
-                  }
-                  items={agents.map((agent) => ({
-                    value: String(agent.id),
-                    label: `${agent.agentCode ?? "-"} - ${agent.name}`,
-                  }))}
+                  searchAction={searchAgentsAction}
                   value={field.state.value}
                   onValueChange={(v) => field.handleChange(String(v))}
                 />
               </FieldContent>
             </Field>
-          )
+          );
         }}
       </form.Field>
 
       <form.Field
         name="pointItemId"
         validators={{
-          onSubmit: ({ value: v }) =>
-            v ? undefined : "请选择积分事项",
+          onSubmit: ({ value: v }) => (v ? undefined : "请选择积分事项"),
         }}
       >
         {(field) => {
-          const hasError = field.state.meta.errors.length > 0
+          const hasError = field.state.meta.errors.length > 0;
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
@@ -143,7 +141,7 @@ export function AgentPointRecordForm({
                 />
               </FieldContent>
             </Field>
-          )
+          );
         }}
       </form.Field>
 
@@ -163,7 +161,6 @@ export function AgentPointRecordForm({
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder="留空则使用事项默认积分"
               />
-              <FieldDescription>事项未配置默认积分时必填。</FieldDescription>
             </FieldContent>
           </Field>
         )}
@@ -188,5 +185,5 @@ export function AgentPointRecordForm({
         )}
       </form.Field>
     </form>
-  )
+  );
 }

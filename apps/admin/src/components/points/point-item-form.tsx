@@ -1,25 +1,24 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
-import { useRef } from "react"
-import { toast } from "sonner"
+import { useForm } from "@tanstack/react-form";
+import { useRef } from "react";
+import { toast } from "sonner";
 
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 export type PointItemFormValue = {
-  id?: number
-  name?: string
-  category?: string
-  pointAmount?: number | null
-  annualLimit?: number | null
-}
+  id?: number;
+  name?: string;
+  category?: string;
+  pointAmount?: number | null;
+  annualLimit?: number | null;
+};
 
 export function PointItemForm({
   action,
@@ -29,12 +28,12 @@ export function PointItemForm({
 }: {
   action: (
     formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>
-  value?: PointItemFormValue
-  id?: string
-  onSuccess?: () => void
+  ) => { success: true } | void | Promise<{ success: true } | void>;
+  value?: PointItemFormValue;
+  id?: string;
+  onSuccess?: () => void;
 }) {
-  const formRef = useRef<HTMLFormElement>(null)
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm({
     defaultValues: {
@@ -44,32 +43,32 @@ export function PointItemForm({
       annualLimit: value?.annualLimit != null ? String(value.annualLimit) : "",
     },
     onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) return
+      if (!formRef.current) return;
 
-      const formData = new FormData(formRef.current)
-      formData.set("name", formValue.name)
-      formData.set("category", formValue.category)
-      formData.set("pointAmount", formValue.pointAmount)
-      formData.set("annualLimit", formValue.annualLimit)
+      const formData = new FormData(formRef.current);
+      formData.set("name", formValue.name);
+      formData.set("category", formValue.category);
+      formData.set("pointAmount", formValue.pointAmount);
+      formData.set("annualLimit", formValue.annualLimit);
 
       if (value?.id) {
-        formData.set("id", String(value.id))
+        formData.set("id", String(value.id));
       }
 
-      const result = await action(formData)
+      const result = await action(formData);
       if (result?.success) {
-        const isCreate = !value?.id
-        toast.success(isCreate ? "积分事项已创建" : "积分事项已保存")
-        onSuccess?.()
+        const isCreate = !value?.id;
+        toast.success(isCreate ? "积分事项已创建" : "积分事项已保存");
+        onSuccess?.();
       }
     },
-  })
+  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    await form.handleSubmit()
-  }
+    event.preventDefault();
+    event.stopPropagation();
+    await form.handleSubmit();
+  };
 
   return (
     <form
@@ -90,7 +89,7 @@ export function PointItemForm({
         }}
       >
         {(field) => {
-          const hasError = field.state.meta.errors.length > 0
+          const hasError = field.state.meta.errors.length > 0;
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
@@ -109,7 +108,7 @@ export function PointItemForm({
                 </FieldError>
               </FieldContent>
             </Field>
-          )
+          );
         }}
       </form.Field>
 
@@ -121,7 +120,7 @@ export function PointItemForm({
         }}
       >
         {(field) => {
-          const hasError = field.state.meta.errors.length > 0
+          const hasError = field.state.meta.errors.length > 0;
           return (
             <Field data-invalid={hasError || undefined}>
               <FieldContent>
@@ -140,7 +139,7 @@ export function PointItemForm({
                 </FieldError>
               </FieldContent>
             </Field>
-          )
+          );
         }}
       </form.Field>
 
@@ -160,9 +159,6 @@ export function PointItemForm({
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder="留空表示发放时手填"
               />
-              <FieldDescription>
-                留空时，新增代理人积分时必须填写积分值。
-              </FieldDescription>
             </FieldContent>
           </Field>
         )}
@@ -189,5 +185,5 @@ export function PointItemForm({
         )}
       </form.Field>
     </form>
-  )
+  );
 }

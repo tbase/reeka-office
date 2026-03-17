@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 
 import { getDb, type DBExecutor, withTransaction } from '../context'
 import type { PlanTaskCompleted } from '../domain/events'
@@ -8,10 +8,11 @@ import { DrizzleDomainEventStore } from '../infrastructure/domain-event-store'
 import { DrizzlePlanEnrollmentRepository } from '../infrastructure/plan-enrollment-repository'
 import { DrizzlePlanRepository } from '../infrastructure/plan-repository'
 import { DomainPointPlanRewardPort } from '../infrastructure/point-reward-port'
+import type { TenantScope } from '../scope'
 import { planDomainEvents } from '../schema'
 
-async function requireEnrollment(db: DBExecutor, enrollmentId: number): Promise<PlanEnrollment> {
-  const repository = new DrizzlePlanEnrollmentRepository(db)
+async function requireEnrollment(db: DBExecutor, scope: TenantScope, enrollmentId: number): Promise<PlanEnrollment> {
+  const repository = new DrizzlePlanEnrollmentRepository(db, scope.tenantId)
   const enrollment = await repository.findById(enrollmentId)
   if (!enrollment) {
     throw new Error('计划实例不存在')
@@ -22,10 +23,11 @@ async function requireEnrollment(db: DBExecutor, enrollmentId: number): Promise<
 
 async function persistEnrollmentAndEvents(
   db: DBExecutor,
+  scope: TenantScope,
   enrollment: PlanEnrollment,
   eventStore: DomainEventStore,
 ): Promise<PlanTaskCompleted[]> {
-  const enrollmentRepository = new DrizzlePlanEnrollmentRepository(db)
+  const enrollmentRepository = new DrizzlePlanEnrollmentRepository(db, scope.tenantId)
   await enrollmentRepository.save(enrollment)
 
   const assignedEvent = enrollment.pullAssignedEvent()
@@ -72,13 +74,21 @@ export interface AssignPlanToAgentInput {
 }
 
 export class AssignPlanToAgentCommand {
-  async execute(input: AssignPlanToAgentInput): Promise<number | null> {
-    return withTransaction(async (tx) => {
-      const planRepository = new DrizzlePlanRepository(tx)
-      const enrollmentRepository = new DrizzlePlanEnrollmentRepository(tx)
-      const eventStore = new DrizzleDomainEventStore(tx)
+  private readonly scope: TenantScope
+  private readonly input: AssignPlanToAgentInput
 
-      const plan = await planRepository.findById(input.planId)
+  constructor(scope: TenantScope, input: AssignPlanToAgentInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<number | null> {
+    return withTransaction(async (tx) => {
+      const planRepository = new DrizzlePlanRepository(tx, this.scope.tenantId)
+      const enrollmentRepository = new DrizzlePlanEnrollmentRepository(tx, this.scope.tenantId)
+      const eventStore = new DrizzleDomainEventStore(tx, this.scope.tenantId)
+
+      const plan = await planRepository.findById(this.input.planId)
       if (!plan) {
         throw new Error('计划不存在')
       }
@@ -87,14 +97,14 @@ export class AssignPlanToAgentCommand {
         throw new Error('只有已发布的计划可被指派')
       }
 
-      const existed = await enrollmentRepository.findByPlanAndAgent(input.planId, input.agentId)
+      const existed = await enrollmentRepository.findByPlanAndAgent(this.input.planId, this.input.agentId)
       if (existed) {
         throw new Error('该代理人已参与当前计划')
       }
 
-      const enrollment = PlanEnrollment.assign(input)
-      enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds(), input.assignedAt ?? new Date())
-      await persistEnrollmentAndEvents(tx, enrollment, eventStore)
+      const enrollment = PlanEnrollment.assign(this.input)
+      enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds(), this.input.assignedAt ?? new Date())
+      await persistEnrollmentAndEvents(tx, this.scope, enrollment, eventStore)
       return enrollment.id
     })
   }
@@ -109,28 +119,36 @@ export interface SubmitPlanTaskCheckinInput {
 }
 
 export class SubmitPlanTaskCheckinCommand {
-  async execute(input: SubmitPlanTaskCheckinInput): Promise<number | null> {
+  private readonly scope: TenantScope
+  private readonly input: SubmitPlanTaskCheckinInput
+
+  constructor(scope: TenantScope, input: SubmitPlanTaskCheckinInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<number | null> {
     return withTransaction(async (tx) => {
-      const planRepository = new DrizzlePlanRepository(tx)
-      const eventStore = new DrizzleDomainEventStore(tx)
-      const enrollment = await requireEnrollment(tx, input.enrollmentId)
+      const planRepository = new DrizzlePlanRepository(tx, this.scope.tenantId)
+      const eventStore = new DrizzleDomainEventStore(tx, this.scope.tenantId)
+      const enrollment = await requireEnrollment(tx, this.scope, this.input.enrollmentId)
       const plan = await planRepository.findById(enrollment.planId)
       if (!plan) {
         throw new Error('计划不存在')
       }
 
-      const task = plan.getTaskSnapshot(input.taskId)
+      const task = plan.getTaskSnapshot(this.input.taskId)
       if (!task) {
         throw new Error('任务不存在')
       }
 
       enrollment.submitCheckin(task, {
-        fileIds: input.evidenceFileIds,
-      }, input.completedAt ?? new Date(), input.remark)
-      enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds(), input.completedAt ?? new Date())
+        fileIds: this.input.evidenceFileIds,
+      }, this.input.completedAt ?? new Date(), this.input.remark)
+      enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds(), this.input.completedAt ?? new Date())
 
-      await persistEnrollmentAndEvents(tx, enrollment, eventStore)
-      return enrollment.getCompletedTaskId(input.taskId)
+      await persistEnrollmentAndEvents(tx, this.scope, enrollment, eventStore)
+      return enrollment.getCompletedTaskId(this.input.taskId)
     })
   }
 }
@@ -143,26 +161,34 @@ export interface CompletePlanMetricTaskInput {
 }
 
 export class CompletePlanMetricTaskCommand {
-  async execute(input: CompletePlanMetricTaskInput): Promise<number | null> {
+  private readonly scope: TenantScope
+  private readonly input: CompletePlanMetricTaskInput
+
+  constructor(scope: TenantScope, input: CompletePlanMetricTaskInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<number | null> {
     return withTransaction(async (tx) => {
-      const planRepository = new DrizzlePlanRepository(tx)
-      const eventStore = new DrizzleDomainEventStore(tx)
-      const enrollment = await requireEnrollment(tx, input.enrollmentId)
+      const planRepository = new DrizzlePlanRepository(tx, this.scope.tenantId)
+      const eventStore = new DrizzleDomainEventStore(tx, this.scope.tenantId)
+      const enrollment = await requireEnrollment(tx, this.scope, this.input.enrollmentId)
       const plan = await planRepository.findById(enrollment.planId)
       if (!plan) {
         throw new Error('计划不存在')
       }
 
-      const task = plan.getTaskSnapshot(input.taskId)
+      const task = plan.getTaskSnapshot(this.input.taskId)
       if (!task) {
         throw new Error('任务不存在')
       }
 
-      enrollment.completeMetricTask(task, input.remark, input.completedAt ?? new Date())
-      enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds(), input.completedAt ?? new Date())
+      enrollment.completeMetricTask(task, this.input.remark, this.input.completedAt ?? new Date())
+      enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds(), this.input.completedAt ?? new Date())
 
-      await persistEnrollmentAndEvents(tx, enrollment, eventStore)
-      return enrollment.getCompletedTaskId(input.taskId)
+      await persistEnrollmentAndEvents(tx, this.scope, enrollment, eventStore)
+      return enrollment.getCompletedTaskId(this.input.taskId)
     })
   }
 }
@@ -173,13 +199,21 @@ export interface GraduatePlanEnrollmentInput {
 }
 
 export class GraduatePlanEnrollmentCommand {
-  async execute(input: GraduatePlanEnrollmentInput): Promise<boolean> {
-    await withTransaction(async (tx) => {
-      const enrollment = await requireEnrollment(tx, input.enrollmentId)
-      const eventStore = new DrizzleDomainEventStore(tx)
+  private readonly scope: TenantScope
+  private readonly input: GraduatePlanEnrollmentInput
 
-      enrollment.graduate(input.graduatedAt ?? new Date())
-      await persistEnrollmentAndEvents(tx, enrollment, eventStore)
+  constructor(scope: TenantScope, input: GraduatePlanEnrollmentInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<boolean> {
+    await withTransaction(async (tx) => {
+      const enrollment = await requireEnrollment(tx, this.scope, this.input.enrollmentId)
+      const eventStore = new DrizzleDomainEventStore(tx, this.scope.tenantId)
+
+      enrollment.graduate(this.input.graduatedAt ?? new Date())
+      await persistEnrollmentAndEvents(tx, this.scope, enrollment, eventStore)
     })
 
     return true
@@ -192,13 +226,21 @@ export interface CancelPlanEnrollmentInput {
 }
 
 export class CancelPlanEnrollmentCommand {
-  async execute(input: CancelPlanEnrollmentInput): Promise<boolean> {
-    await withTransaction(async (tx) => {
-      const enrollment = await requireEnrollment(tx, input.enrollmentId)
-      const eventStore = new DrizzleDomainEventStore(tx)
+  private readonly scope: TenantScope
+  private readonly input: CancelPlanEnrollmentInput
 
-      enrollment.cancel(input.cancelledAt ?? new Date())
-      await persistEnrollmentAndEvents(tx, enrollment, eventStore)
+  constructor(scope: TenantScope, input: CancelPlanEnrollmentInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<boolean> {
+    await withTransaction(async (tx) => {
+      const enrollment = await requireEnrollment(tx, this.scope, this.input.enrollmentId)
+      const eventStore = new DrizzleDomainEventStore(tx, this.scope.tenantId)
+
+      enrollment.cancel(this.input.cancelledAt ?? new Date())
+      await persistEnrollmentAndEvents(tx, this.scope, enrollment, eventStore)
     })
 
     return true
@@ -210,16 +252,24 @@ export interface RecalculatePlanEnrollmentProgressInput {
 }
 
 export class RecalculatePlanEnrollmentProgressCommand {
-  async execute(input: RecalculatePlanEnrollmentProgressInput): Promise<boolean> {
+  private readonly scope: TenantScope
+  private readonly input: RecalculatePlanEnrollmentProgressInput
+
+  constructor(scope: TenantScope, input: RecalculatePlanEnrollmentProgressInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<boolean> {
     await withTransaction(async (tx) => {
-      const enrollment = await requireEnrollment(tx, input.enrollmentId)
-      const plan = await new DrizzlePlanRepository(tx).findById(enrollment.planId)
+      const enrollment = await requireEnrollment(tx, this.scope, this.input.enrollmentId)
+      const plan = await new DrizzlePlanRepository(tx, this.scope.tenantId).findById(enrollment.planId)
       if (!plan) {
         throw new Error('计划不存在')
       }
 
       enrollment.recalculateEligibility(plan.getRequiredActiveTaskIds())
-      await persistEnrollmentAndEvents(tx, enrollment, new DrizzleDomainEventStore(tx))
+      await persistEnrollmentAndEvents(tx, this.scope, enrollment, new DrizzleDomainEventStore(tx, this.scope.tenantId))
     })
 
     return true
@@ -227,6 +277,7 @@ export class RecalculatePlanEnrollmentProgressCommand {
 }
 
 export interface ProcessPlanTaskRewardsInput {
+  tenantId?: number
   limit?: number
 }
 
@@ -239,9 +290,14 @@ export class ProcessPlanTaskRewardsCommand {
 
   async execute(input: ProcessPlanTaskRewardsInput = {}): Promise<number> {
     const rows = await getDb()
-      .select({ payload: planDomainEvents.payload })
+      .select({ tenantId: planDomainEvents.tenantId, payload: planDomainEvents.payload })
       .from(planDomainEvents)
-      .where(eq(planDomainEvents.eventType, 'PlanTaskCompleted'))
+      .where(input.tenantId
+        ? and(
+            eq(planDomainEvents.tenantId, input.tenantId),
+            eq(planDomainEvents.eventType, 'PlanTaskCompleted'),
+          )
+        : eq(planDomainEvents.eventType, 'PlanTaskCompleted'))
       .orderBy(asc(planDomainEvents.id))
       .limit(input.limit ?? 100)
 
@@ -253,8 +309,13 @@ export class ProcessPlanTaskRewardsCommand {
         continue
       }
 
-      await this.rewardPort.grantTaskReward(rewardEvent)
-      processedCount += 1
+      if (typeof row.tenantId === 'number') {
+        await this.rewardPort.grantTaskReward({
+          tenantId: row.tenantId,
+          ...rewardEvent,
+        })
+        processedCount += 1
+      }
     }
 
     return processedCount

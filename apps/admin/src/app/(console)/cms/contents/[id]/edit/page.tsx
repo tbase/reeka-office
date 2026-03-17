@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { ContentFormEdit } from "@/components/cms/content-form-edit";
 import { updateContentAction } from "../../actions";
@@ -32,10 +33,11 @@ export default async function CmsContentEditPage({
 }) {
   const { id: idParam } = await params;
   const id = parseId(idParam);
+  const ctx = await getRequiredAdminContext();
 
   const [categories, contents] = await Promise.all([
-    new ListCategoriesQuery().query(),
-    new ListContentsQuery().query(),
+    new ListCategoriesQuery(ctx).query(),
+    new ListContentsQuery(ctx).query(),
   ]);
 
   const content = contents.contents.find((item) => item.id === id) ?? null;

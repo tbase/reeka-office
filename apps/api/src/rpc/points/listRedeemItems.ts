@@ -1,7 +1,7 @@
 import { ListAgentRedeemCountsQuery, ListRedemptionProductsQuery } from "@reeka-office/domain-point";
 import { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 import { normalizeImageURL } from "../../lib/image-url";
 import { redeemItemIdSchema } from "./shared";
 
@@ -35,18 +35,18 @@ function isProductWithinValidity(publishedAt: Date | null, validPeriodMonths: nu
 
 export const listRedeemItems = rpc.define({
   inputSchema,
-  execute: async ({ input, context }) => {
-    const agentId = context.user?.agentId
-
+  execute: mustAgent(async ({ input, context }) => {
     const redeemCountMap = new Map<number, number>()
-    if (agentId) {
-      const counts = await new ListAgentRedeemCountsQuery({ agentId }).query()
-      for (const item of counts) {
-        redeemCountMap.set(item.productId, item.redeemedCount)
-      }
+    const counts = await new ListAgentRedeemCountsQuery(context, {
+      agentId: context.agent.agentId,
+    }).query()
+    for (const item of counts) {
+      redeemCountMap.set(item.productId, item.redeemedCount)
     }
 
-    const products = await new ListRedemptionProductsQuery({ status: "published" }).query();
+    const products = await new ListRedemptionProductsQuery(context, {
+      status: "published",
+    }).query();
     const validProducts = products.filter((product) =>
       isProductWithinValidity(product.publishedAt, product.validPeriodMonths),
     )
@@ -82,5 +82,5 @@ export const listRedeemItems = rpc.define({
     }
 
     return sortedProducts;
-  },
+  }),
 });

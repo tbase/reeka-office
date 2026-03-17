@@ -1,10 +1,11 @@
 import { ListContentsQuery } from "@reeka-office/domain-cms";
-import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmAction } from "@/components/ui/confirm-action";
+import { Empty } from "@/components/ui/empty";
 import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { deleteContentAction } from "./actions";
 
@@ -13,7 +14,9 @@ export async function ContentsCardList({
 }: {
   categoryId: number | null;
 }) {
+  const ctx = await getRequiredAdminContext();
   const { contents, total } = await new ListContentsQuery(
+    ctx,
     categoryId ? { categoryId } : {},
   ).query();
 
@@ -22,21 +25,7 @@ export async function ContentsCardList({
       <p className="text-muted-foreground text-xs">当前分类内容总数：{total}</p>
 
       {contents.length === 0 ? (
-        <div className="text-muted-foreground rounded-md border border-dashed px-3 py-6 text-sm">
-          当前分类下暂无内容。
-          <LinkButton
-            href={
-              categoryId
-                ? `/cms/contents/new?categoryId=${categoryId}`
-                : "/cms/contents/new"
-            }
-            size="sm"
-            className="ml-2"
-          >
-            <PlusIcon className="size-3.5" />
-            新增内容
-          </LinkButton>
-        </div>
+        <Empty title="当前分类下暂无内容" />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {contents.map((item) => (

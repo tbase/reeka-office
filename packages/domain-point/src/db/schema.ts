@@ -1,13 +1,13 @@
 import { sql } from 'drizzle-orm'
 import {
   datetime,
+  foreignKey,
   index,
   int,
   json,
   mysqlEnum,
   mysqlTable,
   text,
-  timestamp,
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/mysql-core'
@@ -16,20 +16,22 @@ export type PointItemStandard = Record<string, unknown>
 
 export const pointItems = mysqlTable('point_items', {
   id: int('id').autoincrement().primaryKey(),
+  tenantId: int('tenant_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   category: varchar('category', { length: 100 }).notNull(),
   pointAmount: int('point_amount'),
   annualLimit: int('annual_limit'),
   standard: json('standard').$type<PointItemStandard | null>(),
   createdBy: int('created_by').notNull(),
-  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('point_items_category_idx').on(t.category),
+  index('point_items_tenant_category_idx').on(t.tenantId, t.category),
 ])
 
 export const pointRecords = mysqlTable('point_records', {
   id: int('id').autoincrement().primaryKey(),
+  tenantId: int('tenant_id').notNull(),
   agentId: int('agent_id').notNull(),
   pointItemId: int('point_item_id').notNull().references(() => pointItems.id),
   points: int('points').notNull(),
@@ -38,22 +40,26 @@ export const pointRecords = mysqlTable('point_records', {
   sourceRef: varchar('source_ref', { length: 100 }),
   remark: text('remark'),
   createdBy: int('created_by').notNull(),
-  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('point_records_agent_created_idx').on(t.agentId, t.createdAt),
-  index('point_records_limit_check_idx').on(t.agentId, t.pointItemId, t.occurredYear),
-  uniqueIndex('point_records_source_udx').on(t.sourceType, t.sourceRef),
+  index('point_records_tenant_agent_created_idx').on(t.tenantId, t.agentId, t.createdAt),
+  index('point_records_tenant_limit_check_idx').on(t.tenantId, t.agentId, t.pointItemId, t.occurredYear),
+  uniqueIndex('point_records_tenant_source_udx').on(t.tenantId, t.sourceType, t.sourceRef),
 ])
 
-export const agentPointBalances = mysqlTable('agent_point_balances', {
+export const agentPointBalances = mysqlTable('point_agent_balances', {
   agentId: int('agent_id').primaryKey(),
+  tenantId: int('tenant_id').notNull(),
   currentPoints: int('current_points').notNull().default(0),
-  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
-})
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
+}, (t) => [
+  index('point_agent_balances_tenant_points_idx').on(t.tenantId, t.currentPoints),
+])
 
-export const redemptionProducts = mysqlTable('redemption_products', {
+export const redemptionProducts = mysqlTable('point_redemption_products', {
   id: int('id').autoincrement().primaryKey(),
+  tenantId: int('tenant_id').notNull(),
   redeemCategory: varchar('redeem_category', { length: 100 }).notNull(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
@@ -67,26 +73,32 @@ export const redemptionProducts = mysqlTable('redemption_products', {
   publishedAt: datetime('published_at'),
   offShelfAt: datetime('off_shelf_at'),
   createdBy: int('created_by').notNull(),
-  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull(),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('redemption_products_status_idx').on(t.status),
-  index('redemption_products_valid_period_months_idx').on(t.validPeriodMonths),
+  index('point_redemption_products_tenant_status_idx').on(t.tenantId, t.status),
+  index('point_redemption_products_tenant_valid_period_idx').on(t.tenantId, t.validPeriodMonths),
 ])
 
-export const redemptionRecords = mysqlTable('redemption_records', {
+export const redemptionRecords = mysqlTable('point_redemption_records', {
   id: int('id').autoincrement().primaryKey(),
-  productId: int('product_id').notNull().references(() => redemptionProducts.id),
+  tenantId: int('tenant_id').notNull(),
+  productId: int('product_id').notNull(),
   agentId: int('agent_id').notNull(),
   pointsCost: int('points_cost').notNull(),
   status: mysqlEnum('status', ['success', 'cancelled']).default('success').notNull(),
   remark: text('remark'),
-  redeemedAt: timestamp('redeemed_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  redeemedAt: datetime('redeemed_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
-  index('redemption_records_agent_time_idx').on(t.agentId, t.redeemedAt),
-  index('redemption_records_agent_product_idx').on(t.agentId, t.productId),
-  index('redemption_records_product_time_idx').on(t.productId, t.redeemedAt),
+  foreignKey({
+    name: 'point_redemption_records_product_fk',
+    columns: [t.productId],
+    foreignColumns: [redemptionProducts.id],
+  }),
+  index('point_redemption_records_tenant_agent_time_idx').on(t.tenantId, t.agentId, t.redeemedAt),
+  index('point_redemption_records_tenant_agent_product_idx').on(t.tenantId, t.agentId, t.productId),
+  index('point_redemption_records_tenant_product_time_idx').on(t.tenantId, t.productId, t.redeemedAt),
 ])
 
 export type PointItemRow = typeof pointItems.$inferSelect

@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, type DB } from "../context";
 import { categories, type FieldSchemaItem } from "../schema";
+import type { TenantScope } from "../scope";
 
 export interface UpdateCategoryInput {
   id: number;
@@ -13,8 +14,16 @@ export interface UpdateCategoryInput {
 
 export class UpdateCategoryCommand {
   private readonly db: DB;
-  constructor(private readonly input: UpdateCategoryInput) {
+  private readonly scope: TenantScope;
+  private readonly input: UpdateCategoryInput;
+
+  constructor(
+    scope: TenantScope,
+    input: UpdateCategoryInput,
+  ) {
     this.db = getDb();
+    this.scope = scope;
+    this.input = input;
   }
 
   async execute(): Promise<boolean> {
@@ -29,7 +38,10 @@ export class UpdateCategoryCommand {
     const [result] = await this.db
       .update(categories)
       .set(values)
-      .where(eq(categories.id, this.input.id));
+      .where(and(
+        eq(categories.tenantId, this.scope.tenantId),
+        eq(categories.id, this.input.id),
+      ));
 
     return result.affectedRows > 0;
   }

@@ -1,7 +1,7 @@
 import { RedeemProductCommand } from "@reeka-office/domain-point";
 import type { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 import { redeemSubmitInputSchema } from "./shared";
 
 export type SubmitRedeemInput = z.infer<typeof redeemSubmitInputSchema>;
@@ -9,11 +9,11 @@ export type SubmitRedeemOutput = { success: boolean; message: string };
 
 export const submitRedeem = rpc.define({
   inputSchema: redeemSubmitInputSchema,
-  execute: async ({ input, context }) => {
+  execute: mustAgent(async ({ input, context }) => {
     try {
-      await new RedeemProductCommand({
+      await new RedeemProductCommand(context, {
         productId: Number(input.itemId),
-        agentId: context.user!.agentId,
+        agentId: context.agent.agentId,
         remark: "来自小程序兑换",
       }).execute();
 
@@ -28,5 +28,5 @@ export const submitRedeem = rpc.define({
         message,
       };
     }
-  },
+  }),
 });

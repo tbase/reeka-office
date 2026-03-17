@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@reeka-office/domain-cms": "workspace:*",
-    "@reeka-office/domain-newbie": "workspace:*",
     "@reeka-office/domain-point": "workspace:*",
     "@reeka-office/domain-user": "workspace:*",
     "@reeka-office/jsonrpc": "workspace:*",

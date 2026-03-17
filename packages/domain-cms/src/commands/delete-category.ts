@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, type DB } from "../context";
 import { categories, contents } from "../schema";
+import type { TenantScope } from "../scope";
 
 export interface DeleteCategoryInput {
   id: number;
@@ -8,15 +9,26 @@ export interface DeleteCategoryInput {
 
 export class DeleteCategoryCommand {
   private readonly db: DB;
-  constructor(private readonly input: DeleteCategoryInput) {
+  private readonly scope: TenantScope;
+  private readonly input: DeleteCategoryInput;
+
+  constructor(
+    scope: TenantScope,
+    input: DeleteCategoryInput,
+  ) {
     this.db = getDb();
+    this.scope = scope;
+    this.input = input;
   }
 
   async execute(): Promise<boolean> {
     const existingItems = await this.db
       .select({ id: contents.id })
       .from(contents)
-      .where(eq(contents.categoryId, this.input.id))
+      .where(and(
+        eq(contents.tenantId, this.scope.tenantId),
+        eq(contents.categoryId, this.input.id),
+      ))
       .limit(1);
 
     if (existingItems.length > 0) {
@@ -25,7 +37,10 @@ export class DeleteCategoryCommand {
 
     const [result] = await this.db
       .delete(categories)
-      .where(eq(categories.id, this.input.id));
+      .where(and(
+        eq(categories.tenantId, this.scope.tenantId),
+        eq(categories.id, this.input.id),
+      ));
 
     return result.affectedRows > 0;
   }

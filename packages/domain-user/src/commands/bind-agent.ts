@@ -1,15 +1,17 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agents, users } from '../db/schema'
 
 export interface BindAgentInput {
   openid: string
-  agentCode: string
-  agentName: string
+  code: string
+  leaderCode: string
+  unit: string
 }
 
 export interface BindAgentResult {
   agentId: number
+  tenantId: number
   agentCode: string
   agentName: string
 }
@@ -24,31 +26,26 @@ export class BindAgentCommand {
   async execute(): Promise<BindAgentResult> {
     return this.db.transaction(async (tx) => {
       const agentRows = await tx
-        .select()
+        .select({
+          id: agents.id,
+          tenantId: agents.tenantId,
+          agentCode: agents.agentCode,
+          name: agents.name,
+        })
         .from(agents)
-        .where(eq(agents.agentCode, this.input.agentCode))
+        .where(and(
+          eq(agents.agentCode, this.input.code),
+          eq(agents.leaderCode, this.input.leaderCode),
+          eq(agents.unit, this.input.unit),
+        ))
         .limit(1)
 
       const existingAgent = agentRows[0]
-      const agentCode = existingAgent?.agentCode ?? this.input.agentCode
-      const agentName = existingAgent?.name ?? this.input.agentName
-      let agentId = existingAgent?.id
-
       if (!existingAgent) {
-        const result = await tx.insert(agents).values({
-          agentCode,
-          name: agentName,
-        }).$returningId()
-
-        agentId = result[0]?.id
-        if (!agentId) {
-          throw new Error('创建代理人失败')
-        }
-      }
-
-      if (!agentId) {
         throw new Error('代理人不存在')
       }
+
+      const agentId = existingAgent.id
 
       const userRows = await tx
         .select()
@@ -75,8 +72,9 @@ export class BindAgentCommand {
 
       return {
         agentId,
-        agentCode,
-        agentName,
+        tenantId: existingAgent.tenantId,
+        agentCode: existingAgent.agentCode ?? this.input.code,
+        agentName: existingAgent.name,
       }
     })
   }

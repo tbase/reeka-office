@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { CategoryFormEdit } from "@/components/cms/category-form-edit";
 
@@ -31,7 +32,8 @@ export default async function CmsCategoryEditPage({
   const { id: idParam } = await params;
   const id = parseId(idParam);
 
-  const categories = await new ListCategoriesQuery().query();
+  const ctx = await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery(ctx).query();
   const category = categories.find((item) => item.id === id) ?? null;
 
   if (!category) {

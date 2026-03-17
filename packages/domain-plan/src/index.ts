@@ -8,6 +8,7 @@ export {
   type PlanSchema,
   type SetupOptions
 } from './context'
+export type { TenantScope } from './scope'
 export {
   PlanEnrollment
 } from './domain/enrollment/plan-enrollment'
@@ -38,4 +39,3 @@ export {
 } from './infrastructure/point-reward-port'
 export * from './queries'
 export * from './schema'
-

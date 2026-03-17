@@ -5,6 +5,7 @@ import {
   redemptionRecords,
   type RedemptionRecordRow,
 } from '../schema'
+import type { TenantScope } from '../scope'
 
 export interface ListAgentRedemptionRecordsInput {
   agentId: number
@@ -23,23 +24,32 @@ export interface ListAgentRedemptionRecordsResult {
 
 export class ListAgentRedemptionRecordsQuery {
   private readonly db: DB
+  private readonly scope: TenantScope
+  private readonly input: ListAgentRedemptionRecordsInput
 
-  constructor(private readonly input: ListAgentRedemptionRecordsInput) {
+  constructor(scope: TenantScope, input: ListAgentRedemptionRecordsInput) {
     this.db = getDb()
+    this.scope = scope
+    this.input = input
   }
 
   async query(): Promise<ListAgentRedemptionRecordsResult> {
     const whereClause = this.input.productId
       ? and(
+          eq(redemptionRecords.tenantId, this.scope.tenantId),
           eq(redemptionRecords.agentId, this.input.agentId),
           eq(redemptionRecords.productId, this.input.productId),
         )
-      : eq(redemptionRecords.agentId, this.input.agentId)
+      : and(
+          eq(redemptionRecords.tenantId, this.scope.tenantId),
+          eq(redemptionRecords.agentId, this.input.agentId),
+        )
 
     const [rows, totalRows] = await Promise.all([
       this.db
         .select({
           id: redemptionRecords.id,
+          tenantId: redemptionRecords.tenantId,
           productId: redemptionRecords.productId,
           agentId: redemptionRecords.agentId,
           pointsCost: redemptionRecords.pointsCost,
@@ -51,7 +61,10 @@ export class ListAgentRedemptionRecordsQuery {
           redeemCategory: redemptionProducts.redeemCategory,
         })
         .from(redemptionRecords)
-        .innerJoin(redemptionProducts, eq(redemptionProducts.id, redemptionRecords.productId))
+        .innerJoin(redemptionProducts, and(
+          eq(redemptionProducts.id, redemptionRecords.productId),
+          eq(redemptionProducts.tenantId, this.scope.tenantId),
+        ))
         .where(whereClause)
         .orderBy(desc(redemptionRecords.redeemedAt)),
       this.db.select({ value: count() }).from(redemptionRecords).where(whereClause),

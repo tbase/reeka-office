@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { Suspense } from "react"
 import { PlusIcon } from "lucide-react"
 
+import { Empty } from "@/components/ui/empty"
 import { LinkButton } from "@/components/ui/link-button"
 
 import { ProductList } from "./product-list"
@@ -45,11 +46,7 @@ export default async function ProductsPage({
 
       <Suspense
         key={status}
-        fallback={
-          <div className="text-muted-foreground rounded-md border border-dashed px-3 py-6 text-sm">
-            正在加载商品...
-          </div>
-        }
+        fallback={<Empty title="正在加载商品..." />}
       >
         <ProductList status={status} />
       </Suspense>

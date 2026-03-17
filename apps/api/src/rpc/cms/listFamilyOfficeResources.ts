@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 import { listFamilyOfficeResources as listFamilyOfficeResourcesData } from "./shared";
 
 const inputSchema = z.object({
@@ -37,7 +37,7 @@ export type ListFamilyOfficeResourcesOutput = {
 
 export const listFamilyOfficeResources = rpc.define({
   inputSchema,
-  execute: async (): Promise<ListFamilyOfficeResourcesOutput> => {
-    return listFamilyOfficeResourcesData();
-  },
+  execute: mustAgent(async ({ context }): Promise<ListFamilyOfficeResourcesOutput> => {
+    return listFamilyOfficeResourcesData(context.tenantId);
+  }),
 });

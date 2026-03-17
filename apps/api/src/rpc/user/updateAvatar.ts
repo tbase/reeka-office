@@ -2,16 +2,11 @@ import { UpdateAvatarCommand } from "@reeka-office/domain-user";
 import { createRpcError } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 
 const inputSchema = z.object({
   avatar: z.string().url(),
 });
-
-type RequestContext = {
-  openid: string;
-  envid: string;
-};
 
 export type UpdateAvatarInput = z.infer<typeof inputSchema>;
 export type UpdateAvatarOutput = {
@@ -20,12 +15,10 @@ export type UpdateAvatarOutput = {
 
 export const updateAvatar = rpc.define({
   inputSchema,
-  execute: async ({ input, context }) => {
-    const { openid } = context as RequestContext;
-
+  execute: mustAgent(async ({ input, context }) => {
     try {
       return await new UpdateAvatarCommand({
-        openid,
+        openid: context.openid,
         avatar: input.avatar,
       }).execute();
     } catch (error) {
@@ -35,5 +28,5 @@ export const updateAvatar = rpc.define({
 
       throw error;
     }
-  },
+  }),
 });

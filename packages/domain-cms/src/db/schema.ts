@@ -1,4 +1,4 @@
-import { int, json, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { datetime, int, json, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm/sql/sql";
 
 type FieldSchemaItemBase = {
@@ -33,25 +33,29 @@ export type ContentFields = Record<string, unknown>;
 
 export const categories = mysqlTable("cms_categories", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenant_id").notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   hideContent: int("hide_content").default(0).$type<boolean>().notNull(),
   fieldSchema: json("field_schema").$type<FieldSchemaItem[]>().notNull(),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull()
-});
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull()
+}, (t) => [
+  uniqueIndex("cms_categories_tenant_slug_udx").on(t.tenantId, t.slug),
+]);
 
 export const contents = mysqlTable("cms_contents", {
   id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenant_id").notNull(),
   categoryId: int("category_id")
     .notNull()
     .references(() => categories.id),
   name: varchar("name", { length: 255 }).notNull(),
   content: text("content").notNull(),
   fields: json("fields").$type<ContentFields>().notNull(),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow().notNull()
+  createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull()
 });
 
 export type CategoryRow = typeof categories.$inferSelect;

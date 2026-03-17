@@ -1,5 +1,7 @@
 import { ListCategoriesQuery } from "@reeka-office/domain-cms";
 
+import { getRequiredAdminContext } from "@/lib/admin-context";
+
 import { ContentFormDialog } from "./form-dialog";
 
 function parseOptionalId(value: string | undefined): number | undefined {
@@ -15,7 +17,8 @@ export default async function CmsContentNewModal({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  const categories = await new ListCategoriesQuery().query();
+  const ctx = await getRequiredAdminContext();
+  const categories = await new ListCategoriesQuery(ctx).query();
 
   const defaultCategoryId = parseOptionalId(
     typeof params.categoryId === "string" ? params.categoryId : undefined,

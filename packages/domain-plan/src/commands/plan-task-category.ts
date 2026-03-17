@@ -1,6 +1,7 @@
 import { getDb } from '../context'
 import { PlanTaskCategory } from '../domain/task-category/plan-task-category'
 import { DrizzlePlanTaskCategoryRepository } from '../infrastructure/plan-task-category-repository'
+import type { TenantScope } from '../scope'
 
 export interface CreatePlanTaskCategoryInput {
   name: string
@@ -9,16 +10,24 @@ export interface CreatePlanTaskCategoryInput {
 }
 
 export class CreatePlanTaskCategoryCommand {
-  async execute(input: CreatePlanTaskCategoryInput): Promise<number | null> {
-    const repository = new DrizzlePlanTaskCategoryRepository(getDb())
-    if (await repository.findByName(input.name)) {
+  private readonly scope: TenantScope
+  private readonly input: CreatePlanTaskCategoryInput
+
+  constructor(scope: TenantScope, input: CreatePlanTaskCategoryInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<number | null> {
+    const repository = new DrizzlePlanTaskCategoryRepository(getDb(), this.scope.tenantId)
+    if (await repository.findByName(this.input.name)) {
       throw new Error('任务分类已存在')
     }
 
     const category = PlanTaskCategory.create({
-      name: input.name,
-      description: input.description ?? null,
-      displayOrder: input.displayOrder ?? 0,
+      name: this.input.name,
+      description: this.input.description ?? null,
+      displayOrder: this.input.displayOrder ?? 0,
     })
 
     await repository.save(category)
@@ -34,22 +43,30 @@ export interface UpdatePlanTaskCategoryInput {
 }
 
 export class UpdatePlanTaskCategoryCommand {
-  async execute(input: UpdatePlanTaskCategoryInput): Promise<boolean> {
-    const repository = new DrizzlePlanTaskCategoryRepository(getDb())
-    const category = await repository.findById(input.id)
+  private readonly scope: TenantScope
+  private readonly input: UpdatePlanTaskCategoryInput
+
+  constructor(scope: TenantScope, input: UpdatePlanTaskCategoryInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<boolean> {
+    const repository = new DrizzlePlanTaskCategoryRepository(getDb(), this.scope.tenantId)
+    const category = await repository.findById(this.input.id)
     if (!category) {
       throw new Error('任务分类不存在')
     }
 
-    const duplicated = await repository.findByName(input.name)
-    if (duplicated && duplicated.id !== input.id) {
+    const duplicated = await repository.findByName(this.input.name)
+    if (duplicated && duplicated.id !== this.input.id) {
       throw new Error('任务分类已存在')
     }
 
     category.rename({
-      name: input.name,
-      description: input.description ?? null,
-      displayOrder: input.displayOrder,
+      name: this.input.name,
+      description: this.input.description ?? null,
+      displayOrder: this.input.displayOrder,
     })
 
     await repository.save(category)
@@ -62,20 +79,28 @@ export interface DisablePlanTaskCategoryInput {
 }
 
 export class DisablePlanTaskCategoryCommand {
-  async execute(input: DisablePlanTaskCategoryInput): Promise<boolean> {
-    const repository = new DrizzlePlanTaskCategoryRepository(getDb())
-    const category = await repository.findById(input.id)
+  private readonly scope: TenantScope
+  private readonly input: DisablePlanTaskCategoryInput
+
+  constructor(scope: TenantScope, input: DisablePlanTaskCategoryInput) {
+    this.scope = scope
+    this.input = input
+  }
+
+  async execute(): Promise<boolean> {
+    const repository = new DrizzlePlanTaskCategoryRepository(getDb(), this.scope.tenantId)
+    const category = await repository.findById(this.input.id)
     if (!category) {
       throw new Error('任务分类不存在')
     }
 
-    if (await repository.isInUse(input.id)) {
+    if (await repository.isInUse(this.input.id)) {
       category.disable()
       await repository.save(category)
       return true
     }
 
-    await repository.remove(input.id)
+    await repository.remove(this.input.id)
     return true
   }
 }

@@ -1,6 +1,7 @@
-import { asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
+import type { TenantScope } from '../scope'
 import {
   plans,
   planStages,
@@ -42,22 +43,34 @@ export interface PlanDetailItem {
 
 export class ListPlansQuery {
   private readonly db: DB
+  private readonly scope: TenantScope
+  private readonly input: ListPlansInput
 
-  constructor(private readonly input: ListPlansInput = {}) {
+  constructor(scope: TenantScope, input: ListPlansInput = {}) {
     this.db = getDb()
+    this.scope = scope
+    this.input = input
   }
 
   async query() {
     const query = this.db
       .select()
       .from(plans)
+      .where(eq(plans.tenantId, this.scope.tenantId))
       .orderBy(asc(plans.createdAt), asc(plans.id))
 
     if (!this.input.statuses || this.input.statuses.length === 0) {
       return query
     }
 
-    return query.where(inArray(plans.status, this.input.statuses))
+    return this.db
+      .select()
+      .from(plans)
+      .where(and(
+        eq(plans.tenantId, this.scope.tenantId),
+        inArray(plans.status, this.input.statuses),
+      ))
+      .orderBy(asc(plans.createdAt), asc(plans.id))
   }
 }
 
@@ -67,16 +80,23 @@ export interface GetPlanInput {
 
 export class GetPlanQuery {
   private readonly db: DB
+  private readonly scope: TenantScope
+  private readonly input: GetPlanInput
 
-  constructor(private readonly input: GetPlanInput) {
+  constructor(scope: TenantScope, input: GetPlanInput) {
     this.db = getDb()
+    this.scope = scope
+    this.input = input
   }
 
   async query(): Promise<PlanDetailItem | null> {
     const [plan] = await this.db
       .select()
       .from(plans)
-      .where(eq(plans.id, this.input.id))
+      .where(and(
+        eq(plans.tenantId, this.scope.tenantId),
+        eq(plans.id, this.input.id),
+      ))
       .limit(1)
 
     if (!plan) {
@@ -87,7 +107,10 @@ export class GetPlanQuery {
       this.db
         .select()
         .from(planStages)
-        .where(eq(planStages.planId, this.input.id))
+        .where(and(
+          eq(planStages.tenantId, this.scope.tenantId),
+          eq(planStages.planId, this.input.id),
+        ))
         .orderBy(asc(planStages.displayOrder), asc(planStages.id)),
       this.db
         .select({
@@ -105,8 +128,14 @@ export class GetPlanQuery {
           categoryName: planTaskCategories.name,
         })
         .from(planTasks)
-        .innerJoin(planTaskCategories, eq(planTaskCategories.id, planTasks.categoryId))
-        .where(eq(planTasks.planId, this.input.id))
+        .innerJoin(planTaskCategories, and(
+          eq(planTaskCategories.id, planTasks.categoryId),
+          eq(planTaskCategories.tenantId, this.scope.tenantId),
+        ))
+        .where(and(
+          eq(planTasks.tenantId, this.scope.tenantId),
+          eq(planTasks.planId, this.input.id),
+        ))
         .orderBy(asc(planTasks.stageId), asc(planTasks.displayOrder), asc(planTasks.id)),
     ])
 

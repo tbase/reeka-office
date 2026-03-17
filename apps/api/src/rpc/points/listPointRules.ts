@@ -1,7 +1,7 @@
 import { ListPointItemsQuery } from "@reeka-office/domain-point";
 import { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 
 const inputSchema = z.void();
 
@@ -14,8 +14,8 @@ export type ListPointRulesOutput = Array<{
 
 export const listPointRules = rpc.define({
   inputSchema,
-  execute: async () => {
-    const items = await new ListPointItemsQuery().query();
+  execute: mustAgent(async ({ context }) => {
+    const items = await new ListPointItemsQuery(context).query();
 
     return items.map((item) => ({
       task: item.name,
@@ -25,5 +25,5 @@ export const listPointRules = rpc.define({
           ? "不限次数"
           : `年度上限 ${item.annualLimit} 次`,
     }));
-  },
+  }),
 });

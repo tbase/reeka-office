@@ -1,7 +1,7 @@
 import { ListAgentPointRecordsQuery } from "@reeka-office/domain-point";
 import type { z } from "zod";
 
-import { rpc } from "../../context";
+import { mustAgent, rpc } from "../../context";
 import {
   agentInputSchema,
   formatDateTime
@@ -21,9 +21,9 @@ export type ListPointRecordsOutput = Array<{
 
 export const listPointRecords = rpc.define({
   inputSchema: agentInputSchema,
-  execute: async ({ context }): Promise<ListPointRecordsOutput> => {
-    const result = await new ListAgentPointRecordsQuery({
-      agentId: context.user!.agentId,
+  execute: mustAgent(async ({ context }): Promise<ListPointRecordsOutput> => {
+    const result = await new ListAgentPointRecordsQuery(context, {
+      agentId: context.agent.agentId,
     }).query();
 
     return result.records.map((record) => {
@@ -40,5 +40,5 @@ export const listPointRecords = rpc.define({
         note,
       };
     });
-  },
+  }),
 });

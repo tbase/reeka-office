@@ -1,81 +1,86 @@
 <script setup lang="ts">
-import { computed, onShow, ref } from 'wevu'
+import { computed, onShow, ref } from "wevu";
 
-import { useMutation } from '@/hooks/useMutation'
-import { usePointSummaryStore } from '@/stores/points'
-import { useUserStore } from '@/stores/user'
+import { useMutation } from "@/hooks/useMutation";
+import { usePointSummaryStore } from "@/stores/points";
+import { useUserStore } from "@/stores/user";
 
 definePageJson({
-  navigationBarTitleText: '我的',
-  backgroundColor: '#f6f7fb',
-})
+  navigationBarTitleText: "我的",
+  backgroundColor: "#f6f7fb",
+});
 
-const { user, refetch: refetchUser } = useUserStore()
-const { summary } = usePointSummaryStore()
-const requestingAvatar = ref(false)
+const { user, refetch: refetchUser } = useUserStore();
+const { summary } = usePointSummaryStore();
+const requestingAvatar = ref(false);
 
-const { mutate: updateAvatar, loading: avatarUpdating } = useMutation('user/updateAvatar', {
-  showLoading: '更新头像中...',
-})
+const { mutate: updateAvatar, loading: avatarUpdating } = useMutation(
+  "user/updateAvatar",
+  {
+    showLoading: "更新头像中...",
+  },
+);
 
 const member = computed(() => {
   return {
-    agentName: user.value?.agentName ?? '',
-    agentCode: user.value?.agentCode ?? '',
+    agentName: user.value?.agentName ?? "",
+    agentCode: user.value?.agentCode ?? "",
     avatar: user.value?.avatar ?? null,
-    currentPoints: summary.value?.currentPoints ?? '',
-  }
-})
+    currentPoints: summary.value?.currentPoints ?? "",
+  };
+});
 
 const syncAvatar = async (avatar: string) => {
-  const result = await updateAvatar({ avatar })
+  const result = await updateAvatar({ avatar });
   if (!result) {
     wx.showToast({
-      title: '头像更新失败',
-      icon: 'none',
-    })
-    return
+      title: "头像更新失败",
+      icon: "none",
+    });
+    return;
   }
 
-  await refetchUser()
-}
+  await refetchUser();
+};
 
-const onChooseAvatar = async (event: WechatMiniprogram.CustomEvent<{ avatarUrl?: string }>) => {
+const onChooseAvatar = async (
+  event: WechatMiniprogram.CustomEvent<{ avatarUrl?: string }>,
+) => {
   if (requestingAvatar.value || avatarUpdating.value) {
-    return
+    return;
   }
 
-  const avatarUrl = event.detail?.avatarUrl
+  const avatarUrl = event.detail?.avatarUrl;
   if (!avatarUrl) {
     wx.showToast({
-      title: '未获取到头像',
-      icon: 'none',
-    })
-    return
+      title: "未获取到头像",
+      icon: "none",
+    });
+    return;
   }
 
-  requestingAvatar.value = true
+  requestingAvatar.value = true;
   try {
-    await syncAvatar(avatarUrl)
+    await syncAvatar(avatarUrl);
   } catch {
     wx.showToast({
-      title: '头像更新失败',
-      icon: 'none',
-    })
+      title: "头像更新失败",
+      icon: "none",
+    });
   } finally {
-    requestingAvatar.value = false
+    requestingAvatar.value = false;
   }
-}
+};
 
 onShow(() => {
-  void refetchUser()
-})
+  void refetchUser();
+});
 
 const goMyPoints = () => {
   wx.navigateTo({
-    url: '/pages/mine/points/index',
-  })
-}
+    url: "/pages/mine/points/index",
+  });
+};
 </script>
 
 <template>
@@ -104,7 +109,9 @@ const goMyPoints = () => {
         </view>
 
         <view class="flex h-14 min-w-0 flex-1 flex-col justify-between">
-          <text class="block text-xl font-semibold tracking-wide text-slate-900">
+          <text
+            class="block text-xl font-semibold tracking-wide text-slate-900"
+          >
             {{ member.agentName }}
           </text>
           <text v-if="member.agentCode" class="block text-base text-slate-600">
@@ -120,9 +127,7 @@ const goMyPoints = () => {
         @tap="goMyPoints"
       >
         <view>
-          <text class="block text-xs text-rose-400">
-            积分管理
-          </text>
+          <text class="block text-xs text-rose-400"> 积分管理 </text>
           <text class="mt-1 block text-lg font-semibold text-rose-600">
             我的积分{{ member.currentPoints }}
           </text>

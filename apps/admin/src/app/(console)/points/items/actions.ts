@@ -7,48 +7,40 @@ import {
 } from "@reeka-office/domain-point"
 import { revalidatePath } from "next/cache"
 
+import { getRequiredAdminContext } from "@/lib/admin-context"
+import {
+  getFormDataValues,
+  parseOptionalId,
+  parseOptionalPositiveInt,
+  parseRequiredId,
+  parseRequiredText,
+} from "@/lib/form-data"
+
 const DEFAULT_OPERATOR_ID = 1
+const pointItemFieldNames = ["id", "name", "category", "pointAmount", "annualLimit"] as const
 
-function parseId(value: FormDataEntryValue | null): number {
-  const id = Number(value)
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("无效积分事项 ID")
+function parsePointItemInput(formData: FormData) {
+  const fields = getFormDataValues(formData, pointItemFieldNames)
+
+  return {
+    id: parseOptionalId(fields.id, "无效积分事项 ID"),
+    name: parseRequiredText(fields.name, "事项名称"),
+    category: parseRequiredText(fields.category, "事项类别"),
+    pointAmount: parseOptionalPositiveInt(fields.pointAmount, "积分金额"),
+    annualLimit: parseOptionalPositiveInt(fields.annualLimit, "每年次数上限"),
   }
-  return id
 }
 
-function parseRequiredText(value: FormDataEntryValue | null, label: string): string {
-  const text = String(value ?? "").trim()
-  if (!text) {
-    throw new Error(`${label}不能为空`)
-  }
-  return text
-}
-
-function parseOptionalPositiveInt(
-  value: FormDataEntryValue | null,
-  label: string,
-): number | null {
-  const raw = String(value ?? "").trim()
-  if (!raw) {
-    return null
-  }
-
-  const num = Number(raw)
-  if (!Number.isInteger(num) || num <= 0) {
-    throw new Error(`${label}必须为正整数`)
-  }
-
-  return num
+function parsePointItemId(formData: FormData): number {
+  const { id } = getFormDataValues(formData, ["id"] as const)
+  return parseRequiredId(id, "无效积分事项 ID")
 }
 
 export async function createPointItemAction(formData: FormData): Promise<{ success: true }> {
-  const name = parseRequiredText(formData.get("name"), "事项名称")
-  const category = parseRequiredText(formData.get("category"), "事项类别")
-  const pointAmount = parseOptionalPositiveInt(formData.get("pointAmount"), "积分金额")
-  const annualLimit = parseOptionalPositiveInt(formData.get("annualLimit"), "每年次数上限")
+  const ctx = await getRequiredAdminContext()
+  const { name, category, pointAmount, annualLimit } = parsePointItemInput(formData)
 
-  await new CreatePointItemCommand({
+  await new CreatePointItemCommand(ctx, {
     name,
     category,
     pointAmount,
@@ -63,14 +55,11 @@ export async function createPointItemAction(formData: FormData): Promise<{ succe
 }
 
 export async function updatePointItemAction(formData: FormData): Promise<{ success: true }> {
-  const id = parseId(formData.get("id"))
-  const name = parseRequiredText(formData.get("name"), "事项名称")
-  const category = parseRequiredText(formData.get("category"), "事项类别")
-  const pointAmount = parseOptionalPositiveInt(formData.get("pointAmount"), "积分金额")
-  const annualLimit = parseOptionalPositiveInt(formData.get("annualLimit"), "每年次数上限")
+  const ctx = await getRequiredAdminContext()
+  const { id, name, category, pointAmount, annualLimit } = parsePointItemInput(formData)
 
-  await new UpdatePointItemCommand({
-    id,
+  await new UpdatePointItemCommand(ctx, {
+    id: parseRequiredId(id, "无效积分事项 ID"),
     name,
     category,
     pointAmount,
@@ -84,8 +73,9 @@ export async function updatePointItemAction(formData: FormData): Promise<{ succe
 }
 
 export async function deletePointItemAction(formData: FormData) {
-  const id = parseId(formData.get("id"))
-  const ok = await new DeletePointItemCommand({ id }).execute()
+  const ctx = await getRequiredAdminContext()
+  const id = parsePointItemId(formData)
+  const ok = await new DeletePointItemCommand(ctx, { id }).execute()
   if (!ok) {
     throw new Error("删除失败，积分事项不存在")
   }

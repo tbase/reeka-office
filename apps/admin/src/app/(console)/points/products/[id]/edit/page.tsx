@@ -1,41 +1,43 @@
-import { ListRedemptionProductsQuery } from "@reeka-office/domain-point"
-import Link from "next/link"
-import { notFound } from "next/navigation"
+import { ListRedemptionProductsQuery } from "@reeka-office/domain-point";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { Button } from "@/components/ui/button"
+import { ProductFormEdit } from "@/components/points/product-form-edit";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { LinkButton } from "@/components/ui/link-button"
-import { ProductFormEdit } from "@/components/points/product-form-edit"
+} from "@/components/ui/card";
+import { LinkButton } from "@/components/ui/link-button";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { updateProductAction } from "../../actions"
+import { updateProductAction } from "../../actions";
 
 function parseId(value: string): number {
-  const id = Number(value)
+  const id = Number(value);
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("无效兑换商品 ID")
+    throw new Error("无效兑换商品 ID");
   }
-  return id
+  return id;
 }
 
 export default async function ProductEditPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id: idParam } = await params
-  const id = parseId(idParam)
+  const { id: idParam } = await params;
+  const id = parseId(idParam);
 
-  const products = await new ListRedemptionProductsQuery().query()
-  const product = products.find((row) => row.id === id) ?? null
+  const ctx = await getRequiredAdminContext();
+  const products = await new ListRedemptionProductsQuery(ctx).query();
+  const product = products.find((row) => row.id === id) ?? null;
 
   if (!product) {
-    notFound()
+    notFound();
   }
 
   if (product.status !== "draft") {
@@ -51,7 +53,7 @@ export default async function ProductEditPage({
           <Link href="/points/products">返回兑换商品列表</Link>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -60,7 +62,9 @@ export default async function ProductEditPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           编辑兑换商品：{product.title}
         </h1>
-        <p className="text-muted-foreground text-sm">草稿状态可编辑；发布后仅可下架。</p>
+        <p className="text-muted-foreground text-sm">
+          草稿状态可编辑；发布后仅可下架。
+        </p>
       </div>
 
       <ProductFormEdit
@@ -89,5 +93,5 @@ export default async function ProductEditPage({
         </LinkButton>
       </div>
     </div>
-  )
+  );
 }

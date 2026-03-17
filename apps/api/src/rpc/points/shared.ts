@@ -3,7 +3,9 @@ import { z } from "zod";
 export type RequestContext = {
   openid: string;
   envid: string;
+  tenantId: number;
   user: {
+    tenantId: number;
     agentId: number;
     agentCode: string | null;
   };
