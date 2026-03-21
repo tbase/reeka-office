@@ -1,8 +1,9 @@
-import { ListAgentsQuery } from "@reeka-office/domain-user";
+import { ListAgentsQuery } from "@reeka-office/domain-agent";
 import { InfoIcon, UsersIcon } from "lucide-react";
 
 import { Empty } from "@/components/ui/empty";
 
+import { GenerateBindingTokenDialog } from "./generate-binding-token-dialog";
 import type { AgentSort } from "./search-params";
 
 interface AgentListProps {
@@ -77,6 +78,7 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                 <th className="px-4 py-2.5 text-left font-medium">直属上级</th>
                 <th className="px-4 py-2.5 text-left font-medium">财务包</th>
                 <th className="px-4 py-2.5 text-left font-medium">组织架构</th>
+                <th className="px-4 py-2.5 text-left font-medium">绑定码</th>
               </tr>
             </thead>
             <tbody>
@@ -124,6 +126,13 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                           </span>
                         ) : null}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <GenerateBindingTokenDialog
+                        agentId={agent.id}
+                        agentCode={agent.agentCode}
+                        agentName={agent.name}
+                      />
                     </td>
                   </tr>
                 );

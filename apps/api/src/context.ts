@@ -1,16 +1,27 @@
-import type { User } from "@reeka-office/domain-user";
 import { createRpc } from "@reeka-office/jsonrpc";
+
+export type APIUser = {
+  id: number;
+  openid: string;
+  nickname: string | null;
+  avatar: string | null;
+  agentId: number;
+  agentCode: string | null;
+  agentName: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
 
 export type APIContext = {
   openid: string;
   envid: string;
-  user: User | null;
+  user: APIUser | null;
 };
 
 export type AgentContext = {
   openid: string;
   envid: string;
-  user: User;
+  user: APIUser;
   agent: {
     agentId: number;
     agentCode: string | null;

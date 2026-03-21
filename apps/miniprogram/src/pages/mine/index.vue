@@ -2,6 +2,8 @@
 import { computed, onShow, ref } from "wevu";
 
 import { useMutation } from "@/hooks/useMutation";
+import { refreshTenantCatalog } from "@/lib/center-api";
+import { getActiveTenant } from "@/lib/tenant-session";
 import { usePointSummaryStore } from "@/stores/points";
 import { useUserStore } from "@/stores/user";
 
@@ -13,6 +15,7 @@ definePageJson({
 const { user, refetch: refetchUser } = useUserStore();
 const { summary } = usePointSummaryStore();
 const requestingAvatar = ref(false);
+const tenantName = ref(getActiveTenant()?.tenantName ?? "");
 
 const { mutate: updateAvatar, loading: avatarUpdating } = useMutation(
   "user/updateAvatar",
@@ -74,11 +77,24 @@ const onChooseAvatar = async (
 
 onShow(() => {
   void refetchUser();
+  void refreshTenantCatalog()
+    .then(({ activeTenant }) => {
+      tenantName.value = activeTenant?.tenantName ?? ""
+    })
+    .catch(() => {
+      tenantName.value = getActiveTenant()?.tenantName ?? ""
+    })
 });
 
 const goMyPoints = () => {
   wx.navigateTo({
     url: "/pages/mine/points/index",
+  });
+};
+
+const goTenantSwitch = () => {
+  wx.navigateTo({
+    url: "/pages/unauthorized/index",
   });
 };
 </script>
@@ -122,6 +138,21 @@ const goMyPoints = () => {
     </view>
 
     <view class="px-4 py-4">
+      <view
+        class="mb-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+        @tap="goTenantSwitch"
+      >
+        <view>
+          <text class="block text-xs text-slate-500">当前租户</text>
+          <text class="mt-1 block text-base font-semibold text-slate-900">
+            {{ tenantName || "未选择" }}
+          </text>
+        </view>
+        <view class="flex items-center justify-center">
+          <text class="text-base text-slate-500">切换</text>
+        </view>
+      </view>
+
       <view
         class="flex items-center justify-between rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3"
         @tap="goMyPoints"

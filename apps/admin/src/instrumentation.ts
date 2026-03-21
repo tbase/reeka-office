@@ -1,20 +1,33 @@
 import type { CmsDB } from "@reeka-office/domain-cms"
+import type { AgentDB } from "@reeka-office/domain-agent"
+import type { IdentityDB } from "@reeka-office/domain-identity"
 import type { PointDB } from "@reeka-office/domain-point"
-import { UserDB } from "@reeka-office/domain-user"
 
 export async function register() {
-  const [{ userSchema, setup: setupUser }, { cmsSchema, setup: setupCms }, { pointSchema, setup: setupPoint }, { createDb }] = await Promise.all([
-    import("@reeka-office/domain-user"),
+  const [
+    { agentSchema, setup: setupAgent },
+    { cmsSchema, setup: setupCms },
+    { setup: setupIdentity },
+    { pointSchema, setup: setupPoint },
+    { createDb },
+    { getIdentityDB },
+  ] = await Promise.all([
+    import("@reeka-office/domain-agent"),
     import("@reeka-office/domain-cms"),
+    import("@reeka-office/domain-identity"),
     import("@reeka-office/domain-point"),
     import("@/db"),
+    import("@/db/identity"),
   ])
 
-  const userDB = createDb(userSchema)
-  setupUser({ db: userDB as unknown as UserDB })
+  const agentDb = createDb(agentSchema)
+  setupAgent({ db: agentDb as unknown as AgentDB })
 
   const cmsDb = createDb(cmsSchema)
   setupCms({ db: cmsDb as unknown as CmsDB })
+
+  const identityDb = getIdentityDB()
+  setupIdentity({ db: identityDb as unknown as IdentityDB })
 
   const pointDb = createDb(pointSchema)
   setupPoint({ db: pointDb as unknown as PointDB })

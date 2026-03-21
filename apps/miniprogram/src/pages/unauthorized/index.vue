@@ -1,78 +1,103 @@
 <script setup lang="ts">
-import { ref } from "wevu";
+import { onShow, ref } from "wevu";
 
-import { useFormBinder } from "@/hooks/useFormBinder";
-import { useMutation } from "@/hooks/useMutation";
+import { invalidateQueries } from "@/hooks/useQuery";
 import { useToast } from "@/hooks/useToast";
+import { bindByToken, refreshTenantCatalog, switchTenant } from "@/lib/center-api";
+import { getActiveTenantCode, type TenantSummary } from "@/lib/tenant-session";
 
 definePageJson({
-  navigationBarTitleText: "代理人验证",
+  navigationBarTitleText: "身份绑定",
   navigationBarBackgroundColor: "#ff2056",
   navigationBarTextStyle: "white",
   usingComponents: {
     "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
     "t-input": "tdesign-miniprogram/input/input",
     "t-button": "tdesign-miniprogram/button/button",
+    "t-radio-group": "tdesign-miniprogram/radio-group/radio-group",
+    "t-radio": "tdesign-miniprogram/radio/radio",
     "t-toast": "tdesign-miniprogram/toast/toast",
   },
 });
 
-const { changeModel } = useFormBinder();
 const { showToast } = useToast();
-const code = ref("");
-const leaderCode = ref("");
-const unit = ref("");
-// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
-const codeModel = changeModel<string>("code");
-// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
-const leaderCodeModel = changeModel<string>("leaderCode");
-// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
-const unitModel = changeModel<string>("unit");
+const token = ref("")
+const loading = ref(false)
+const tenants = ref<TenantSummary[]>([])
+const selectedTenantCode = ref("")
 
-// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
-const { mutate, loading } = useMutation("user/bindAgent", {
-  onSuccess: () => {
-    showToast("绑定成功");
-    setTimeout(() => {
-      wx.reLaunch({ url: "/pages/index/index" });
-    }, 500);
-  },
-  onError: (error) => {
-    showToast(error.message || "绑定失败");
-  },
-});
+const reloadTenants = async (showError = false) => {
+  try {
+    const result = await refreshTenantCatalog()
+    tenants.value = result.tenants
+    selectedTenantCode.value = getActiveTenantCode() ?? result.activeTenant?.tenantCode ?? result.tenants[0]?.tenantCode ?? ""
+  } catch (error) {
+    if (showError) {
+      showToast(error instanceof Error ? error.message : "租户加载失败", "error")
+    }
+  }
+}
 
-// biome-ignore lint/correctness/noUnusedVariables: used in template bindings
 const handleBind = async () => {
-  const nextCode = code.value.trim();
-  const nextLeaderCode = leaderCode.value.trim();
-  const nextUnit = unit.value.trim();
-
-  if (!nextCode) {
-    showToast("请输入代理人 code");
-    return;
+  const nextToken = token.value.trim().toUpperCase()
+  if (!nextToken) {
+    showToast("请输入绑定码", "warning")
+    return
   }
 
-  if (!nextLeaderCode) {
-    showToast("请输入直属上级 code");
-    return;
-  }
-
-  if (!nextUnit) {
-    showToast("请输入 unit");
-    return;
-  }
+  loading.value = true
 
   try {
-    await mutate({
-      code: nextCode,
-      leaderCode: nextLeaderCode,
-      unit: nextUnit,
-    });
-  } catch {
-    showToast("网络错误，请稍后重试");
+    const result = await bindByToken(nextToken)
+    tenants.value = result.tenants
+    selectedTenantCode.value = result.tenantCode
+    token.value = ""
+    invalidateQueries()
+    showToast("绑定成功")
+    setTimeout(() => {
+      wx.reLaunch({ url: "/pages/index/index" })
+    }, 400)
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "绑定失败", "error")
+  } finally {
+    loading.value = false
   }
-};
+}
+
+const handleTokenChange = (
+  event: WechatMiniprogram.CustomEvent<{ value?: string }>,
+) => {
+  token.value = event.detail.value ?? ""
+}
+
+const handleUseTenant = () => {
+  if (!selectedTenantCode.value) {
+    showToast("请选择租户", "warning")
+    return
+  }
+
+  const tenant = switchTenant(selectedTenantCode.value)
+  if (!tenant) {
+    showToast("租户已失效，请刷新后重试", "error")
+    return
+  }
+
+  invalidateQueries()
+  showToast(`已切换到${tenant.tenantName}`)
+  setTimeout(() => {
+    wx.reLaunch({ url: "/pages/index/index" })
+  }, 300)
+}
+
+const handleTenantChange = (
+  event: WechatMiniprogram.CustomEvent<{ value?: string }>,
+) => {
+  selectedTenantCode.value = event.detail.value ?? ""
+}
+
+onShow(() => {
+  void reloadTenants()
+})
 </script>
 
 <template>
@@ -82,34 +107,18 @@ const handleBind = async () => {
     <view class="w-full max-w-sm">
       <view class="text-center mb-8">
         <text class="block text-2xl font-semibold text-slate-900"
-          >代理人验证</text
+          >身份绑定</text
         >
         <text class="mt-2 block text-sm text-slate-500"
-          >请填写代理人信息完成绑定</text
+          >请输入绑定码，或直接选择已绑定的租户</text
         >
       </view>
 
       <t-cell-group theme="card" bordered>
         <t-input
-          :value="codeModel.value"
-          @change="codeModel.onChange"
-          placeholder="请输入您的代理人 code"
-          clearable
-          :disabled="loading"
-        />
-
-        <t-input
-          :value="leaderCodeModel.value"
-          @change="leaderCodeModel.onChange"
-          placeholder="请输入直属上级 code"
-          clearable
-          :disabled="loading"
-        />
-
-        <t-input
-          :value="unitModel.value"
-          @change="unitModel.onChange"
-          placeholder="请输入您的 unit"
+          :value="token"
+          @change="handleTokenChange"
+          placeholder="请输入管理员提供的绑定码"
           clearable
           :disabled="loading"
         />
@@ -124,8 +133,41 @@ const handleBind = async () => {
         :disabled="loading"
         @click="handleBind"
       >
-        验证并绑定
+        绑定租户
       </t-button>
+
+      <view v-if="tenants.length" class="mt-8 w-full">
+        <view class="mb-3 flex items-center justify-between">
+          <text class="text-sm font-medium text-slate-700">已绑定租户</text>
+          <text class="text-xs text-slate-500" @tap="reloadTenants(true)">刷新</text>
+        </view>
+
+        <t-radio-group :value="selectedTenantCode" @change="handleTenantChange">
+          <view class="space-y-2">
+            <label
+              v-for="tenant in tenants"
+              :key="tenant.tenantCode"
+              class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
+            >
+              <view class="min-w-0 flex-1">
+                <text class="block text-sm font-medium text-slate-900">{{ tenant.tenantName }}</text>
+                <text class="mt-1 block text-xs text-slate-500">{{ tenant.tenantCode }}</text>
+              </view>
+              <t-radio :value="tenant.tenantCode" />
+            </label>
+          </view>
+        </t-radio-group>
+
+        <t-button
+          class="mt-4"
+          theme="default"
+          size="large"
+          block
+          @click="handleUseTenant"
+        >
+          进入所选租户
+        </t-button>
+      </view>
     </view>
 
     <t-toast id="t-toast" />

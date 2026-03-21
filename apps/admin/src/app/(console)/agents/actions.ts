@@ -1,10 +1,13 @@
 "use server"
 
-import { ImportAgentsCommand, type ImportedAgentInput } from "@reeka-office/domain-user"
+import { ImportAgentsCommand, type ImportedAgentInput } from "@reeka-office/domain-agent"
+import { CreateBindingTokenCommand } from "@reeka-office/domain-identity"
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 
 import { getRequiredAdminContext } from "@/lib/admin-context"
 import { getFormDataValues } from "@/lib/form-data"
+import { actionClient } from "@/lib/safe-action"
 
 const importAgentFieldNames = ["file"] as const
 
@@ -16,8 +19,8 @@ type ImportAgentsActionResult =
     updatedCount: number
   }
   | {
-    error: string
-  }
+      error: string
+    }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value)
@@ -310,3 +313,29 @@ export async function importAgentsAction(
     }
   }
 }
+
+const createBindingTokenSchema = z.object({
+  agentId: z.number().int().positive(),
+  expiresInHours: z.number().int().min(1).max(24 * 30).default(24),
+})
+
+export const createBindingTokenAction = actionClient
+  .inputSchema(createBindingTokenSchema)
+  .action(async ({ parsedInput }) => {
+    const { tenantCode } = await getRequiredAdminContext()
+    const expiresInHours = parsedInput.expiresInHours
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
+
+    const result = await new CreateBindingTokenCommand({
+      tenantCode,
+      agentId: parsedInput.agentId,
+      expiresAt,
+    }).execute()
+
+    revalidatePath("/agents")
+
+    return {
+      token: result.token,
+      expiresAt: result.expiresAt.toISOString(),
+    }
+  })

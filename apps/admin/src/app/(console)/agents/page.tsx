@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 
-import { ListAgentAgenciesQuery } from "@reeka-office/domain-user"
+import { ListAgentAgenciesQuery } from "@reeka-office/domain-agent"
 import { Suspense } from "react"
 
 import { Empty } from "@/components/ui/empty"

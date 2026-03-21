@@ -51,6 +51,7 @@ apps/miniprogram/miniprogram_npm
 
 # Misc
 *.local
+*.local.*
 .cache
 .temp
 .tmp

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { hydrateTenantCatalog } from "@/lib/center-api";
 import { RpcErrorCode, setRpcErrorHandler } from "@/lib/rpc";
 import { onHide, onLaunch, onShow } from "wevu";
 
@@ -24,10 +25,10 @@ defineAppJson({
     "pages/resource/detail/index",
     "pages/training/index",
     "pages/mine/index",
-    'pages/mine/points/index',
-    'pages/mine/points-detail/index',
-    'pages/mine/earn-points/index',
-    'pages/mine/redeem-detail/index',
+    "pages/mine/points/index",
+    "pages/mine/points-detail/index",
+    "pages/mine/earn-points/index",
+    "pages/mine/redeem-detail/index",
     "pages/unauthorized/index",
   ],
   window: {
@@ -79,9 +80,23 @@ defineAppJson({
   sitemapLocation: "sitemap.json",
 });
 
-onLaunch(() => {});
+async function syncTenantRoute() {
+  const { activeTenant } = await hydrateTenantCatalog();
+  const currentPages = getCurrentPages();
+  const currentPage = currentPages[currentPages.length - 1];
+  const currentRoute = `/${currentPage?.route ?? ""}`;
+
+  if (!activeTenant && currentRoute !== "/pages/unauthorized/index") {
+    wx.reLaunch({ url: "/pages/unauthorized/index" });
+  }
+}
+
+onLaunch(() => {
+  void syncTenantRoute();
+});
 
 onShow(() => {
+  void syncTenantRoute();
   console.log("[reeka-office] app show");
 });
 
@@ -98,6 +113,10 @@ onHide(() => {
 page {
   font-family: "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
   background-color: #f6f7fb;
-  --td-brand-color: #ff2056;
+  --td-brand-color-light: #fff0ed;
+  --td-brand-color-focus: #fff0ed;
+  --td-brand-color-disabled: #ffb8b0;
+  --td-brand-color: #e23a3b;
+  --td-brand-color-active: #b82529;
 }
 </style>

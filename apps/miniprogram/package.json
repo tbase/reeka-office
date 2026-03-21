@@ -15,6 +15,7 @@
     "postinstall": "weapp-tw patch"
   },
   "dependencies": {
+    "@reeka-office/domain-identity": "workspace:*",
     "tdesign-miniprogram": "^1.12.3"
   },
   "devDependencies": {

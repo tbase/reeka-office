@@ -1,4 +1,4 @@
-import { UpdateAvatarCommand } from "@reeka-office/domain-user";
+import { UpdateUserAvatarCommand } from "@reeka-office/domain-identity";
 import { createRpcError } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
@@ -17,7 +17,7 @@ export const updateAvatar = rpc.define({
   inputSchema,
   execute: mustAgent(async ({ input, context }) => {
     try {
-      return await new UpdateAvatarCommand({
+      return await new UpdateUserAvatarCommand({
         openid: context.openid,
         avatar: input.avatar,
       }).execute();

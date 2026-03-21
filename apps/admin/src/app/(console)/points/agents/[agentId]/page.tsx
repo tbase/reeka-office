@@ -5,7 +5,7 @@ import {
   ListAgentPointRecordsQuery,
   ListAgentRedemptionRecordsQuery,
 } from "@reeka-office/domain-point";
-import { ListAgentsQuery } from "@reeka-office/domain-user";
+import { ListAgentsQuery } from "@reeka-office/domain-agent";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";

@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 
 export interface AdminContext {
   adminId: string
+  tenantCode: string
 }
 
 export async function getRequiredAdminSession(): Promise<AdminSession> {
@@ -21,8 +22,14 @@ export async function getRequiredAdminSession(): Promise<AdminSession> {
 
 export async function getRequiredAdminContext(): Promise<AdminContext> {
   const session = await getRequiredAdminSession()
+  const tenantCode = process.env.TENANT_CODE?.trim()
+
+  if (!tenantCode) {
+    throw new Error("租户配置缺失")
+  }
 
   return {
     adminId: session.user.id,
+    tenantCode,
   }
 }

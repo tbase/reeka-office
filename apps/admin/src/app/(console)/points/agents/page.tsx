@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { ListAgentPointBalancesQuery } from "@reeka-office/domain-point";
-import { ListAgentsQuery } from "@reeka-office/domain-user";
+import { ListAgentsQuery } from "@reeka-office/domain-agent";
 import { PlusIcon, UsersIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";

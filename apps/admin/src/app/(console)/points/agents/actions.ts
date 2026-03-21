@@ -1,7 +1,7 @@
 "use server"
 
 import { CreatePointRecordCommand } from "@reeka-office/domain-point"
-import { ListAgentsQuery } from "@reeka-office/domain-user"
+import { ListAgentsQuery } from "@reeka-office/domain-agent"
 import { revalidatePath } from "next/cache"
 
 import { getRequiredAdminContext } from "@/lib/admin-context"

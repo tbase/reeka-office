@@ -1,4 +1,5 @@
 import type { RpcInput, RpcMethodName, RpcOutput } from "@rpc-types"
+import { getTenantServiceName } from "./center-api"
 import { getCloudInstance } from "./cloud"
 import { config } from "./config"
 
@@ -111,7 +112,13 @@ export async function rpc<M extends RpcMethodName>(
     return result
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "网络错误"
-    const rpcError = createRpcError(message, RpcErrorCode.NETWORK_ERROR)
+    const rpcError = createRpcError(
+      message,
+      error instanceof Error && "code" in error && typeof error.code === "number"
+        ? error.code
+        : RpcErrorCode.NETWORK_ERROR,
+      error instanceof Error && "data" in error ? error.data : undefined
+    )
     globalRpcErrorHandler?.(rpcError, method)
     return { success: false, error: rpcError }
   }
@@ -123,7 +130,7 @@ const _call = async (method: string, params: unknown) => {
 }
 
 const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
-  if (config.LOCAL_API) {
+  if (config.TENANT_LOCAL_API) {
     return requestLocalRpc(data)
   }
 
@@ -132,7 +139,7 @@ const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
     path: "/rpc",
     method: "POST" as const,
     header: {
-      "X-WX-SERVICE": config.SERVICE_NAME,
+      "X-WX-SERVICE": getTenantServiceName(),
       "Content-Type": "application/json",
     },
     data,
@@ -144,13 +151,13 @@ const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
 const requestLocalRpc = (data: unknown): Promise<RpcTransportResponse> => {
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${config.LOCAL_API!}/rpc`,
+      url: `${config.TENANT_LOCAL_API!}/rpc`,
       method: "POST",
       header: {
         "Content-Type": "application/json",
         "X-WX-OPENID": config.LOCAL_OPENID!,
         "X-WX-ENV": config.LOCAL_ENV ?? 'local',
-        "X-WX-SERVICE": config.SERVICE_NAME,
+        "X-WX-SERVICE": getTenantServiceName(),
       },
       data: JSON.stringify(data),
       success: (res) => {

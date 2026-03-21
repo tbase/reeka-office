@@ -5,8 +5,10 @@
 interface ImportMetaEnv {
   readonly VITE_CLOUD_ENV: string
   readonly VITE_CLOUD_APPID: string
-  readonly VITE_SERVICE_NAME: string
-  readonly VITE_LOCAL_API?: string
+  readonly VITE_TENANT_SERVICE_NAME?: string
+  readonly VITE_CENTER_SERVICE_NAME: string
+  readonly VITE_TENANT_LOCAL_API?: string
+  readonly VITE_CENTER_LOCAL_API?: string
   readonly VITE_LOCAL_OPENID?: string
   readonly VITE_LOCAL_ENV?: string
 }

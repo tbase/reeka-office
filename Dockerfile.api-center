@@ -1,0 +1,30 @@
+# Build stage
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Copy workspace configuration and all source code
+COPY pnpm-workspace.yaml package.json ./
+COPY apps/api-center ./apps/api-center
+COPY packages ./packages
+
+# Build the api (bun build src/index.ts --outdir dist --target bun)
+RUN cd apps/api-center && bun install && bun run build
+
+# Production image
+FROM oven/bun:1 AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install ca-certificates for 微信云托管开放接口服务 HTTPS 支持
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# 微信云托管开放接口服务证书配置 (Bun/Node.js 运行时)
+ENV NODE_EXTRA_CA_CERTS=/app/cert/certificate.crt
+
+COPY --from=builder /app/apps/api-center/dist ./dist
+
+EXPOSE 3000
+CMD ["bun", "run", "dist/index.js"]
