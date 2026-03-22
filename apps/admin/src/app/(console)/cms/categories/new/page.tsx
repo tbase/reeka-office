@@ -3,7 +3,7 @@ import { LinkButton } from "@/components/ui/link-button";
 
 import { CategoryFormNew } from "@/components/cms/category-form-new";
 
-import { createCategoryAction } from "../actions";
+import { createCategoryAction } from "@/actions/cms/category-actions";
 
 export default function CmsCategoryCreatePage() {
   return (

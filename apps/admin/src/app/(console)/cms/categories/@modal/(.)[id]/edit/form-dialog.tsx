@@ -17,7 +17,7 @@ import {
   type CategoryFormEditValue,
 } from "@/components/cms/category-form-edit";
 
-import { updateCategoryAction } from "../../../actions";
+import { updateCategoryAction } from "@/actions/cms/category-actions";
 
 export function CategoryEditFormDialog({
   category,

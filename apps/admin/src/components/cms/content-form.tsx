@@ -1,9 +1,13 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
-import { useMemo, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks";
+import { useMemo, useRef } from "react";
+import { useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import type { ZodType } from "zod";
 
+import type { ContentFormAction } from "@/actions/cms/content-actions";
 import {
   buildFieldsState,
   CategoryOption,
@@ -13,7 +17,6 @@ import {
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
@@ -29,202 +32,247 @@ type ContentFormValue = {
   fields?: Record<string, unknown>;
 };
 
-export function ContentForm({
+function getFieldError(validationErrors: unknown, fieldName: string) {
+  if (!validationErrors || typeof validationErrors !== "object") {
+    return undefined;
+  }
+
+  const fieldError = (validationErrors as Record<string, unknown>)[fieldName];
+  if (
+    !fieldError ||
+    typeof fieldError !== "object" ||
+    Array.isArray(fieldError)
+  ) {
+    return undefined;
+  }
+
+  const errors = (fieldError as { _errors?: unknown })._errors;
+  return Array.isArray(errors) && typeof errors[0] === "string"
+    ? errors[0]
+    : undefined;
+}
+
+function getFormError(validationErrors: unknown) {
+  if (!validationErrors || typeof validationErrors !== "object") {
+    return undefined;
+  }
+
+  const errors = (validationErrors as { _errors?: unknown })._errors;
+  return Array.isArray(errors) && typeof errors[0] === "string"
+    ? errors[0]
+    : undefined;
+}
+
+function getErrorMessage(value: unknown) {
+  return typeof value === "string" ? value : undefined;
+}
+
+export function ContentForm<
+  TAction extends ContentFormAction,
+  TSchema extends ZodType,
+>({
   action,
+  schema,
   categories,
   value,
   id,
   onSuccess,
 }: {
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>;
+  action: TAction;
+  schema: TSchema;
   categories: CategoryOption[];
   value?: ContentFormValue;
   id?: string;
   onSuccess?: () => void;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-
   const initialCategory =
-    categories.find((c) => c.id === value?.categoryId) ?? categories[0];
+    categories.find((category) => category.id === value?.categoryId) ??
+    categories[0] ??
+    null;
 
-  const [categoryId, setCategoryId] = useState<number | undefined>(
-    initialCategory?.id,
-  );
-  const [fieldsByCategory, setFieldsByCategory] = useState<
-    Record<number, Record<string, unknown>>
-  >(() => {
-    if (!initialCategory) return {};
-    return {
-      [initialCategory.id]: buildFieldsState(
-        initialCategory.fieldSchema,
-        value?.fields,
-      ),
-    };
-  });
-
-  const selectedCategory = useMemo(
-    () => categories.find((c) => c.id === categoryId) ?? null,
-    [categories, categoryId],
+  const fieldsCacheRef = useRef<Record<number, Record<string, unknown>>>(
+    initialCategory
+      ? {
+          [initialCategory.id]: buildFieldsState(
+            initialCategory.fieldSchema,
+            value?.fields,
+          ),
+        }
+      : {},
   );
 
-  const fields = useMemo(() => {
-    if (!selectedCategory || !categoryId) return {};
-    return buildFieldsState(
-      selectedCategory.fieldSchema,
-      fieldsByCategory[categoryId],
-    );
-  }, [categoryId, fieldsByCategory, selectedCategory]);
-
-  const serializedFields = useMemo(() => JSON.stringify(fields), [fields]);
-
-  const updateField = (fieldName: string, fieldValue: unknown) => {
-    if (!categoryId) return;
-    setFieldsByCategory((current) => ({
-      ...current,
-      [categoryId]: {
-        ...buildFieldsState(
-          selectedCategory?.fieldSchema ?? [],
-          current[categoryId],
-        ),
-        [fieldName]: normalizeFieldValue(
-          selectedCategory?.fieldSchema.find((f) => f.name === fieldName) ?? {
-            name: fieldName,
-            label: fieldName,
-            type: "text",
-          },
-          fieldValue,
-        ),
+  const {
+    form,
+    action: actionState,
+    handleSubmitWithAction,
+  } = useHookFormAction(action as never, zodResolver(schema as never), {
+    formProps: {
+      defaultValues: {
+        id: value?.id,
+        categoryId: initialCategory?.id ?? 0,
+        name: value?.name ?? "",
+        content: value?.content ?? "",
+        fields: initialCategory
+          ? buildFieldsState(initialCategory.fieldSchema, value?.fields)
+          : {},
       },
-    }));
-  };
-
-  const form = useForm({
-    defaultValues: {
-      name: value?.name ?? "",
-      content: value?.content ?? "",
     },
-    onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) return;
-
-      const formData = new FormData(formRef.current);
-      formData.set("name", formValue.name);
-      formData.set("content", formValue.content);
-
-      if (value?.id) {
-        formData.set("id", String(value.id));
-      }
-
-      const result = await action(formData);
-      if (result?.success) {
+    actionProps: {
+      onSuccess: () => {
         const isCreate = !value?.id;
         toast.success(isCreate ? "内容已创建" : "内容已保存");
         onSuccess?.();
-      }
+      },
+      onError: ({ error }) => {
+        const serverError = getErrorMessage(error.serverError);
+        if (serverError) {
+          toast.error(serverError);
+        }
+      },
     },
   });
 
-  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    await form.handleSubmit();
+  const categoryId = useWatch({
+    control: form.control,
+    name: "categoryId",
+  });
+  const fields =
+    useWatch({
+      control: form.control,
+      name: "fields",
+    }) ?? {};
+
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === categoryId) ?? null,
+    [categories, categoryId],
+  );
+
+  const handleCategoryChange = (nextValue: unknown) => {
+    if (categoryId > 0) {
+      fieldsCacheRef.current[categoryId] = buildFieldsState(
+        selectedCategory?.fieldSchema ?? [],
+        fields,
+      );
+    }
+
+    const nextId = typeof nextValue === "string" ? Number(nextValue) : NaN;
+    if (!Number.isInteger(nextId) || nextId <= 0) {
+      form.setValue("categoryId", 0, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue("fields", {}, { shouldDirty: true });
+      return;
+    }
+
+    const nextCategory = categories.find((category) => category.id === nextId);
+    const nextFields = nextCategory
+      ? buildFieldsState(
+          nextCategory.fieldSchema,
+          fieldsCacheRef.current[nextId],
+        )
+      : {};
+
+    if (nextCategory) {
+      fieldsCacheRef.current[nextId] = nextFields;
+    }
+
+    form.setValue("categoryId", nextId, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    form.setValue("fields", nextFields, { shouldDirty: true });
   };
+
+  const updateField = (fieldName: string, fieldValue: unknown) => {
+    const schemaField = selectedCategory?.fieldSchema.find(
+      (field) => field.name === fieldName,
+    ) ?? {
+      name: fieldName,
+      label: fieldName,
+      type: "text" as const,
+    };
+
+    const nextFields = {
+      ...fields,
+      [fieldName]: normalizeFieldValue(schemaField, fieldValue),
+    };
+
+    if (categoryId > 0) {
+      fieldsCacheRef.current[categoryId] = nextFields;
+    }
+
+    form.setValue("fields", nextFields, { shouldDirty: true });
+  };
+
+  const formError =
+    getErrorMessage(actionState.result.serverError) ??
+    getFormError(actionState.result.validationErrors) ??
+    getFieldError(actionState.result.validationErrors, "id");
 
   return (
     <form
       id={id}
-      ref={formRef}
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmitWithAction}
       className="max-w-xl space-y-4"
     >
-      {value?.id ? (
-        <input type="hidden" name="id" value={String(value.id)} />
+      {formError ? (
+        <Field data-invalid>
+          <FieldContent>
+            <FieldError>{formError}</FieldError>
+          </FieldContent>
+        </Field>
       ) : null}
-      <input type="hidden" name="fieldsJson" value={serializedFields} />
 
-      <Field>
+      <Field
+        data-invalid={Boolean(form.formState.errors.categoryId) || undefined}
+      >
         <FieldContent>
           <FieldLabel>分类</FieldLabel>
           <SimpleSelect
-            name="categoryId"
             required
             placeholder={categories.length === 0 ? "暂无分类" : "请选择分类"}
-            items={categories.map((c) => ({
-              value: String(c.id),
-              label: c.name,
+            items={categories.map((category) => ({
+              value: String(category.id),
+              label: category.name,
             }))}
-            value={categoryId ? String(categoryId) : ""}
-            onValueChange={(nextValue) => {
-              const nextId = Number(nextValue);
-              const nextCategory = categories.find((c) => c.id === nextId);
-              setCategoryId(nextId);
-              if (nextCategory) {
-                setFieldsByCategory((current) => {
-                  if (current[nextId]) return current;
-                  return {
-                    ...current,
-                    [nextId]: buildFieldsState(nextCategory.fieldSchema),
-                  };
-                });
-              }
-            }}
+            value={categoryId > 0 ? String(categoryId) : ""}
+            onValueChange={handleCategoryChange}
           />
+          <FieldError>
+            {getErrorMessage(form.formState.errors.categoryId?.message) ?? null}
+          </FieldError>
         </FieldContent>
       </Field>
 
-      <form.Field
-        name="name"
-        validators={{
-          onSubmit: ({ value: fieldValue }) =>
-            fieldValue.trim().length > 0 ? undefined : "标题不能为空",
-        }}
-      >
-        {(field) => {
-          const hasError = field.state.meta.errors.length > 0;
-          return (
-            <Field data-invalid={hasError || undefined}>
-              <FieldContent>
-                <FieldLabel htmlFor={field.name}>标题</FieldLabel>
-                <Input
-                  id={field.name}
-                  name="name"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="标题"
-                  required
-                />
-                <FieldError>
-                  {hasError ? String(field.state.meta.errors[0]) : null}
-                </FieldError>
-              </FieldContent>
-            </Field>
-          );
-        }}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.name) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="name">标题</FieldLabel>
+          <Input
+            id="name"
+            placeholder="标题"
+            required
+            {...form.register("name")}
+          />
+          <FieldError>
+            {getErrorMessage(form.formState.errors.name?.message) ?? null}
+          </FieldError>
+        </FieldContent>
+      </Field>
 
-      {!selectedCategory?.hideContent && (
-        <form.Field name="content">
-          {(field) => (
-            <Field>
-              <FieldContent>
-                <FieldLabel htmlFor={field.name}>正文</FieldLabel>
-                <Textarea
-                  id={field.name}
-                  name="content"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="正文"
-                  rows={4}
-                />
-                <FieldDescription>支持纯文本录入，可留空。</FieldDescription>
-              </FieldContent>
-            </Field>
-          )}
-        </form.Field>
-      )}
+      {!selectedCategory?.hideContent ? (
+        <Field>
+          <FieldContent>
+            <FieldLabel htmlFor="content">正文</FieldLabel>
+            <Textarea
+              id="content"
+              placeholder="正文"
+              rows={4}
+              {...form.register("content")}
+            />
+          </FieldContent>
+        </Field>
+      ) : null}
 
       <ContentFields
         category={selectedCategory}

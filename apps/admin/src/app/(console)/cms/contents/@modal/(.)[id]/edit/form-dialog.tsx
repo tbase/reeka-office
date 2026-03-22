@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import type { CategoryOption } from "@/components/cms/content-fields";
 import { ContentFormEdit } from "@/components/cms/content-form-edit";
-import { updateContentAction } from "../../../actions";
+import { updateContentAction } from "@/actions/cms/content-actions";
 
 type ContentValue = {
   id: number;

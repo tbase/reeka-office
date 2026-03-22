@@ -13,7 +13,7 @@ import {
   deleteProductAction,
   offShelfProductAction,
   publishProductAction,
-} from "./actions";
+} from "@/actions/points/product-actions";
 
 type ProductStatus = "draft" | "published" | "off_shelf";
 

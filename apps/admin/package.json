@@ -12,6 +12,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.37",
     "@base-ui/react": "^1.2.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@next-safe-action/adapter-react-hook-form": "^2.0.3",
     "@reeka-office/domain-agent": "workspace:*",
     "@reeka-office/domain-cms": "workspace:*",
     "@reeka-office/domain-identity": "workspace:*",
@@ -33,6 +35,7 @@
     "nuqs": "^2.8.8",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.2",
     "shadcn": "^3.8.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",

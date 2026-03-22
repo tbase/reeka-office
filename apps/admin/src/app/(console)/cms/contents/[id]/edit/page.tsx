@@ -16,7 +16,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { ContentFormEdit } from "@/components/cms/content-form-edit";
-import { updateContentAction } from "../../actions";
+import { updateContentAction } from "@/actions/cms/content-actions";
 
 function parseId(value: string): number {
   const id = Number(value);

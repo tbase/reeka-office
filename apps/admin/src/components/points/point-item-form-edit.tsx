@@ -1,5 +1,8 @@
 "use client"
 
+import type { UpdatePointItemAction } from "@/actions/points/item-actions"
+import { updatePointItemActionSchema } from "@/actions/points/form-schemas"
+
 import type { PointItemFormValue } from "./point-item-form"
 import { PointItemForm } from "./point-item-form"
 
@@ -11,14 +14,13 @@ export function PointItemFormEdit({
 }: {
   id: string
   value: PointItemFormValue & { id: number }
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>
+  action: UpdatePointItemAction
   onSuccess?: () => void
 }) {
   return (
     <PointItemForm
       action={action}
+      schema={updatePointItemActionSchema}
       id={id}
       value={value}
       onSuccess={onSuccess}

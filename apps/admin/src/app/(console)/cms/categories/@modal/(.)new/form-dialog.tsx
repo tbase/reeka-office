@@ -14,7 +14,7 @@ import {
 
 import { CategoryFormNew } from "@/components/cms/category-form-new";
 
-import { createCategoryAction } from "../../actions";
+import { createCategoryAction } from "@/actions/cms/category-actions";
 
 export function CategoryFormDialog() {
   const router = useRouter();

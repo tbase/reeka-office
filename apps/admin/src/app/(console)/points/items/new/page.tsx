@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/ui/link-button"
 import { PointItemFormNew } from "@/components/points/point-item-form-new"
 
-import { createPointItemAction } from "../actions"
+import { createPointItemAction } from "@/actions/points/item-actions"
 
 export default function PointItemCreatePage() {
   return (

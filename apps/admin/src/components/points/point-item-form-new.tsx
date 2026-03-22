@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation"
 
+import type { CreatePointItemAction } from "@/actions/points/item-actions"
+import { createPointItemActionSchema } from "@/actions/points/form-schemas"
+
 import { PointItemForm } from "./point-item-form"
 
 export function PointItemFormNew({
@@ -9,9 +12,7 @@ export function PointItemFormNew({
   action,
 }: {
   id: string
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>
+  action: CreatePointItemAction
 }) {
   const router = useRouter()
 
@@ -19,5 +20,12 @@ export function PointItemFormNew({
     router.push("/points/items")
   }
 
-  return <PointItemForm action={action} id={id} onSuccess={handleSuccess} />
+  return (
+    <PointItemForm
+      action={action}
+      schema={createPointItemActionSchema}
+      id={id}
+      onSuccess={handleSuccess}
+    />
+  )
 }

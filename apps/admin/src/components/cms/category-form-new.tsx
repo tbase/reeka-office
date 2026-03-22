@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
-import type { CategoryActionInput } from "@/app/(console)/cms/categories/actions";
+import type { CreateCategoryAction } from "@/actions/cms/category-actions";
+import { createCategoryActionSchema } from "@/actions/cms/form-schemas";
 
 import { CategoryForm } from "./category-form";
 
@@ -11,9 +12,7 @@ export function CategoryFormNew({
   action,
 }: {
   id: string;
-  action: (
-    data: CategoryActionInput,
-  ) => { success: true } | void | Promise<{ success: true } | void>;
+  action: CreateCategoryAction;
 }) {
   const router = useRouter();
 
@@ -21,5 +20,12 @@ export function CategoryFormNew({
     router.push("/cms/categories");
   }
 
-  return <CategoryForm action={action} id={id} onSuccess={handleSuccess} />;
+  return (
+    <CategoryForm
+      action={action}
+      schema={createCategoryActionSchema}
+      id={id}
+      onSuccess={handleSuccess}
+    />
+  );
 }

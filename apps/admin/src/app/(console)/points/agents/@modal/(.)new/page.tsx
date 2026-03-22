@@ -2,7 +2,7 @@ import { ListPointItemsQuery } from "@reeka-office/domain-point";
 
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { searchAgentsAction } from "../../actions";
+import { searchAgentsAction } from "@/actions/points/agent-actions";
 import { AgentPointRecordFormDialog } from "./form-dialog";
 
 export default async function AgentPointRecordNewModal() {

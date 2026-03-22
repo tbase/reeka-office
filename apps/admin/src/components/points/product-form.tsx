@@ -1,11 +1,19 @@
 "use client"
 
-import { useForm } from "@tanstack/react-form"
-import { useState, useRef } from "react"
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller } from "react-hook-form"
 import { toast } from "sonner"
+import type { ZodType } from "zod"
 
 import type { RedemptionProductRow } from "@reeka-office/domain-point"
 
+import type { ProductFormAction } from "@/actions/points/product-actions"
+import {
+  getErrorMessage,
+  getFieldError,
+  getFormError,
+} from "@/components/points/form-errors"
 import {
   Field,
   FieldContent,
@@ -31,273 +39,233 @@ export type ProductFormValue = Pick<
   | "maxRedeemPerAgent"
 >
 
-export function ProductForm({
+function normalizeRequiredNumberInput(value: unknown) {
+  if (typeof value !== "string") {
+    return value
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? Number(trimmed) : undefined
+}
+
+function normalizeOptionalNumberInput(value: unknown) {
+  if (typeof value !== "string") {
+    return value
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? Number(trimmed) : undefined
+}
+
+export function ProductForm<TAction extends ProductFormAction, TSchema extends ZodType>({
   action,
+  schema,
   value,
   id,
   onSuccess,
 }: {
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>
+  action: TAction
+  schema: TSchema
   value?: Partial<ProductFormValue>
   id?: string
   onSuccess?: () => void
 }) {
-  const formRef = useRef<HTMLFormElement>(null)
-  const [imageUrl, setImageUrl] = useState(value?.imageUrl ?? "")
-
-  const form = useForm({
-    defaultValues: {
-      redeemCategory: value?.redeemCategory ?? "",
-      title: value?.title ?? "",
-      description: value?.description ?? "",
-      notice: value?.notice ?? "",
-      validPeriodMonths:
-        value?.validPeriodMonths != null ? String(value.validPeriodMonths) : "",
-      stock: value?.stock != null ? String(value.stock) : "0",
-      redeemPoints:
-        value?.redeemPoints != null ? String(value.redeemPoints) : "1",
-      maxRedeemPerAgent:
-        value?.maxRedeemPerAgent != null ? String(value.maxRedeemPerAgent) : "1",
+  const { form, action: actionState, handleSubmitWithAction } = useHookFormAction(
+    action as never,
+    zodResolver(schema as never),
+    {
+      formProps: {
+        defaultValues: {
+          id: value?.id,
+          redeemCategory: value?.redeemCategory ?? "",
+          title: value?.title ?? "",
+          description: value?.description ?? "",
+          notice: value?.notice ?? "",
+          imageUrl: value?.imageUrl ?? "",
+          validPeriodMonths: value?.validPeriodMonths ?? undefined,
+          stock: value?.stock ?? 0,
+          redeemPoints: value?.redeemPoints ?? 1,
+          maxRedeemPerAgent: value?.maxRedeemPerAgent ?? 1,
+        },
+      },
+      actionProps: {
+        onSuccess: () => {
+          const isCreate = !value?.id
+          toast.success(isCreate ? "商品已创建" : "商品已保存")
+          onSuccess?.()
+        },
+        onError: ({ error }) => {
+          const serverError = getErrorMessage(error.serverError)
+          if (serverError) {
+            toast.error(serverError)
+          }
+        },
+      },
     },
-    onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) return
+  )
 
-      const formData = new FormData(formRef.current)
-      formData.set("redeemCategory", formValue.redeemCategory)
-      formData.set("title", formValue.title)
-      formData.set("description", formValue.description)
-      formData.set("notice", formValue.notice)
-      formData.set("validPeriodMonths", formValue.validPeriodMonths)
-      formData.set("stock", formValue.stock)
-      formData.set("redeemPoints", formValue.redeemPoints)
-      formData.set("maxRedeemPerAgent", formValue.maxRedeemPerAgent)
-      formData.set("imageUrl", imageUrl)
-
-      if (value?.id) {
-        formData.set("id", String(value.id))
-      }
-
-      const result = await action(formData)
-      if (result?.success) {
-        const isCreate = !value?.id
-        toast.success(isCreate ? "商品已创建" : "商品已保存")
-        onSuccess?.()
-      }
-    },
-  })
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    await form.handleSubmit()
-  }
+  const formError =
+    getErrorMessage(actionState.result.serverError) ??
+    getFormError(actionState.result.validationErrors) ??
+    getFieldError(actionState.result.validationErrors, "id")
 
   return (
-    <form
-      id={id}
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="max-w-xl space-y-4"
-    >
-      {value?.id ? (
-        <input type="hidden" name="id" value={String(value.id)} />
+    <form id={id} onSubmit={handleSubmitWithAction} className="max-w-xl space-y-4">
+      {formError ? (
+        <Field data-invalid>
+          <FieldContent>
+            <FieldError>{formError}</FieldError>
+          </FieldContent>
+        </Field>
       ) : null}
 
-      <form.Field
-        name="redeemCategory"
-        validators={{
-          onSubmit: ({ value: v }) =>
-            v.trim().length > 0 ? undefined : "兑换类别不能为空",
-        }}
-      >
-        {(field) => {
-          const hasError = field.state.meta.errors.length > 0
-          return (
-            <Field data-invalid={hasError || undefined}>
-              <FieldContent>
-                <FieldLabel htmlFor={field.name}>兑换类别</FieldLabel>
-                <Input
-                  id={field.name}
-                  name="redeemCategory"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  required
-                />
-                <FieldError>
-                  {hasError ? String(field.state.meta.errors[0]) : null}
-                </FieldError>
-              </FieldContent>
-            </Field>
-          )
-        }}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.redeemCategory) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="redeemCategory">兑换类别</FieldLabel>
+          <Input
+            id="redeemCategory"
+            required
+            {...form.register("redeemCategory")}
+          />
+          <FieldError>
+            {getErrorMessage(form.formState.errors.redeemCategory?.message) ?? null}
+          </FieldError>
+        </FieldContent>
+      </Field>
 
-      <form.Field
-        name="title"
-        validators={{
-          onSubmit: ({ value: v }) =>
-            v.trim().length > 0 ? undefined : "兑换标题不能为空",
-        }}
-      >
-        {(field) => {
-          const hasError = field.state.meta.errors.length > 0
-          return (
-            <Field data-invalid={hasError || undefined}>
-              <FieldContent>
-                <FieldLabel htmlFor={field.name}>兑换标题</FieldLabel>
-                <Input
-                  id={field.name}
-                  name="title"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  required
-                />
-                <FieldError>
-                  {hasError ? String(field.state.meta.errors[0]) : null}
-                </FieldError>
-              </FieldContent>
-            </Field>
-          )
-        }}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.title) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="title">兑换标题</FieldLabel>
+          <Input
+            id="title"
+            required
+            {...form.register("title")}
+          />
+          <FieldError>{getErrorMessage(form.formState.errors.title?.message) ?? null}</FieldError>
+        </FieldContent>
+      </Field>
 
       <Field>
         <FieldContent>
           <FieldLabel>商品图片</FieldLabel>
-          <input type="hidden" name="imageUrl" value={imageUrl} />
-          <ImageUpload value={imageUrl} alt="商品图片" onChangeAction={setImageUrl} />
+          <Controller
+            control={form.control}
+            name="imageUrl"
+            render={({ field }) => (
+              <ImageUpload
+                value={field.value ?? ""}
+                alt="商品图片"
+                onChangeAction={field.onChange}
+                onError={(error) => {
+                  toast.error(error.message)
+                }}
+              />
+            )}
+          />
         </FieldContent>
       </Field>
 
-      <form.Field name="description">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>兑换说明</FieldLabel>
-              <Textarea
-                id={field.name}
-                name="description"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                rows={3}
-              />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field>
+        <FieldContent>
+          <FieldLabel htmlFor="description">兑换说明</FieldLabel>
+          <Textarea
+            id="description"
+            rows={3}
+            {...form.register("description")}
+          />
+        </FieldContent>
+      </Field>
 
-      <form.Field name="notice">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>兑换须知</FieldLabel>
-              <Textarea
-                id={field.name}
-                name="notice"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                rows={3}
-              />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field>
+        <FieldContent>
+          <FieldLabel htmlFor="notice">兑换须知</FieldLabel>
+          <Textarea
+            id="notice"
+            rows={3}
+            {...form.register("notice")}
+          />
+        </FieldContent>
+      </Field>
 
-      <form.Field name="validPeriodMonths">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>有效期（月）</FieldLabel>
-              <Input
-                id={field.name}
-                name="validPeriodMonths"
-                type="number"
-                min={1}
-                step={1}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="留空表示不限"
-              />
-              <FieldDescription>
-                填写后表示自发布起生效月数；留空表示不限。
-              </FieldDescription>
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.validPeriodMonths) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="validPeriodMonths">有效期（月）</FieldLabel>
+          <Input
+            id="validPeriodMonths"
+            type="number"
+            min={1}
+            step={1}
+            placeholder="留空表示不限"
+            {...form.register("validPeriodMonths", {
+              setValueAs: normalizeOptionalNumberInput,
+            })}
+          />
+          <FieldDescription>
+            填写后表示自发布起生效月数；留空表示不限。
+          </FieldDescription>
+          <FieldError>
+            {getErrorMessage(form.formState.errors.validPeriodMonths?.message) ?? null}
+          </FieldError>
+        </FieldContent>
+      </Field>
 
-      <form.Field name="stock">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>库存</FieldLabel>
-              <Input
-                id={field.name}
-                name="stock"
-                type="number"
-                min={0}
-                step={1}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                required
-              />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.stock) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="stock">库存</FieldLabel>
+          <Input
+            id="stock"
+            type="number"
+            min={0}
+            step={1}
+            required
+            {...form.register("stock", {
+              setValueAs: normalizeRequiredNumberInput,
+            })}
+          />
+          <FieldError>{getErrorMessage(form.formState.errors.stock?.message) ?? null}</FieldError>
+        </FieldContent>
+      </Field>
 
-      <form.Field name="redeemPoints">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>兑换积分</FieldLabel>
-              <Input
-                id={field.name}
-                name="redeemPoints"
-                type="number"
-                min={1}
-                step={1}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                required
-              />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.redeemPoints) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="redeemPoints">兑换积分</FieldLabel>
+          <Input
+            id="redeemPoints"
+            type="number"
+            min={1}
+            step={1}
+            required
+            {...form.register("redeemPoints", {
+              setValueAs: normalizeRequiredNumberInput,
+            })}
+          />
+          <FieldError>
+            {getErrorMessage(form.formState.errors.redeemPoints?.message) ?? null}
+          </FieldError>
+        </FieldContent>
+      </Field>
 
-      <form.Field name="maxRedeemPerAgent">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>每人可兑换次数</FieldLabel>
-              <Input
-                id={field.name}
-                name="maxRedeemPerAgent"
-                type="number"
-                min={1}
-                step={1}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                required
-              />
-              <FieldDescription>
-                发布后关键字段不可修改，只允许下架。
-              </FieldDescription>
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.maxRedeemPerAgent) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="maxRedeemPerAgent">每人可兑换次数</FieldLabel>
+          <Input
+            id="maxRedeemPerAgent"
+            type="number"
+            min={1}
+            step={1}
+            required
+            {...form.register("maxRedeemPerAgent", {
+              setValueAs: normalizeRequiredNumberInput,
+            })}
+          />
+          <FieldDescription>
+            发布后关键字段不可修改，只允许下架。
+          </FieldDescription>
+          <FieldError>
+            {getErrorMessage(form.formState.errors.maxRedeemPerAgent?.message) ?? null}
+          </FieldError>
+        </FieldContent>
+      </Field>
     </form>
   )
 }

@@ -7,7 +7,7 @@ import { z } from "zod"
 
 import { getRequiredAdminContext } from "@/lib/admin-context"
 import { getFormDataValues } from "@/lib/form-data"
-import { actionClient } from "@/lib/safe-action"
+import { adminActionClient } from "@/lib/safe-action"
 
 const importAgentFieldNames = ["file"] as const
 
@@ -319,10 +319,10 @@ const createBindingTokenSchema = z.object({
   expiresInHours: z.number().int().min(1).max(24 * 30).default(24),
 })
 
-export const createBindingTokenAction = actionClient
+export const createBindingTokenAction = adminActionClient
   .inputSchema(createBindingTokenSchema)
-  .action(async ({ parsedInput }) => {
-    const { tenantCode } = await getRequiredAdminContext()
+  .action(async ({ parsedInput, ctx }) => {
+    const { tenantCode } = ctx.admin
     const expiresInHours = parsedInput.expiresInHours
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
 

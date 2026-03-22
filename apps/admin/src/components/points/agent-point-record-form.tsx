@@ -1,25 +1,50 @@
-"use client";
+"use client"
 
-import { useForm } from "@tanstack/react-form";
-import { useSearchParams } from "next/navigation";
-import { useRef } from "react";
-import { toast } from "sonner";
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useSearchParams } from "next/navigation"
+import { Controller } from "react-hook-form"
+import { toast } from "sonner"
 
-import type { PointItemRow } from "@reeka-office/domain-point";
+import type { PointItemRow } from "@reeka-office/domain-point"
 
-import { AgentSearchSelect } from "@/components/agents/agent-search-select";
-import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { SimpleSelect } from "@/components/ui/simple-select";
-import { Textarea } from "@/components/ui/textarea";
+import type {
+  CreateAgentPointRecordAction,
+  SearchAgentsAction,
+} from "@/actions/points/agent-actions"
+import { createAgentPointRecordActionSchema } from "@/actions/points/form-schemas"
+import { AgentSearchSelect } from "@/components/agents/agent-search-select"
+import {
+  getErrorMessage,
+  getFieldError,
+  getFormError,
+} from "@/components/points/form-errors"
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { SimpleSelect } from "@/components/ui/simple-select"
+import { Textarea } from "@/components/ui/textarea"
 
-type PointItem = Pick<PointItemRow, "id" | "name">;
+type PointItem = Pick<PointItemRow, "id" | "name">
 
 function parseOptionalAgentId(value: string | null) {
   if (!value) return "";
 
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? String(id) : "";
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? String(id) : ""
+}
+
+function normalizeOptionalNumberInput(value: unknown) {
+  if (typeof value !== "string") {
+    return value
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? Number(trimmed) : undefined
 }
 
 export function AgentPointRecordForm({
@@ -29,161 +54,149 @@ export function AgentPointRecordForm({
   onSuccess,
   action,
 }: {
-  pointItems: PointItem[];
-  searchAgentsAction: (
-    input: {
-      keyword?: string;
-      agentId?: string;
-    },
-  ) => Promise<Array<{ id: number; agentCode: string | null; name: string }>>;
-  id?: string;
-  onSuccess?: () => void;
-  action: (
-    formData: FormData,
-  ) =>
-    | { success: true }
-    | { error: string }
-    | Promise<{ success: true } | { error: string }>;
+  pointItems: PointItem[]
+  searchAgentsAction: SearchAgentsAction
+  id?: string
+  onSuccess?: () => void
+  action: CreateAgentPointRecordAction
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const searchParams = useSearchParams();
-  const initialAgentId = parseOptionalAgentId(searchParams.get("agentId"));
+  const searchParams = useSearchParams()
+  const initialAgentId = parseOptionalAgentId(searchParams.get("agentId"))
 
-  const form = useForm({
-    defaultValues: {
-      agentId: initialAgentId,
-      pointItemId: "",
-      points: "",
-      remark: "",
+  const { form, action: actionState, handleSubmitWithAction } = useHookFormAction(
+    action as never,
+    zodResolver(createAgentPointRecordActionSchema),
+    {
+      formProps: {
+        defaultValues: {
+          agentId: initialAgentId ? Number(initialAgentId) : undefined,
+          pointItemId: undefined,
+          points: undefined,
+          remark: "",
+        },
+      },
+      actionProps: {
+        onSuccess: () => {
+          toast.success("积分已发放")
+          onSuccess?.()
+        },
+        onError: ({ error }) => {
+          const serverError = getErrorMessage(error.serverError)
+          if (serverError) {
+            toast.error(serverError)
+          }
+        },
+      },
     },
-    onSubmit: async ({ value: formValue }) => {
-      if (!formRef.current) return;
+  )
 
-      const formData = new FormData(formRef.current);
-      formData.set("agentId", formValue.agentId);
-      formData.set("pointItemId", formValue.pointItemId);
-      formData.set("points", formValue.points);
-      formData.set("remark", formValue.remark);
-
-      const result = await action(formData);
-      if ("error" in result) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("积分已发放");
-      onSuccess?.();
-    },
-  });
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    await form.handleSubmit();
-  };
+  const formError =
+    getErrorMessage(actionState.result.serverError) ??
+    getFormError(actionState.result.validationErrors)
 
   return (
-    <form
-      id={id}
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="max-w-xl space-y-4"
-    >
-      <form.Field
-        name="agentId"
-        validators={{
-          onSubmit: ({ value: v }) =>
-            /^\d+$/.test(v.trim()) ? undefined : "请选择代理人",
-        }}
+    <form id={id} onSubmit={handleSubmitWithAction} className="max-w-xl space-y-4">
+      {formError ? (
+        <Field data-invalid>
+          <FieldContent>
+            <FieldError>{formError}</FieldError>
+          </FieldContent>
+        </Field>
+      ) : null}
+
+      <Field
+        data-invalid={
+          Boolean(form.formState.errors.agentId) ||
+          Boolean(getFieldError(actionState.result.validationErrors, "agentId")) ||
+          undefined
+        }
       >
-        {(field) => {
-          const hasError = field.state.meta.errors.length > 0;
-          return (
-            <Field data-invalid={hasError || undefined}>
-              <FieldContent>
-                <FieldLabel htmlFor={field.name}>代理人</FieldLabel>
-                <AgentSearchSelect
-                  name="agentId"
-                  required
-                  searchAction={searchAgentsAction}
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(String(v))}
-                />
-              </FieldContent>
-            </Field>
-          );
-        }}
-      </form.Field>
+        <FieldContent>
+          <FieldLabel>代理人</FieldLabel>
+          <Controller
+            control={form.control}
+            name="agentId"
+            render={({ field }) => (
+              <AgentSearchSelect
+                name="agentId"
+                required
+                searchAction={searchAgentsAction}
+                value={field.value ? String(field.value) : ""}
+                onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
+              />
+            )}
+          />
+          <FieldError>
+            {getErrorMessage(form.formState.errors.agentId?.message) ??
+              getFieldError(actionState.result.validationErrors, "agentId") ??
+              null}
+          </FieldError>
+        </FieldContent>
+      </Field>
 
-      <form.Field
-        name="pointItemId"
-        validators={{
-          onSubmit: ({ value: v }) => (v ? undefined : "请选择积分事项"),
-        }}
+      <Field
+        data-invalid={
+          Boolean(form.formState.errors.pointItemId) ||
+          Boolean(getFieldError(actionState.result.validationErrors, "pointItemId")) ||
+          undefined
+        }
       >
-        {(field) => {
-          const hasError = field.state.meta.errors.length > 0;
-          return (
-            <Field data-invalid={hasError || undefined}>
-              <FieldContent>
-                <FieldLabel>积分事项</FieldLabel>
-                <SimpleSelect
-                  name="pointItemId"
-                  required
-                  placeholder={
-                    pointItems.length === 0 ? "暂无积分事项" : "请选择积分事项"
-                  }
-                  items={pointItems.map((item) => ({
-                    value: String(item.id),
-                    label: item.name,
-                  }))}
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(String(v))}
-                />
-              </FieldContent>
-            </Field>
-          );
-        }}
-      </form.Field>
-
-      <form.Field name="points">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>积分值（可选）</FieldLabel>
-              <Input
-                id={field.name}
-                name="points"
-                type="number"
-                min={1}
-                step={1}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="留空则使用事项默认积分"
+        <FieldContent>
+          <FieldLabel>积分事项</FieldLabel>
+          <Controller
+            control={form.control}
+            name="pointItemId"
+            render={({ field }) => (
+              <SimpleSelect
+                required
+                placeholder={
+                  pointItems.length === 0 ? "暂无积分事项" : "请选择积分事项"
+                }
+                items={pointItems.map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+                value={field.value ? String(field.value) : ""}
+                onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
               />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+            )}
+          />
+          <FieldError>
+            {getErrorMessage(form.formState.errors.pointItemId?.message) ??
+              getFieldError(actionState.result.validationErrors, "pointItemId") ??
+              null}
+          </FieldError>
+        </FieldContent>
+      </Field>
 
-      <form.Field name="remark">
-        {(field) => (
-          <Field>
-            <FieldContent>
-              <FieldLabel htmlFor={field.name}>备注（可选）</FieldLabel>
-              <Textarea
-                id={field.name}
-                name="remark"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                rows={2}
-                placeholder="填写积分发放说明"
-              />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      <Field data-invalid={Boolean(form.formState.errors.points) || undefined}>
+        <FieldContent>
+          <FieldLabel htmlFor="points">积分值（可选）</FieldLabel>
+          <Input
+            id="points"
+            type="number"
+            min={1}
+            step={1}
+            placeholder="留空则使用事项默认积分"
+            {...form.register("points", {
+              setValueAs: normalizeOptionalNumberInput,
+            })}
+          />
+          <FieldError>{getErrorMessage(form.formState.errors.points?.message) ?? null}</FieldError>
+        </FieldContent>
+      </Field>
+
+      <Field>
+        <FieldContent>
+          <FieldLabel htmlFor="remark">备注（可选）</FieldLabel>
+          <Textarea
+            id="remark"
+            rows={2}
+            placeholder="填写积分发放说明"
+            {...form.register("remark")}
+          />
+        </FieldContent>
+      </Field>
     </form>
-  );
+  )
 }

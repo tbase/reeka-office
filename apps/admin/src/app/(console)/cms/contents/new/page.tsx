@@ -2,10 +2,9 @@ import { ListCategoriesQuery } from "@reeka-office/domain-cms";
 
 import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/ui/link-button";
-import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { ContentFormNew } from "@/components/cms/content-form-new";
-import { createContentAction } from "../actions";
+import { createContentAction } from "@/actions/cms/content-actions";
 
 function parseOptionalId(value: string | undefined): number | undefined {
   if (!value) {
@@ -26,7 +25,6 @@ export default async function CmsContentCreatePage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
-  await getRequiredAdminContext();
   const categories = await new ListCategoriesQuery().query();
   const defaultCategoryId = parseOptionalId(
     typeof params.categoryId === "string" ? params.categoryId : undefined,

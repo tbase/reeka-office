@@ -14,7 +14,7 @@ import {
 import { PointItemFormEdit } from "@/components/points/point-item-form-edit"
 import type { PointItemFormValue } from "@/components/points/point-item-form"
 
-import { updatePointItemAction } from "../../../actions"
+import { updatePointItemAction } from "@/actions/points/item-actions"
 
 export function PointItemEditFormDialog({
   value,

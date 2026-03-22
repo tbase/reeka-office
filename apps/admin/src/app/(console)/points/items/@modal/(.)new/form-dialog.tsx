@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { PointItemFormNew } from "@/components/points/point-item-form-new"
 
-import { createPointItemAction } from "../../actions"
+import { createPointItemAction } from "@/actions/points/item-actions"
 
 export function PointItemNewFormDialog() {
   const router = useRouter()

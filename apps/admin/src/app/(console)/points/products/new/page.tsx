@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { LinkButton } from "@/components/ui/link-button"
 import { ProductFormNew } from "@/components/points/product-form-new"
 
-import { createProductAction } from "../actions"
+import { createProductAction } from "@/actions/points/product-actions"
 
 export default function ProductCreatePage() {
   return (

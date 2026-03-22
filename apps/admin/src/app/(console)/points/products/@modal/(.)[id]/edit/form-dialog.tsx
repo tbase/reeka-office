@@ -14,7 +14,7 @@ import {
 import { ProductFormEdit } from "@/components/points/product-form-edit"
 import type { ProductFormValue } from "@/components/points/product-form"
 
-import { updateProductAction } from "../../../actions"
+import { updateProductAction } from "@/actions/points/product-actions"
 
 export function ProductEditFormDialog({
   value,

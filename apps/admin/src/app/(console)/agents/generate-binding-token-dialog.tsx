@@ -35,19 +35,16 @@ export function GenerateBindingTokenDialog({
   const [token, setToken] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
-  const { execute, reset, result, isPending } = useAction(
-    createBindingTokenAction,
-    {
-      onSuccess: ({ data }) => {
-        setToken(data.token);
-        setExpiresAt(data.expiresAt);
-        toast.success("绑定码已生成");
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError ?? "生成绑定码失败");
-      },
+  const { execute, reset, isPending } = useAction(createBindingTokenAction, {
+    onSuccess: ({ data }) => {
+      setToken(data.token);
+      setExpiresAt(data.expiresAt);
+      toast.success("绑定码已生成");
     },
-  );
+    onError: ({ error }) => {
+      toast.error(error.serverError ?? "生成绑定码失败");
+    },
+  });
 
   const handleGenerate = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

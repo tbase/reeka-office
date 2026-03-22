@@ -11,52 +11,94 @@ import { Empty } from "@/components/ui/empty";
 import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { deletePointItemAction } from "./actions";
+import { deletePointItemAction } from "@/actions/points/item-actions";
+import { CategoryTabs } from "./category-tabs";
 
-export default async function PointItemsPage() {
+function parseCategory(value: string | undefined): string | null {
+  const category = value?.trim();
+
+  if (!category) {
+    return null;
+  }
+
+  return category;
+}
+
+export default async function PointItemsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) ?? {};
+  const categoryFilter = parseCategory(
+    typeof params.category === "string" ? params.category : undefined,
+  );
   await getRequiredAdminContext();
   const items = await new ListPointItemsQuery().query();
 
+  const categories = Array.from(
+    new Set(items.map((item) => item.category)),
+  ).sort((left, right) => left.localeCompare(right, "zh-CN"));
+  const activeCategory =
+    categoryFilter && categories.includes(categoryFilter)
+      ? categoryFilter
+      : null;
+  const filteredItems = activeCategory
+    ? items.filter((item) => item.category === activeCategory)
+    : items;
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">积分事项</h1>
-          <p className="text-muted-foreground text-sm">
-            用于定义可发放积分的事项及默认规则。
-          </p>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">积分事项</h1>
+            <p className="text-muted-foreground text-sm">
+              用于定义可发放积分的事项及默认规则。
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">共 {filteredItems.length} 条</Badge>
+            <LinkButton href="/points/items/new" size="sm">
+              <PlusIcon className="size-4" />
+              新增事项
+            </LinkButton>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">共 {items.length} 条</Badge>
-          <LinkButton href="/points/items/new" size="sm">
-            <PlusIcon className="size-4" />
-            新增事项
-          </LinkButton>
-        </div>
+
+        <CategoryTabs categories={categories} />
       </div>
 
-      {items.length === 0 ? (
-        <Empty title="暂无积分事项。" />
+      {filteredItems.length === 0 ? (
+        <Empty
+          title={activeCategory ? "该类别下暂无积分事项。" : "暂无积分事项。"}
+        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <Card key={item.id}>
               <CardHeader className="gap-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-base leading-none">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="shrink-0">
+                    {item.category}
+                  </Badge>
+                  <CardTitle className="min-w-0 text-base">
                     {item.name}
                   </CardTitle>
-                  <p className="text-muted-foreground text-xs">
-                    类别：{item.category}
-                  </p>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="space-y-1">
-                  <p>积分金额：{item.pointAmount ?? "未配置"}</p>
-                  <p>年次数上限：{item.annualLimit ?? "不限"}</p>
+              <CardContent className="space-y-2 text-sm">
+                <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
+                  <p>积分金额</p>
+                  <p className="text-foreground text-right">
+                    {item.pointAmount ?? "未配置"}
+                  </p>
+                  <p>年次数上限</p>
+                  <p className="text-foreground text-right">
+                    {item.annualLimit ?? "不限"}
+                  </p>
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 pt-1">
                   <LinkButton
                     href={`/points/items/${item.id}/edit`}
                     variant="outline"

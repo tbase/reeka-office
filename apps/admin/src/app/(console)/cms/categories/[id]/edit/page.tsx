@@ -14,7 +14,7 @@ import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { CategoryFormEdit } from "@/components/cms/category-form-edit";
 
-import { updateCategoryAction } from "../../actions";
+import { updateCategoryAction } from "@/actions/cms/category-actions";
 
 function parseId(value: string): number {
   const id = Number(value);

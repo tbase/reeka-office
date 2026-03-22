@@ -181,5 +181,5 @@ export function getTenantServiceName(): string {
   if (!tenantCode) {
     throw createCenterApiError('当前租户已失效，请重新选择租户')
   }
-  return `${tenantCode}-office-api`
+  return `office-api-${tenantCode}`
 }

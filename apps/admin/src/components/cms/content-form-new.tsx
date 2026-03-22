@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import type { CreateContentAction } from "@/actions/cms/content-actions";
+import { createContentActionSchema } from "@/actions/cms/form-schemas";
 import type { CategoryOption } from "@/components/cms/content-fields";
 
 import { ContentForm } from "./content-form";
@@ -15,9 +17,7 @@ export function ContentFormNew({
   id: string;
   categories: CategoryOption[];
   categoryId?: number;
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>;
+  action: CreateContentAction;
 }) {
   const router = useRouter();
 
@@ -28,6 +28,7 @@ export function ContentFormNew({
   return (
     <ContentForm
       action={action}
+      schema={createContentActionSchema}
       categories={categories}
       id={id}
       value={categoryId ? { categoryId } : undefined}

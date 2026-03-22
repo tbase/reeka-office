@@ -10,7 +10,7 @@ import { getRequiredAdminContext } from "@/lib/admin-context";
 import {
   createAgentPointRecordAction,
   searchAgentsAction,
-} from "../actions";
+} from "@/actions/points/agent-actions";
 
 export default async function AgentPointsCreatePage() {
   await getRequiredAdminContext();

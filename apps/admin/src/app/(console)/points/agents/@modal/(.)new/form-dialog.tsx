@@ -12,9 +12,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { AgentPointRecordForm } from "@/components/points/agent-point-record-form"
+import type { SearchAgentsAction } from "@/actions/points/agent-actions"
 import type { PointItemRow } from "@reeka-office/domain-point"
 
-import { createAgentPointRecordAction } from "../../actions"
+import { createAgentPointRecordAction } from "@/actions/points/agent-actions"
 
 type PointItem = Pick<PointItemRow, "id" | "name">
 
@@ -23,12 +24,7 @@ export function AgentPointRecordFormDialog({
   searchAgentsAction,
 }: {
   pointItems: PointItem[]
-  searchAgentsAction: (
-    input: {
-      keyword?: string
-      agentId?: string
-    },
-  ) => Promise<Array<{ id: number; agentCode: string | null; name: string }>>
+  searchAgentsAction: SearchAgentsAction
 }) {
   const router = useRouter()
 

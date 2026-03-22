@@ -1,5 +1,7 @@
 "use client";
 
+import type { UpdateContentAction } from "@/actions/cms/content-actions";
+import { updateContentActionSchema } from "@/actions/cms/form-schemas";
 import type { CategoryOption } from "@/components/cms/content-fields";
 
 import { ContentForm } from "./content-form";
@@ -21,13 +23,12 @@ export function ContentFormEdit({
   id: string;
   categories: CategoryOption[];
   value: ContentValue;
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>;
+  action: UpdateContentAction;
 }) {
   return (
     <ContentForm
       action={action}
+      schema={updateContentActionSchema}
       categories={categories}
       id={id}
       value={value}

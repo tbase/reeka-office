@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import type { CategoryOption } from "@/components/cms/content-fields";
 import { ContentFormNew } from "@/components/cms/content-form-new";
-import { createContentAction } from "../../actions";
+import { createContentAction } from "@/actions/cms/content-actions";
 
 export function ContentFormDialog({
   categories,

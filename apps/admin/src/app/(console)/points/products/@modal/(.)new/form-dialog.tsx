@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { ProductFormNew } from "@/components/points/product-form-new"
 
-import { createProductAction } from "../../actions"
+import { createProductAction } from "@/actions/points/product-actions"
 
 export function ProductNewFormDialog() {
   const router = useRouter()

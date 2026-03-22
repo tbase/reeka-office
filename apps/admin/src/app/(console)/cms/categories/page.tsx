@@ -11,7 +11,7 @@ import { Empty } from "@/components/ui/empty";
 import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { deleteCategoryAction } from "./actions";
+import { deleteCategoryAction } from "@/actions/cms/category-actions";
 
 export default async function CmsCategoriesPage() {
   await getRequiredAdminContext();

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { updatePointItemAction } from "../../actions";
+import { updatePointItemAction } from "@/actions/points/item-actions";
 
 function parseId(value: string): number {
   const id = Number(value);

@@ -7,7 +7,7 @@ import { Empty } from "@/components/ui/empty";
 import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { deleteContentAction } from "./actions";
+import { deleteContentAction } from "@/actions/cms/content-actions";
 
 export async function ContentsCardList({
   categoryId,

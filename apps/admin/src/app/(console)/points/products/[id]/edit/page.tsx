@@ -14,7 +14,7 @@ import {
 import { LinkButton } from "@/components/ui/link-button";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { updateProductAction } from "../../actions";
+import { updateProductAction } from "@/actions/points/product-actions";
 
 function parseId(value: string): number {
   const id = Number(value);

@@ -2,7 +2,8 @@
 
 import type { FieldSchemaItem } from "@reeka-office/domain-cms";
 
-import type { CategoryActionInput } from "@/app/(console)/cms/categories/actions";
+import type { UpdateCategoryAction } from "@/actions/cms/category-actions";
+import { updateCategoryActionSchema } from "@/actions/cms/form-schemas";
 
 import { CategoryForm } from "./category-form";
 
@@ -23,14 +24,13 @@ export function CategoryFormEdit({
 }: {
   id: string;
   value: CategoryFormEditValue;
-  action: (
-    data: CategoryActionInput,
-  ) => { success: true } | void | Promise<{ success: true } | void>;
+  action: UpdateCategoryAction;
   onSuccess?: () => void;
 }) {
   return (
     <CategoryForm
       action={action}
+      schema={updateCategoryActionSchema}
       id={id}
       value={value}
       onSuccess={onSuccess}

@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation"
 
+import type { CreateProductAction } from "@/actions/points/product-actions"
+import { createProductActionSchema } from "@/actions/points/form-schemas"
+
 import { ProductForm } from "./product-form"
 
 export function ProductFormNew({
@@ -9,9 +12,7 @@ export function ProductFormNew({
   action,
 }: {
   id: string
-  action: (
-    formData: FormData,
-  ) => { success: true } | void | Promise<{ success: true } | void>
+  action: CreateProductAction
 }) {
   const router = useRouter()
 
@@ -19,5 +20,12 @@ export function ProductFormNew({
     router.push("/points/products")
   }
 
-  return <ProductForm action={action} id={id} onSuccess={handleSuccess} />
+  return (
+    <ProductForm
+      action={action}
+      schema={createProductActionSchema}
+      id={id}
+      onSuccess={handleSuccess}
+    />
+  )
 }
