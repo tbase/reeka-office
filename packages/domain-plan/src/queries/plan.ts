@@ -1,11 +1,12 @@
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import {
+  PlanRow,
   plans,
   planStages,
-  planTasks,
   planTaskCategories,
+  planTasks,
 } from '../schema'
 
 export interface ListPlansInput {
@@ -49,21 +50,14 @@ export class ListPlansQuery {
     this.input = input
   }
 
-  async query() {
-    const query = this.db
+  async query(): Promise<PlanRow[]> {
+    const res = await this.db
       .select()
       .from(plans)
+      .where(this.input.statuses ? inArray(plans.status, this.input.statuses) : undefined)
       .orderBy(asc(plans.createdAt), asc(plans.id))
-
-    if (!this.input.statuses || this.input.statuses.length === 0) {
-      return query
-    }
-
-    return this.db
-      .select()
-      .from(plans)
-      .where(inArray(plans.status, this.input.statuses))
-      .orderBy(asc(plans.createdAt), asc(plans.id))
+      .execute()
+    return res
   }
 }
 

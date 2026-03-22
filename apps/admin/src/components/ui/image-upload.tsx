@@ -9,17 +9,8 @@ import {
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 
+import { normalizeImageURL } from "@/lib/misc";
 import { cn } from "@/lib/utils";
-
-const normalizeImageURL = (src: string): string => {
-  if (src.includes("://")) {
-    return src;
-  }
-  if (src.startsWith("/")) {
-    src = src.slice(1);
-  }
-  return `https://${process.env.COS_BUCKET}.tcb.qcloud.la/${src}`;
-};
 
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData();

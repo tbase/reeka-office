@@ -7,29 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Empty } from "@/components/ui/empty";
 import { LinkButton } from "@/components/ui/link-button";
-import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import {
   deleteProductAction,
   offShelfProductAction,
   publishProductAction,
 } from "@/actions/points/product-actions";
+import { normalizeImageURL } from "@/lib/misc";
 
 type ProductStatus = "draft" | "published" | "off_shelf";
-
-function getStatusText(status: ProductStatus): string {
-  if (status === "draft") return "草稿";
-  if (status === "published") return "已发布";
-  return "已下架";
-}
-
-function getStatusVariant(
-  status: ProductStatus,
-): "default" | "secondary" | "outline" {
-  if (status === "published") return "default" as const;
-  if (status === "off_shelf") return "secondary" as const;
-  return "outline" as const;
-}
 
 function formatValidPeriod(months: number | null): string {
   if (months === null) {
@@ -44,7 +30,6 @@ type ProductListProps = {
 };
 
 export async function ProductList({ status }: ProductListProps) {
-  await getRequiredAdminContext();
   const products = await new ListRedemptionProductsQuery({
     status,
   }).query();
@@ -57,25 +42,22 @@ export async function ProductList({ status }: ProductListProps) {
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {products.map((product) => (
         <Card key={product.id}>
-          <CardHeader className="gap-2">
+          <CardHeader>
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
-                <CardTitle className="truncate text-base leading-none">
+                <CardTitle className="truncate text-sm leading-none">
                   {product.title}
                 </CardTitle>
-                <Badge variant="outline">{product.redeemCategory}</Badge>
               </div>
-              <Badge variant={getStatusVariant(product.status)}>
-                {getStatusText(product.status)}
-              </Badge>
+              <Badge variant="outline">{product.redeemCategory}</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-start gap-3">
-              <div className="bg-muted/40 relative aspect-square w-24 shrink-0 overflow-hidden rounded-md border">
+          <CardContent className="text-xs">
+            <div className="flex items-center gap-2">
+              <div className="bg-muted/40 relative aspect-square w-20 shrink-0 overflow-hidden rounded-md border">
                 {product.imageUrl ? (
                   <Image
-                    src={`/${product.imageUrl}`}
+                    src={normalizeImageURL(product.imageUrl)}
                     alt={product.title}
                     fill
                     unoptimized
