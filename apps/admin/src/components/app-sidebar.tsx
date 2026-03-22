@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  BlocksIcon,
   FileTextIcon,
   FolderTreeIcon,
   GiftIcon,
   LayoutGridIcon,
   LogInIcon,
   ScrollTextIcon,
+  TagsIcon,
   TicketPlusIcon,
   UsersIcon,
 } from "lucide-react";
@@ -74,6 +76,21 @@ const menuGroups: MenuGroup[] = [
         title: "代理人管理",
         url: "/agents",
         icon: UsersIcon,
+      },
+    ],
+  },
+  {
+    title: "计划管理",
+    items: [
+      {
+        title: "计划模板",
+        url: "/plans",
+        icon: BlocksIcon,
+      },
+      {
+        title: "任务分类",
+        url: "/plans/task-categories",
+        icon: TagsIcon,
       },
     ],
   },

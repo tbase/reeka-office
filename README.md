@@ -12,8 +12,10 @@
 
 - `packages/domain-*`: 领域逻辑模块，按业务域拆分
 - `packages/domain-agent`: 租户代理人相关的领域逻辑
-- `packages/domain-identity`: 中心身份与多租户绑定相关的领域逻辑
 - `packages/domain-cms`: CMS 相关的领域逻辑
+- `packages/domain-identity`: 中心身份与多租户绑定相关的领域逻辑
+- `packages/domain-plan`: 计划任务相关的领域逻辑
+- `packages/domain-point`: 积分相关的领域逻辑
 - `packages/jsonrpc`: JSON-RPC 服务端框架，提供协议处理与服务组织能力
 
 ## 快速开始

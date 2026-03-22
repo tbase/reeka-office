@@ -10,7 +10,7 @@ Guidance for autonomous coding agents in `reeka-office`.
   - `apps/api` (Bun + TypeScript JSON-RPC API)
   - `apps/admin` (Next.js 16 + React 19)
   - `apps/miniprogram` (weapp-vite + Vue 3 + TDesign)
-- Packages: `@reeka-office/domain-cms`, `@reeka-office/domain-user`, `@reeka-office/domain-point`, `@reeka-office/jsonrpc`
+- Packages: `@reeka-office/domain-agent`, `@reeka-office/domain-cms`, `@reeka-office/domain-identity`, `@reeka-office/domain-plan`, `@reeka-office/domain-point`, `@reeka-office/jsonrpc`
 
 ## Setup
 
@@ -94,7 +94,7 @@ Guidance for autonomous coding agents in `reeka-office`.
 - UI files: kebab-case (`app-sidebar.tsx`).
 - Domain classes: PascalCase + suffix (`CreateContentCommand`, `ListContentsQuery`).
 - Functions/variables: camelCase.
-- RPC registry: `xxxRegistry` (e.g., `cmsRegistry`, `userRegistry`).
+- RPC registry: `xxxRegistry` (e.g., `cmsRegistry`, `identityRegistry`).
 
 ## Architecture Patterns
 
@@ -153,4 +153,3 @@ Verification flow after edits:
 1. `pnpm typecheck` (all workspaces)
 2. `pnpm --filter admin lint` (when touching `apps/admin`)
 3. Targeted workspace build(s) when needed
-

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 
 import type { DBExecutor } from '../context'
 import type { PlanRepository, PlanTaskLookup } from '../domain/repositories'
@@ -31,11 +31,13 @@ export class DrizzlePlanRepository implements PlanRepository, PlanTaskLookup {
       this.db
         .select()
         .from(planStages)
-        .where(eq(planStages.planId, planId)),
+        .where(eq(planStages.planId, planId))
+        .orderBy(asc(planStages.displayOrder), asc(planStages.id)),
       this.db
         .select()
         .from(planTasks)
-        .where(eq(planTasks.planId, planId)),
+        .where(eq(planTasks.planId, planId))
+        .orderBy(asc(planTasks.stageId), asc(planTasks.displayOrder), asc(planTasks.id)),
     ])
 
     return Plan.restore({

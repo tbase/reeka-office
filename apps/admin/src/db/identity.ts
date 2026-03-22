@@ -50,7 +50,7 @@ export function getIdentityDB(): IdentityDB {
   db = drizzle(ensurePool(), {
     schema: identitySchema,
     mode: "default",
-  }) as IdentityDB
+  }) as unknown as IdentityDB
 
   return db
 }

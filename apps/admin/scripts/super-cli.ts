@@ -404,7 +404,7 @@ async function ensureTenantEnvFiles(options: TenantCreateOptions): Promise<void>
 async function createOrUpdateTenant(options: TenantCreateOptions) {
   const db = getIdentityDB()
   const existingTenant = await db.query.tenants.findFirst({
-    where: eq(identityTenants.tenantCode, options.tenantCode),
+    where: (fields, operators) => operators.eq(fields.tenantCode, options.tenantCode),
   })
 
   if (!existingTenant) {
@@ -426,7 +426,7 @@ async function createOrUpdateTenant(options: TenantCreateOptions) {
         apiServiceName: options.apiServiceName,
         status: options.status,
       })
-      .where(eq(identityTenants.tenantCode, options.tenantCode))
+      .where(eq(identityTenants.tenantCode as never, options.tenantCode) as never)
 
     console.log(`Updated tenant: ${options.tenantCode}`)
   }

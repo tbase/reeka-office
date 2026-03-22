@@ -18,7 +18,7 @@ const requestingAvatar = ref(false);
 const tenantName = ref(getActiveTenant()?.tenantName ?? "");
 
 const { mutate: updateAvatar, loading: avatarUpdating } = useMutation(
-  "user/updateAvatar",
+  "identity/updateAvatar",
   {
     showLoading: "更新头像中...",
   },

@@ -17,6 +17,7 @@
     "@reeka-office/domain-agent": "workspace:*",
     "@reeka-office/domain-cms": "workspace:*",
     "@reeka-office/domain-identity": "workspace:*",
+    "@reeka-office/domain-plan": "workspace:*",
     "@reeka-office/domain-point": "workspace:*",
     "@tanstack/react-form": "^1.28.3",
     "ai": "^6.0.105",

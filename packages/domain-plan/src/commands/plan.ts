@@ -164,6 +164,11 @@ export interface CreatePlanStageInput {
   displayOrder?: number
 }
 
+export interface CreatePlanStagesBatchInput {
+  planId: number
+  titles: string[]
+}
+
 export class CreatePlanStageCommand {
   private readonly input: CreatePlanStageInput
 
@@ -177,6 +182,40 @@ export class CreatePlanStageCommand {
       const stage = plan.addStage(this.input)
       await savePlanAndHandleEvents(tx, plan)
       return stage.id
+    })
+  }
+}
+
+export class CreatePlanStagesBatchCommand {
+  private readonly input: CreatePlanStagesBatchInput
+
+  constructor(input: CreatePlanStagesBatchInput) {
+    this.input = input
+  }
+
+  async execute(): Promise<number[]> {
+    return withTransaction(async (tx) => {
+      const plan = await requirePlan(tx, this.input.planId)
+
+      for (const title of this.input.titles) {
+        plan.addStage({
+          title,
+          description: null,
+        })
+      }
+
+      await savePlanAndHandleEvents(tx, plan)
+
+      return plan
+        .toSnapshot()
+        .stages.slice(-this.input.titles.length)
+        .map((stage) => {
+          if (!stage.id) {
+            throw new Error('创建计划阶段失败')
+          }
+
+          return stage.id
+        })
     })
   }
 }

@@ -2,7 +2,7 @@ import { computed, type ComputedRef, type Ref } from 'wevu'
 import { invalidateQueries, useQuery } from '@/hooks/useQuery'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
 
-type GetUserResult = Exclude<RpcOutput<'user/getCurrentUser'>, null>
+type GetUserResult = Exclude<RpcOutput<'identity/getCurrentUser'>, null>
 
 export interface UserStore {
   user: Ref<GetUserResult | null>
@@ -21,7 +21,7 @@ export function useUserStore(): UserStore {
   }
 
   const { data, loading, error, refetch, invalidate } = useQuery({
-    queryKey: ['user/getCurrentUser', undefined],
+    queryKey: ['identity/getCurrentUser', undefined],
   })
 
   const isAgent = computed(() => Boolean(data.value?.agentId))
@@ -34,7 +34,7 @@ export function useUserStore(): UserStore {
     refetch: refetch as () => Promise<GetUserResult | null>,
     invalidate: () => {
       invalidate()
-      invalidateQueries('user/getCurrentUser')
+      invalidateQueries('identity/getCurrentUser')
     },
   }
 

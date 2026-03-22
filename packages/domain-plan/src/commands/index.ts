@@ -9,6 +9,8 @@ export {
   type ArchivePlanInput,
   CreatePlanStageCommand,
   type CreatePlanStageInput,
+  CreatePlanStagesBatchCommand,
+  type CreatePlanStagesBatchInput,
   UpdatePlanStageCommand,
   type UpdatePlanStageInput,
   DeletePlanStageCommand,
@@ -27,6 +29,8 @@ export {
 export {
   CreatePlanTaskCategoryCommand,
   type CreatePlanTaskCategoryInput,
+  CreatePlanTaskCategoriesBatchCommand,
+  type CreatePlanTaskCategoriesBatchInput,
   UpdatePlanTaskCategoryCommand,
   type UpdatePlanTaskCategoryInput,
   DisablePlanTaskCategoryCommand,

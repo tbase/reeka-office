@@ -13,6 +13,10 @@ function optionalText() {
 }
 
 function parseNumberInput(value: unknown) {
+  if (value == null) {
+    return undefined
+  }
+
   if (typeof value === "string") {
     const trimmed = value.trim()
     return trimmed ? Number(trimmed) : undefined
@@ -26,7 +30,7 @@ function positiveIntSchema(label: string) {
 
   return z.preprocess(
     parseNumberInput,
-    z.number({ invalid_type_error: errorMessage }).int(errorMessage).positive(errorMessage),
+    z.number({ error: errorMessage }).int(errorMessage).positive(errorMessage),
   )
 }
 
@@ -35,7 +39,7 @@ function nonNegativeIntSchema(label: string) {
 
   return z.preprocess(
     parseNumberInput,
-    z.number({ invalid_type_error: errorMessage }).int(errorMessage).min(0, errorMessage),
+    z.number({ error: errorMessage }).int(errorMessage).min(0, errorMessage),
   )
 }
 
@@ -45,7 +49,7 @@ function optionalPositiveIntSchema(label: string) {
   return z
     .preprocess(
       parseNumberInput,
-      z.number({ invalid_type_error: errorMessage }).int(errorMessage).positive(errorMessage).optional(),
+      z.number({ error: errorMessage }).int(errorMessage).positive(errorMessage).optional(),
     )
     .transform((value) => value ?? null)
 }
@@ -55,7 +59,7 @@ function optionalPositiveIntAsUndefinedSchema(label: string) {
 
   return z.preprocess(
     parseNumberInput,
-    z.number({ invalid_type_error: errorMessage }).int(errorMessage).positive(errorMessage).optional(),
+    z.number({ error: errorMessage }).int(errorMessage).positive(errorMessage).optional(),
   )
 }
 

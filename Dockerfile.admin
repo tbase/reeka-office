@@ -13,8 +13,9 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/admin/package.json ./apps/admin/
 
 # Copy workspace packages package.json files (needed for workspace dependencies)
+COPY packages/domain-agent/package.json ./packages/domain-agent/
 COPY packages/domain-cms/package.json ./packages/domain-cms/
-COPY packages/domain-user/package.json ./packages/domain-user/
+COPY packages/domain-identity/package.json ./packages/domain-identity/
 COPY packages/domain-point/package.json ./packages/domain-point/
 COPY packages/jsonrpc/package.json ./packages/jsonrpc/
 
