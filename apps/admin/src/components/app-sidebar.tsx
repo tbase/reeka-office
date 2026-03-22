@@ -36,6 +36,7 @@ interface MenuItem {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   hidden?: boolean;
+  excludeActivePrefixes?: string[];
 }
 
 interface MenuGroup {
@@ -83,9 +84,10 @@ const menuGroups: MenuGroup[] = [
     title: "计划管理",
     items: [
       {
-        title: "计划模板",
+        title: "计划列表",
         url: "/plans",
         icon: BlocksIcon,
+        excludeActivePrefixes: ["/plans/task-categories"],
       },
       {
         title: "任务分类",
@@ -115,6 +117,25 @@ const menuGroups: MenuGroup[] = [
     ],
   },
 ];
+
+function isMenuItemActive(pathname: string, item: MenuItem) {
+  if (pathname === item.url) {
+    return true;
+  }
+
+  if (item.url === "/dashboard") {
+    return false;
+  }
+
+  const isChildPath = pathname.startsWith(`${item.url}/`);
+  if (!isChildPath) {
+    return false;
+  }
+
+  return !item.excludeActivePrefixes?.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
@@ -150,24 +171,23 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.filter((item) => !item.hidden).map((item) => {
-                  const isActive =
-                    pathname === item.url ||
-                    (item.url !== "/dashboard" &&
-                      pathname.startsWith(item.url));
+                {group.items
+                  .filter((item) => !item.hidden)
+                  .map((item) => {
+                    const isActive = isMenuItemActive(pathname, item);
 
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        render={<Link href={item.url} />}
-                      >
-                        <item.icon className="size-4" />
-                        {item.title}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          render={<Link href={item.url} />}
+                        >
+                          <item.icon className="size-4" />
+                          {item.title}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

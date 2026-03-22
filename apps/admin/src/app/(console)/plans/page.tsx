@@ -44,7 +44,7 @@ export default async function PlansPage() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">计划模板</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">计划列表</h1>
             <p className="text-muted-foreground text-sm">
               维护计划基础信息、阶段和任务结构。
             </p>
@@ -61,7 +61,7 @@ export default async function PlansPage() {
 
       {plans.length === 0 ? (
         <Empty
-          title="暂无计划模板。"
+          title="暂无计划。"
           description="先创建一个计划，再配置阶段和任务。"
           action={
             <LinkButton href="/plans/new" size="sm">
