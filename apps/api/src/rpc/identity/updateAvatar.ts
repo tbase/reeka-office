@@ -1,11 +1,10 @@
 import { UpdateUserAvatarCommand } from "@reeka-office/domain-identity";
-import { createRpcError } from "@reeka-office/jsonrpc";
 import { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
 
 const inputSchema = z.object({
-  avatar: z.string().url(),
+  avatar: z.string(),
 });
 
 export type UpdateAvatarInput = z.infer<typeof inputSchema>;
@@ -16,17 +15,9 @@ export type UpdateAvatarOutput = {
 export const updateAvatar = rpc.define({
   inputSchema,
   execute: mustAgent(async ({ input, context }) => {
-    try {
-      return await new UpdateUserAvatarCommand({
-        openid: context.openid,
-        avatar: input.avatar,
-      }).execute();
-    } catch (error) {
-      if (error instanceof Error && error.message === "用户不存在") {
-        throw createRpcError.badRequest("用户不存在，暂时无法更新头像");
-      }
-
-      throw error;
-    }
+    return await new UpdateUserAvatarCommand({
+      openid: context.openid,
+      avatar: input.avatar,
+    }).execute();
   }),
 });

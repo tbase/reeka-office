@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { computed, onShow, ref } from "wevu";
 
+import AvatarPicker from "@/components/avatar-picker/index.vue";
 import { useMutation } from "@/hooks/useMutation";
-import { refreshTenantCatalog } from "@/lib/center-api";
-import { getActiveTenant } from "@/lib/tenant-session";
+import { uploadFile } from "@/lib/upload-file";
 import { usePointSummaryStore } from "@/stores/points";
 import { useUserStore } from "@/stores/user";
 
 definePageJson({
   navigationBarTitleText: "我的",
-  backgroundColor: "#f6f7fb",
+  backgroundColor: "#ffffff",
+  usingComponents: {
+    "t-cell": "tdesign-miniprogram/cell/cell",
+    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+  },
 });
 
 const { user, refetch: refetchUser } = useUserStore();
 const { summary } = usePointSummaryStore();
 const requestingAvatar = ref(false);
-const tenantName = ref(getActiveTenant()?.tenantName ?? "");
 
 const { mutate: updateAvatar, loading: avatarUpdating } = useMutation(
   "identity/updateAvatar",
@@ -34,7 +37,8 @@ const member = computed(() => {
 });
 
 const syncAvatar = async (avatar: string) => {
-  const result = await updateAvatar({ avatar });
+  const cloudPath = await uploadFile(avatar, `agent/${member.value.agentCode}`);
+  const result = await updateAvatar({ avatar: cloudPath });
   if (!result) {
     wx.showToast({
       title: "头像更新失败",
@@ -46,14 +50,12 @@ const syncAvatar = async (avatar: string) => {
   await refetchUser();
 };
 
-const onChooseAvatar = async (
-  event: WechatMiniprogram.CustomEvent<{ avatarUrl?: string }>,
-) => {
+const onChooseAvatar = async (event: { avatarUrl?: string }) => {
   if (requestingAvatar.value || avatarUpdating.value) {
     return;
   }
 
-  const avatarUrl = event.detail?.avatarUrl;
+  const avatarUrl = event.avatarUrl;
   if (!avatarUrl) {
     wx.showToast({
       title: "未获取到头像",
@@ -77,13 +79,6 @@ const onChooseAvatar = async (
 
 onShow(() => {
   void refetchUser();
-  void refreshTenantCatalog()
-    .then(({ activeTenant }) => {
-      tenantName.value = activeTenant?.tenantName ?? ""
-    })
-    .catch(() => {
-      tenantName.value = getActiveTenant()?.tenantName ?? ""
-    })
 });
 
 const goMyPoints = () => {
@@ -91,88 +86,39 @@ const goMyPoints = () => {
     url: "/pages/mine/points/index",
   });
 };
-
-const goTenantSwitch = () => {
-  wx.navigateTo({
-    url: "/pages/unauthorized/index",
-  });
-};
 </script>
 
 <template>
-  <view class="min-h-screen bg-white text-slate-900">
-    <view class="px-4 py-10">
+  <view class="min-h-screen">
+    <view class="px-4 py-6 bg-white mb-4">
       <view class="flex items-start gap-3">
-        <view
-          class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
-        >
-          <image
-            v-if="member.avatar"
-            class="h-14 w-14 rounded-full bg-slate-100"
-            mode="aspectFill"
-            :src="member.avatar"
-          />
-          <button
-            v-else
-            class="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-slate-100 px-[10rpx] py-[8rpx] text-center text-slate-600 text-xs leading-[1.2]"
-            hover-class="none"
-            open-type="chooseAvatar"
-            @chooseavatar="onChooseAvatar"
-          >
-            <text>选择</text>
-            <text>头像</text>
-          </button>
-        </view>
+        <AvatarPicker
+          class="shrink-0"
+          :src="member.avatar"
+          :loading="requestingAvatar || avatarUpdating"
+          @choose="onChooseAvatar"
+        />
 
-        <view class="flex h-14 min-w-0 flex-1 flex-col justify-between">
-          <text
-            class="block text-xl font-semibold tracking-wide text-slate-900"
-          >
+        <view class="flex min-h-[96rpx] min-w-0 flex-1 flex-col justify-center">
+          <view class="block font-semibold tracking-wide">
             {{ member.agentName }}
-          </text>
-          <text v-if="member.agentCode" class="block text-base text-slate-600">
-            CODE: {{ member.agentCode }}
-          </text>
+          </view>
+          <view v-if="member.agentCode" class="block text-sm">
+            {{ member.agentCode }}
+          </view>
         </view>
       </view>
     </view>
 
-    <view class="px-4 py-4">
-      <view
-        class="mb-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-        @tap="goTenantSwitch"
-      >
-        <view>
-          <text class="block text-xs text-slate-500">当前租户</text>
-          <text class="mt-1 block text-base font-semibold text-slate-900">
-            {{ tenantName || "未选择" }}
-          </text>
-        </view>
-        <view class="flex items-center justify-center">
-          <text class="text-base text-slate-500">切换</text>
-        </view>
-      </view>
-
-      <view
-        class="flex items-center justify-between rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3"
-        @tap="goMyPoints"
-      >
-        <view>
-          <text class="block text-xs text-rose-400"> 积分管理 </text>
-          <text class="mt-1 block text-lg font-semibold text-rose-600">
-            我的积分{{ member.currentPoints }}
-          </text>
-        </view>
-        <view class="flex items-center justify-center">
-          <text class="text-base text-rose-500">查看</text>
-        </view>
-      </view>
+    <view class="pb-4">
+      <t-cell-group bordered class="bg-white">
+        <t-cell
+          title="积分管理"
+          :note="`我的积分 ${member.currentPoints}`"
+          arrow
+          @click="goMyPoints"
+        />
+      </t-cell-group>
     </view>
   </view>
 </template>
-
-<style scoped>
-.avatar-picker::after {
-  border: none;
-}
-</style>

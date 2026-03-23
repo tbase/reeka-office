@@ -12,9 +12,10 @@ import { useId, useRef, useState } from "react";
 import { normalizeImageURL } from "@/lib/misc";
 import { cn } from "@/lib/utils";
 
-async function uploadFile(file: File): Promise<string> {
+async function uploadFile(file: File, directory: string): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("directory", directory);
 
   const res = await fetch("/api/upload", {
     method: "POST",
@@ -39,6 +40,7 @@ async function uploadFile(file: File): Promise<string> {
 type CommonProps = {
   id?: string;
   alt?: string;
+  directory: string;
   disabled?: boolean;
   className?: string;
   onError?: (err: Error) => void;
@@ -123,7 +125,7 @@ export function ImageUpload(props: MultipleProps): React.ReactElement;
 export function ImageUpload(
   props: SingleProps | MultipleProps,
 ): React.ReactElement {
-  const { id, alt, disabled, className, onError } = props;
+  const { id, alt, directory, disabled, className, onError } = props;
 
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -142,10 +144,10 @@ export function ImageUpload(
     setUploading(true);
     try {
       if (props.multiple) {
-        const paths = await Promise.all(files.map(uploadFile));
+        const paths = await Promise.all(files.map((file) => uploadFile(file, directory)));
         props.onChangeAction([...(props.value ?? []), ...paths]);
       } else {
-        const path = await uploadFile(files[0]!);
+        const path = await uploadFile(files[0]!, directory);
         props.onChangeAction(path);
       }
     } catch (err) {

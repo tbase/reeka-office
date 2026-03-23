@@ -1,10 +1,26 @@
+import path from 'node:path'
 import { UnifiedViteWeappTailwindcssPlugin } from 'weapp-tailwindcss/vite'
 import { TDesignResolver } from 'weapp-vite/auto-import-components/resolvers'
 import { defineConfig } from 'weapp-vite/config'
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(import.meta.dirname, 'src'),
+    },
+  },
   weapp: {
     srcRoot: 'src',
+    typescript: {
+      app: {
+        compilerOptions: {
+          paths: {
+            'tdesign-miniprogram/*': ['./node_modules/tdesign-miniprogram/miniprogram_dist/*'],
+          },
+        },
+      },
+    },
+    autoRoutes: true,
     autoImportComponents: {
       resolvers: [TDesignResolver()],
       htmlCustomData: true,
@@ -50,6 +66,6 @@ export default defineConfig({
   plugins: [
     UnifiedViteWeappTailwindcssPlugin({
       rem2rpx: true,
-    }) as any,
+    }),
   ],
 })

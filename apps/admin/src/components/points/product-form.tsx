@@ -153,6 +153,7 @@ export function ProductForm<TAction extends ProductFormAction, TSchema extends Z
             name="imageUrl"
             render={({ field }) => (
               <ImageUpload
+                directory="points"
                 value={field.value ?? ""}
                 alt="商品图片"
                 onChangeAction={field.onChange}

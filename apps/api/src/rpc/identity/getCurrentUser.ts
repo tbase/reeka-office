@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
+import { normalizeImageURL } from "../../lib/image-url";
 
 const inputSchema = z.void();
 
@@ -19,5 +20,10 @@ export type GetCurrentUserOutput = {
 
 export const getCurrentUser = rpc.define({
   inputSchema,
-  execute: mustAgent(async ({ context }) => context.user)
+  execute: mustAgent(async ({ context }) => {
+    return {
+      ...context.user,
+      avatar: context.user.avatar ? normalizeImageURL(context.user.avatar) : null,
+    };
+  })
 });

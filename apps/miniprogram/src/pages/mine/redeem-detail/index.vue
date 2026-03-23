@@ -8,6 +8,12 @@ import { usePointSummaryStore, useRedeemItemStore } from '@/stores/points'
 definePageJson({
   navigationBarTitleText: '兑换详情',
   backgroundColor: '#f6f7fb',
+  usingComponents: {
+    't-button': 'tdesign-miniprogram/button/button',
+    't-cell': 'tdesign-miniprogram/cell/cell',
+    't-cell-group': 'tdesign-miniprogram/cell-group/cell-group',
+    't-tag': 'tdesign-miniprogram/tag/tag',
+  },
 })
 
 const selectedId = wx.getStorageSync('mine_redeem_item_id') as string
@@ -80,61 +86,47 @@ const handleRedeem = async () => {
 <template>
   <view class="min-h-screen bg-slate-100 px-4 pb-16 pt-4 text-slate-900">
     <view class="rounded-xl bg-white p-4 shadow-lg">
-      <text class="inline-flex rounded-full bg-rose-50 px-2 py-1 text-xs text-rose-500">
+      <t-tag theme="primary" variant="light" shape="round">
         {{ item.redeemCategory || '默认分类' }}
-      </text>
+      </t-tag>
       <image
         v-if="item.imageUrl"
         class="mt-3 h-40 w-full rounded-lg bg-slate-100"
         mode="aspectFill"
         :src="item.imageUrl"
       />
-      <text class="mt-2 block text-lg font-semibold text-slate-900">{{ item.title }}</text>
-      <text class="mt-2 block text-sm text-slate-500">{{ item.description }}</text>
-      <view class="mt-4 rounded-lg bg-slate-50 p-3">
-        <view class="flex items-center justify-between">
-          <text class="text-sm text-slate-500">积分消耗</text>
-          <text class="text-sm font-semibold text-rose-500">{{ item.redeemPoints }} 积分</text>
-        </view>
-        <view class="mt-2 flex items-center justify-between">
-          <text class="text-sm text-slate-500">当前积分</text>
-          <text class="text-sm text-slate-900">{{ memberPoints }}</text>
-        </view>
-        <view class="mt-2 flex items-center justify-between">
-          <text class="text-sm text-slate-500">兑换后剩余</text>
-          <text class="text-sm" :class="pointsAfterRedeem >= 0 ? 'text-slate-900' : 'text-red-500'">
-            {{ pointsAfterRedeem }}
-          </text>
-        </view>
-        <view class="mt-2 flex items-center justify-between">
-          <text class="text-sm text-slate-500">剩余库存</text>
-          <text class="text-sm text-slate-900">{{ item.stock }}</text>
-        </view>
-        <view class="mt-2 flex items-center justify-between">
-          <text class="text-sm text-slate-500">每人限兑</text>
-          <text class="text-sm text-slate-900">{{ item.maxRedeemPerAgent }} 次</text>
-        </view>
-        <view class="mt-2 flex items-center justify-between">
-          <text class="text-sm text-slate-500">已兑换次数</text>
-          <text class="text-sm text-slate-900">{{ item.redeemedCount }} 次</text>
-        </view>
-        <view v-if="item.notice" class="mt-2">
-          <text class="text-sm text-slate-500">兑换说明</text>
-          <text class="mt-1 block text-sm text-slate-700">{{ item.notice }}</text>
-        </view>
-      </view>
+      <view class="mt-2 block text-lg font-semibold text-slate-900">{{ item.title }}</view>
+      <view class="mt-2 block text-sm text-slate-500">{{ item.description }}</view>
+
+      <t-cell-group class="mt-4" theme="card" bordered>
+        <t-cell title="积分消耗" :note="`${item.redeemPoints} 积分`" />
+        <t-cell title="当前积分" :note="`${memberPoints}`" />
+        <t-cell title="兑换后剩余" :note="`${pointsAfterRedeem}`" />
+        <t-cell title="剩余库存" :note="`${item.stock}`" />
+        <t-cell title="每人限兑" :note="`${item.maxRedeemPerAgent} 次`" />
+        <t-cell title="已兑换次数" :note="`${item.redeemedCount} 次`" />
+        <t-cell
+          v-if="item.notice"
+          title="兑换说明"
+          :description="item.notice"
+        />
+      </t-cell-group>
     </view>
 
-    <view
-      class="mt-4 rounded-xl py-3 text-center"
-      :class="canRedeem && !redeeming ? 'bg-rose-500' : 'bg-slate-300'"
-      @tap="handleRedeem"
+    <t-button
+      class="mt-4"
+      theme="primary"
+      size="large"
+      block
+      :loading="redeeming"
+      :disabled="!canRedeem || redeeming"
+      @click="handleRedeem"
     >
-      <text class="text-base font-semibold text-white">{{ redeeming ? '兑换中...' : '马上兑换' }}</text>
-    </view>
+      {{ redeeming ? '兑换中...' : '马上兑换' }}
+    </t-button>
 
-    <text v-if="!canRedeem" class="mt-2 block text-center text-xs text-slate-400">
+    <view v-if="!canRedeem" class="mt-2 block text-center text-xs text-slate-400">
       积分不足、库存不足或已达限兑次数，暂不可兑换
-    </text>
+    </view>
   </view>
 </template>

@@ -162,6 +162,7 @@ export function ContentFields({
                 <ImageUpload
                   multiple
                   id={fieldId}
+                  directory="cms"
                   value={Array.isArray(value) ? (value as string[]) : []}
                   alt={field.label}
                   onChangeAction={(nextValue) =>
@@ -173,6 +174,7 @@ export function ContentFields({
               {field.type === "image" && !field.props?.multiple ? (
                 <ImageUpload
                   id={fieldId}
+                  directory="cms"
                   value={typeof value === "string" ? value : ""}
                   alt={field.label}
                   onChangeAction={(nextValue) =>

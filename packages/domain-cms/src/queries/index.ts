@@ -3,9 +3,7 @@ export { GetContentQuery, type GetContentInput } from "./get-content";
 export { ListCategoriesQuery, type ListCategoriesInput } from "./list-categories";
 export {
   ListContentsQuery,
-  ListContentsByCategoryQuery,
   type ListContentsInput,
   type ListContentItem,
-  type ListContentsResult,
-  type ListContentsByCategoryInput
+  type ListContentsResult
 } from "./list-contents";

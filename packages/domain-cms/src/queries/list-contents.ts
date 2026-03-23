@@ -4,6 +4,7 @@ import { categories, contents, type ContentRow } from "../schema";
 
 export interface ListContentsInput {
   categoryId?: number;
+  categorySlug?: string;
 }
 
 export interface ListContentItem extends ContentRow {
@@ -26,7 +27,8 @@ export class ListContentsQuery {
 
   async query(): Promise<ListContentsResult> {
     const filters = [
-      this.input.categoryId ? eq(contents.categoryId, this.input.categoryId) : undefined,
+      typeof this.input.categoryId === "number" ? eq(contents.categoryId, this.input.categoryId) : undefined,
+      this.input.categorySlug?.trim() ? eq(categories.slug, this.input.categorySlug.trim()) : undefined,
     ].filter((item) => item !== undefined);
 
     const whereClause = filters.length === 0
@@ -51,30 +53,16 @@ export class ListContentsQuery {
         .innerJoin(categories, eq(categories.id, contents.categoryId))
         .where(whereClause)
         .orderBy(desc(contents.createdAt)),
-      this.db.select({ value: count() }).from(contents).where(whereClause)
+      this.db
+        .select({ value: count() })
+        .from(contents)
+        .innerJoin(categories, eq(categories.id, contents.categoryId))
+        .where(whereClause)
     ]);
 
     return {
       contents: contentRows,
       total: Number(totalRows[0]?.value ?? 0)
     };
-  }
-}
-
-export interface ListContentsByCategoryInput {
-  categoryId: number;
-}
-
-export class ListContentsByCategoryQuery {
-  private readonly input: ListContentsByCategoryInput;
-
-  constructor(input: ListContentsByCategoryInput) {
-    this.input = input;
-  }
-
-  async query(): Promise<ListContentsResult> {
-    return new ListContentsQuery({
-      categoryId: this.input.categoryId,
-    }).query();
   }
 }

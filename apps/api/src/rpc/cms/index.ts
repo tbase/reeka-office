@@ -1,3 +1,3 @@
-export { getFamilyOfficeResourceDetail } from "./getFamilyOfficeResourceDetail";
-export { listFamilyOfficeResources } from "./listFamilyOfficeResources";
-export { listServiceCategories } from "./listServiceCategories";
+export { getResourceContent } from "./getResourceContent";
+export { listResourceContents } from "./listResourceContents";
+

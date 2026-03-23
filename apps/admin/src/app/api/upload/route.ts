@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
+const DIRECTORY_SEGMENT_PATTERN = /^[a-z0-9][a-z0-9-]*$/i
 
 function getEnv(key: string): string {
   const value = process.env[key]
@@ -23,12 +24,48 @@ function getExtension(mimeType: string): string {
   return map[mimeType] ?? "bin"
 }
 
-function generatePath(prefix: string, ext: string): string {
-  const now = new Date()
-  const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`
+function getTenantRootDirectory(): string {
+  const tenantCode = getEnv("TENANT_CODE").trim()
+  if (!DIRECTORY_SEGMENT_PATTERN.test(tenantCode)) {
+    throw new Error("租户编码格式无效")
+  }
+  return `office-${tenantCode}`
+}
+
+function normalizeUploadDirectory(value: FormDataEntryValue | null): string {
+  if (typeof value !== "string") {
+    return ""
+  }
+
+  const directory = value.trim().replace(/^\/+|\/+$/g, "")
+  if (!directory) {
+    return ""
+  }
+
+  const segments = directory.split("/")
+  const isValidSegment = segments.every((segment) => DIRECTORY_SEGMENT_PATTERN.test(segment))
+
+  if (!isValidSegment) {
+    throw new Error("上传目录格式无效")
+  }
+
+  if (segments.length === 1) {
+    if (segments[0]?.toLowerCase() === "agent") {
+      throw new Error("代理人目录必须包含 agentCode")
+    }
+    return segments[0]!
+  }
+
+  if (segments.length === 2 && segments[0]?.toLowerCase() === "agent") {
+    return `agent/${segments[1]}`
+  }
+
+  throw new Error("上传目录层级无效")
+}
+
+function generateFileName(ext: string): string {
   const rand = Math.random().toString(36).slice(2, 10)
-  const segment = prefix ? `${prefix}/` : ""
-  return `${segment}${date}/${Date.now()}-${rand}.${ext}`
+  return `${Date.now()}-${rand}.${ext}`
 }
 
 export async function POST(request: Request) {
@@ -57,17 +94,30 @@ export async function POST(request: Request) {
 
   let bucket: string
   let region: string
+  let tenantRootDirectory: string
   try {
     bucket = getEnv("COS_BUCKET")
     region = getEnv("COS_REGION")
+    tenantRootDirectory = getTenantRootDirectory()
   } catch (err) {
     console.error("[upload] 环境变量缺失:", err)
     return NextResponse.json({ error: "服务器配置错误" }, { status: 500 })
   }
 
   const ext = getExtension(file.type)
-  const prefix = 'assets'
-  const cloudPath = generatePath(prefix, ext)
+  let uploadDirectory: string
+  try {
+    uploadDirectory = normalizeUploadDirectory(formData.get("directory"))
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "上传目录无效" },
+      { status: 400 },
+    )
+  }
+
+  const cloudPath = [tenantRootDirectory, uploadDirectory, generateFileName(ext)]
+    .filter(Boolean)
+    .join("/")
 
   let buffer: ArrayBuffer
   try {

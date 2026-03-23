@@ -1,0 +1,89 @@
+<script setup lang="ts">
+import HalfScreenPopup from "@/components/half-screen-popup/index.vue";
+import type { RpcOutput } from "@/lib/rpc";
+
+defineComponentJson({
+  usingComponents: {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-cell": "tdesign-miniprogram/cell/cell",
+    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+  },
+});
+
+type RedeemItem = RpcOutput<"points/listRedeemItems">[number];
+
+const props = defineProps<{
+  visible: boolean;
+  item: RedeemItem | null;
+  memberPoints: number;
+  pointsAfterRedeem: number;
+  canRedeem: boolean;
+  redeeming: boolean;
+}>();
+
+const emit = defineEmits(["visible-change", "redeem"]);
+
+const handleVisibleChange = (event: {
+  detail?: {
+    visible?: boolean;
+  };
+}) => {
+  emit("visible-change", {
+    visible: event.detail?.visible ?? false,
+  });
+};
+
+const handleRedeem = () => {
+  emit("redeem");
+};
+</script>
+
+<template>
+  <HalfScreenPopup
+    v-if="props.item"
+    :visible="props.visible"
+    :title="props.item.title"
+    :use-footer-slot="true"
+    @visible-change="handleVisibleChange"
+  >
+    <image
+      v-if="props.item.imageUrl"
+      class="h-36 w-full"
+      mode="aspectFit"
+      :src="props.item.imageUrl"
+    />
+    <view class="mt-2 space-y-1 text-sm text-slate-500">
+      <view v-for="line in props.item.description.split('\n')" :key="line">
+        {{ line }}
+      </view>
+    </view>
+
+    <t-cell-group class="mt-4" bordered>
+      <t-cell title="积分消耗" :note="`${props.item.redeemPoints} 积分`" />
+      <t-cell title="当前积分" :note="`${props.memberPoints}`" />
+      <t-cell title="兑换后剩余" :note="`${props.pointsAfterRedeem}`" />
+      <t-cell title="剩余库存" :note="`${props.item.stock}`" />
+      <t-cell title="每人限兑" :note="`${props.item.maxRedeemPerAgent} 次`" />
+      <t-cell title="已兑换次数" :note="`${props.item.redeemedCount} 次`" />
+    </t-cell-group>
+
+    <template #footer>
+      <t-button
+        theme="primary"
+        block
+        :loading="props.redeeming"
+        :disabled="!props.canRedeem || props.redeeming"
+        @click="handleRedeem"
+      >
+        {{ props.redeeming ? "兑换中..." : "确认兑换" }}
+      </t-button>
+
+      <view
+        v-if="!props.canRedeem"
+        class="mt-2 text-center text-xs text-slate-400"
+      >
+        积分不足、库存不足或已达限兑次数，暂不可兑换
+      </view>
+    </template>
+  </HalfScreenPopup>
+</template>

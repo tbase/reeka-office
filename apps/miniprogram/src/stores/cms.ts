@@ -3,49 +3,51 @@ import { type Ref } from 'wevu'
 import { useQuery } from '@/hooks/useQuery'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
 
-type FamilyOfficeResources = RpcOutput<'cms/listFamilyOfficeResources'>
-type FamilyOfficeResourceDetail = RpcOutput<'cms/getFamilyOfficeResourceDetail'>
+type ResourceContent = RpcOutput<'cms/getResourceContent'>
+type ResourceContents = RpcOutput<'cms/listResourceContents'>
 
-export interface FamilyOfficeResourcesStore {
-  data: Ref<FamilyOfficeResources | null>
+export interface ResourceContentStore {
+  data: Ref<ResourceContent | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<FamilyOfficeResources | null>
+  refetch: () => Promise<ResourceContent | null>
 }
 
-export interface FamilyOfficeResourceDetailStore {
-  detail: Ref<FamilyOfficeResourceDetail | null>
+export interface ResourceContentsStore {
+  data: Ref<ResourceContents | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<FamilyOfficeResourceDetail | null>
+  refetch: () => Promise<ResourceContents | null>
 }
 
-export function useFamilyOfficeResourcesStore(): FamilyOfficeResourcesStore {
+export function useResourceContentStore(resourceId: Ref<string>): ResourceContentStore {
   const { data, loading, error, refetch } = useQuery({
-    queryKey: ['cms/listFamilyOfficeResources', {}],
+    queryKey: () => {
+      const id = Number(resourceId.value)
+
+      if (!Number.isInteger(id) || id <= 0) {
+        return undefined
+      }
+
+      return ['cms/getResourceContent', { id }]
+    },
   })
 
   return {
-    data: data as Ref<FamilyOfficeResources | null>,
+    data: data as Ref<ResourceContent | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,
   }
 }
 
-export function useFamilyOfficeResourceDetailStore(id: Ref<string>): FamilyOfficeResourceDetailStore {
+export function useResourceContentsStore(): ResourceContentsStore {
   const { data, loading, error, refetch } = useQuery({
-    queryKey: () => {
-      if (!id.value) {
-        return undefined
-      }
-
-      return ['cms/getFamilyOfficeResourceDetail', { id: id.value }]
-    },
+    queryKey: ['cms/listResourceContents', undefined],
   })
 
   return {
-    detail: data as Ref<FamilyOfficeResourceDetail | null>,
+    data: data as Ref<ResourceContents | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,

@@ -33,13 +33,13 @@ defineAppJson({
   ],
   window: {
     navigationBarTitleText: "海纳API | 家族办公室",
-    navigationBarBackgroundColor: "#ff2056",
+    navigationBarBackgroundColor: "#e23a3b",
     navigationBarTextStyle: "white",
     backgroundTextStyle: "dark",
   },
   tabBar: {
     color: "#7a7aa0",
-    selectedColor: "#ff2056",
+    selectedColor: "#e23a3b",
     backgroundColor: "#ffffff",
     borderStyle: "white",
     list: [
@@ -78,6 +78,9 @@ defineAppJson({
   style: "v2",
   componentFramework: "glass-easel",
   sitemapLocation: "sitemap.json",
+  resolveAlias: {
+    "@/*": "/*",
+  },
 });
 
 async function syncTenantRoute() {

@@ -58,12 +58,12 @@ export function setActiveTenantCode(tenantCode: string | null): void {
 }
 
 export function getActiveTenant(): TenantSummary | null {
-  const tenantCode = getActiveTenantCode()
-  if (!tenantCode) {
-    return null
+  let tenantCode = getActiveTenantCode()
+  const tenants = getCachedTenants()
+  if (!tenantCode && tenants.length > 0) {
+    tenantCode = tenants[0].tenantCode
   }
-
-  return getCachedTenants().find((tenant) => tenant.tenantCode === tenantCode) ?? null
+  return tenants.find((tenant) => tenant.tenantCode === tenantCode) ?? null
 }
 
 export function syncCachedTenants(tenants: TenantSummary[]): TenantSummary | null {

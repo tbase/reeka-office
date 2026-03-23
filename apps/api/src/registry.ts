@@ -1,8 +1,7 @@
 import { rpc } from "./context";
 import {
-  getFamilyOfficeResourceDetail,
-  listFamilyOfficeResources,
-  listServiceCategories,
+  getResourceContent,
+  listResourceContents,
 } from "./rpc/cms";
 import { getCurrentUser, updateAvatar } from "./rpc/identity";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
@@ -25,9 +24,8 @@ function prefixRegistry<P extends string, T extends Record<string, unknown>>(
 }
 
 const cmsRegistry = rpc.registry({
-  getFamilyOfficeResourceDetail,
-  listFamilyOfficeResources,
-  listServiceCategories,
+  getResourceContent,
+  listResourceContents,
 });
 
 const identityRegistry = rpc.registry({
