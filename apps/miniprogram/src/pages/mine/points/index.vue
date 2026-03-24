@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onShow, ref } from "wevu";
 
-import { useMutation } from "@/hooks/useMutation";
 import { invalidateQueries } from "@/hooks/useQuery";
 import type { RpcOutput } from "@/lib/rpc";
 import { usePointSummaryStore, useRedeemItemsStore } from "@/stores/points";
@@ -10,12 +9,6 @@ import RedeemPopup from "./redeem-popup.vue";
 definePageJson({
   navigationBarTitleText: "我的积分",
   backgroundColor: "#f6f7fb",
-  usingComponents: {
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-empty": "tdesign-miniprogram/empty/empty",
-    "t-grid": "tdesign-miniprogram/grid/grid",
-    "t-grid-item": "tdesign-miniprogram/grid-item/grid-item",
-  },
 });
 
 type RedeemItem = RpcOutput<"points/listRedeemItems">[number];
@@ -51,29 +44,6 @@ const selectedRedeemItem = computed(
     null,
 );
 
-const redeemLimitReached = computed(
-  () =>
-    selectedRedeemItem.value != null &&
-    selectedRedeemItem.value.redeemedCount >=
-      selectedRedeemItem.value.maxRedeemPerAgent,
-);
-
-const pointsAfterRedeem = computed(() => {
-  if (!selectedRedeemItem.value) {
-    return member.value.currentPoints;
-  }
-
-  return member.value.currentPoints - selectedRedeemItem.value.redeemPoints;
-});
-
-const canRedeemSelectedItem = computed(
-  () =>
-    selectedRedeemItem.value != null &&
-    member.value.currentPoints >= selectedRedeemItem.value.redeemPoints &&
-    selectedRedeemItem.value.stock > 0 &&
-    !redeemLimitReached.value,
-);
-
 const openRedeemPopup = (item: RedeemItem) => {
   if (getRedeemDisabledReason(item)) {
     return;
@@ -85,32 +55,16 @@ const openRedeemPopup = (item: RedeemItem) => {
 
 const closeRedeemPopup = () => {
   redeemPopupVisible.value = false;
+  selectedRedeemItemId.value = "";
 };
 
-const handlePopupVisibleChange = (
-  payload:
-    | {
-        detail?: {
-          visible?: boolean;
-        };
-        visible?: boolean;
-      }
-    | boolean
-    | undefined,
-) => {
-  if (typeof payload === "boolean") {
-    redeemPopupVisible.value = payload;
+const handlePopupVisibleChange = (visible: boolean) => {
+  if (!visible) {
+    closeRedeemPopup();
     return;
   }
 
-  if (typeof payload?.visible === "boolean") {
-    redeemPopupVisible.value = payload.visible;
-    return;
-  }
-
-  if (typeof payload?.detail?.visible === "boolean") {
-    redeemPopupVisible.value = payload.detail.visible;
-  }
+  redeemPopupVisible.value = true;
 };
 
 const getRedeemDisabledReason = (item: RedeemItem): string | null => {
@@ -125,45 +79,10 @@ const getRedeemDisabledReason = (item: RedeemItem): string | null => {
   return null;
 };
 
-const { mutate: submitRedeem, loading: redeeming } = useMutation(
-  "points/submitRedeem",
-  {
-    showLoading: "兑换中...",
-    onSuccess: async (result) => {
-      wx.showToast({
-        title: result.message,
-        icon: result.success ? "success" : "none",
-      });
-
-      invalidateQueries("points/getMineSummary");
-      invalidateQueries("points/listRedeemItems");
-      await Promise.all([refetchSummary(), refetchRedeemItems()]);
-
-      if (result.success) {
-        closeRedeemPopup();
-      }
-    },
-    onError: (error) => {
-      wx.showToast({
-        title: error.message || "兑换失败",
-        icon: "none",
-      });
-    },
-  },
-);
-
-const handleRedeem = async () => {
-  if (
-    !selectedRedeemItem.value ||
-    !canRedeemSelectedItem.value ||
-    redeeming.value
-  ) {
-    return;
-  }
-
-  await submitRedeem({
-    itemId: selectedRedeemItem.value.id,
-  });
+const handleRedeemed = async () => {
+  invalidateQueries("points/getMineSummary");
+  invalidateQueries("points/listRedeemItems");
+  await Promise.all([refetchSummary(), refetchRedeemItems()]);
 };
 </script>
 
@@ -250,11 +169,8 @@ const handleRedeem = async () => {
       :visible="redeemPopupVisible"
       :item="selectedRedeemItem"
       :member-points="member.currentPoints"
-      :points-after-redeem="pointsAfterRedeem"
-      :can-redeem="canRedeemSelectedItem"
-      :redeeming="redeeming"
       @visible-change="handlePopupVisibleChange"
-      @redeem="handleRedeem"
+      @redeemed="handleRedeemed"
     />
   </view>
 </template>

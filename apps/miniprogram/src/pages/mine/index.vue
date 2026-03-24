@@ -10,10 +10,6 @@ import { useUserStore } from "@/stores/user";
 definePageJson({
   navigationBarTitleText: "我的",
   backgroundColor: "#ffffff",
-  usingComponents: {
-    "t-cell": "tdesign-miniprogram/cell/cell",
-    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
-  },
 });
 
 const { user, refetch: refetchUser } = useUserStore();

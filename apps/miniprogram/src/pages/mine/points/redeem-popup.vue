@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed } from "wevu";
+
 import HalfScreenPopup from "@/components/half-screen-popup/index.vue";
+import { useMutation } from "@/hooks/useMutation";
 import type { RpcOutput } from "@/lib/rpc";
 
 defineComponentJson({
@@ -16,25 +19,74 @@ const props = defineProps<{
   visible: boolean;
   item: RedeemItem | null;
   memberPoints: number;
-  pointsAfterRedeem: number;
-  canRedeem: boolean;
-  redeeming: boolean;
 }>();
 
-const emit = defineEmits(["visible-change", "redeem"]);
+const emit = defineEmits(["visible-change", "redeemed"]);
+
+const redeemLimitReached = computed(
+  () =>
+    props.item != null &&
+    props.item.redeemedCount >= props.item.maxRedeemPerAgent,
+);
+
+const pointsAfterRedeem = computed(() => {
+  if (!props.item) {
+    return props.memberPoints;
+  }
+
+  return props.memberPoints - props.item.redeemPoints;
+});
+
+const canRedeem = computed(
+  () =>
+    props.item != null &&
+    props.memberPoints >= props.item.redeemPoints &&
+    props.item.stock > 0 &&
+    !redeemLimitReached.value,
+);
 
 const handleVisibleChange = (event: {
   detail?: {
     visible?: boolean;
   };
 }) => {
-  emit("visible-change", {
-    visible: event.detail?.visible ?? false,
-  });
+  emit("visible-change", event.detail?.visible ?? false);
 };
 
-const handleRedeem = () => {
-  emit("redeem");
+const { mutate: submitRedeem, loading: redeeming } = useMutation(
+  "points/submitRedeem",
+  {
+    showLoading: "兑换中...",
+    onSuccess: (result) => {
+      wx.showToast({
+        title: result.message,
+        icon: result.success ? "success" : "none",
+      });
+
+      if (!result.success) {
+        return;
+      }
+
+      emit("redeemed");
+      emit("visible-change", false);
+    },
+    onError: (error) => {
+      wx.showToast({
+        title: error.message || "兑换失败",
+        icon: "none",
+      });
+    },
+  },
+);
+
+const handleRedeem = async () => {
+  if (!props.item || !canRedeem.value || redeeming.value) {
+    return;
+  }
+
+  await submitRedeem({
+    itemId: props.item.id,
+  });
 };
 </script>
 
@@ -61,7 +113,7 @@ const handleRedeem = () => {
     <t-cell-group class="mt-4" bordered>
       <t-cell title="积分消耗" :note="`${props.item.redeemPoints} 积分`" />
       <t-cell title="当前积分" :note="`${props.memberPoints}`" />
-      <t-cell title="兑换后剩余" :note="`${props.pointsAfterRedeem}`" />
+      <t-cell title="兑换后剩余" :note="`${pointsAfterRedeem}`" />
       <t-cell title="剩余库存" :note="`${props.item.stock}`" />
       <t-cell title="每人限兑" :note="`${props.item.maxRedeemPerAgent} 次`" />
       <t-cell title="已兑换次数" :note="`${props.item.redeemedCount} 次`" />
@@ -71,15 +123,15 @@ const handleRedeem = () => {
       <t-button
         theme="primary"
         block
-        :loading="props.redeeming"
-        :disabled="!props.canRedeem || props.redeeming"
+        :loading="redeeming"
+        :disabled="!canRedeem || redeeming"
         @click="handleRedeem"
       >
-        {{ props.redeeming ? "兑换中..." : "确认兑换" }}
+        {{ redeeming ? "兑换中..." : "确认兑换" }}
       </t-button>
 
       <view
-        v-if="!props.canRedeem"
+        v-if="!canRedeem"
         class="mt-2 text-center text-xs text-slate-400"
       >
         积分不足、库存不足或已达限兑次数，暂不可兑换
