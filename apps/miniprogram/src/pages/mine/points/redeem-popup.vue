@@ -104,14 +104,14 @@ const handleRedeem = async () => {
       mode="aspectFit"
       :src="props.item.imageUrl"
     />
-    <view class="mt-2 space-y-1 text-sm text-slate-500">
+    <view class="mt-2 space-y-1 text-sm text-muted-foreground">
       <view v-for="line in props.item.description.split('\n')" :key="line">
         {{ line }}
       </view>
     </view>
 
     <t-cell-group class="mt-4" bordered>
-      <t-cell title="积分消耗" :note="`${props.item.redeemPoints} 积分`" />
+      <t-cell title="积分消耗" :note="`${props.item.redeemPoints}`" />
       <t-cell title="当前积分" :note="`${props.memberPoints}`" />
       <t-cell title="兑换后剩余" :note="`${pointsAfterRedeem}`" />
       <t-cell title="剩余库存" :note="`${props.item.stock}`" />
@@ -132,7 +132,7 @@ const handleRedeem = async () => {
 
       <view
         v-if="!canRedeem"
-        class="mt-2 text-center text-xs text-slate-400"
+        class="mt-2 text-center text-xs text-muted-foreground"
       >
         积分不足、库存不足或已达限兑次数，暂不可兑换
       </view>

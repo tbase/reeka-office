@@ -87,10 +87,10 @@ const handleRedeemed = async () => {
 </script>
 
 <template>
-  <view class="min-h-screen px-4 pb-16 pt-4">
-    <view class="rounded-xl bg-white p-4 shadow-lg">
-      <view class="block text-sm text-slate-500">当前积分总额</view>
-      <view class="mt-1 block text-3xl font-bold text-slate-900">{{
+  <view class="min-h-screen bg-background px-4 pb-16 pt-4">
+    <view class="rounded-xl bg-card p-4 shadow-lg">
+      <view class="block text-sm text-muted-foreground">当前积分总额</view>
+      <view class="mt-1 block text-center text-3xl font-bold">{{
         member.currentPoints
       }}</view>
 
@@ -110,7 +110,7 @@ const handleRedeemed = async () => {
       </t-grid>
     </view>
 
-    <view class="mt-4 rounded-xl bg-white p-4 shadow-lg">
+    <view class="mt-4 rounded-xl bg-card p-4 shadow-lg">
       <view class="flex items-end justify-between">
         <view class="text-lg font-semibold">积分兑换专区</view>
       </view>
@@ -126,7 +126,7 @@ const handleRedeemed = async () => {
         <view
           v-for="item in redeemItems"
           :key="item.id"
-          class="flex min-w-0 flex-col rounded-lg border border-slate-200 p-3 h-48"
+          class="flex h-48 min-w-0 flex-col rounded-lg border border-border p-3"
         >
           <view class="flex flex-col items-center justify-center">
             <image
@@ -136,11 +136,11 @@ const handleRedeemed = async () => {
             />
             <view
               v-else
-              class="flex h-20 w-20 items-center justify-center rounded-md"
+              class="flex h-20 w-20 items-center justify-center rounded-md bg-muted"
             >
-              <view class="text-xs text-slate-400">暂无商品图</view>
+              <view class="text-xs text-muted-foreground">暂无商品图</view>
             </view>
-            <view class="mt-2 block font-semibold text-sm">{{
+            <view class="mt-2 block text-sm font-semibold">{{
               item.title
             }}</view>
           </view>

@@ -92,7 +92,7 @@ export default async function AgentPointDetailPage({
         </div>
         <LinkButton href={`/points/agents/new?agentId=${agentId}`} size="sm">
           <PlusIcon className="size-4" />
-          新增积分
+          发放积分
         </LinkButton>
       </div>
 

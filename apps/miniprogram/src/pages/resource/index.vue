@@ -91,7 +91,7 @@ const openDetail = (id: number) => {
 </script>
 
 <template>
-  <view class="min-h-screen bg-slate-100 px-4 pb-10 pt-4 text-slate-900">
+  <view class="min-h-screen bg-background px-4 pb-10 pt-4">
     <t-tabs
       v-if="categories.length"
       theme="tag"
@@ -109,7 +109,7 @@ const openDetail = (id: number) => {
 
     <t-empty
       v-if="categories.length === 0 && !isLoading"
-      class="mt-4 rounded-[24rpx] bg-white py-8 shadow-sm"
+      class="mt-4 rounded-xl bg-card py-8 shadow-md"
       icon="view-list"
       description="暂无家办内容"
     />
@@ -118,10 +118,10 @@ const openDetail = (id: number) => {
       <view
         v-for="item in resources"
         :key="item.id"
-        class="overflow-hidden rounded bg-white shadow-sm border border-slate-200"
+        class="overflow-hidden rounded-md border border-border bg-card shadow-md"
       >
         <image
-          class="h-32 w-full bg-slate-100"
+          class="h-32 w-full bg-muted"
           mode="aspectFill"
           :src="item.logo || LOGO_PLACEHOLDER"
         />
@@ -138,7 +138,7 @@ const openDetail = (id: number) => {
 
     <t-empty
       v-else-if="!isLoading"
-      class="mt-4 rounded-[24rpx] bg-white py-8 shadow-sm"
+      class="mt-4 rounded-xl bg-card py-8 shadow-md"
       icon="view-list"
       description="当前分类暂无资源"
     />

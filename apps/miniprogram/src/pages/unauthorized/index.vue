@@ -14,30 +14,23 @@ definePageJson({
   navigationBarTitleText: "身份绑定",
   navigationBarBackgroundColor: "#ff2056",
   navigationBarTextStyle: "white",
-  usingComponents: {
-    "t-cell": "tdesign-miniprogram/cell/cell",
-    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
-    "t-input": "tdesign-miniprogram/input/input",
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-radio-group": "tdesign-miniprogram/radio-group/radio-group",
-    "t-radio": "tdesign-miniprogram/radio/radio",
-    "t-toast": "tdesign-miniprogram/toast/toast",
-  },
 });
 
 const { showToast } = useToast();
 const token = ref("");
-const loading = ref(false);
+const binding = ref(false);
+const switchingTenantCode = ref("");
+const loadingTenants = ref(true);
 const tenants = ref<TenantSummary[]>([]);
-const selectedTenantCode = ref("");
+const activeTenantCode = ref("");
 
 const reloadTenants = async (showError = false) => {
+  loadingTenants.value = true;
+
   try {
     const result = await refreshTenantCatalog();
     tenants.value = result.tenants;
-    console.log(result.tenants);
-    selectedTenantCode.value =
+    activeTenantCode.value =
       getActiveTenantCode() ??
       result.activeTenant?.tenantCode ??
       result.tenants[0]?.tenantCode ??
@@ -49,6 +42,8 @@ const reloadTenants = async (showError = false) => {
         "error",
       );
     }
+  } finally {
+    loadingTenants.value = false;
   }
 };
 
@@ -59,12 +54,12 @@ const handleBind = async () => {
     return;
   }
 
-  loading.value = true;
+  binding.value = true;
 
   try {
     const result = await bindByToken(nextToken);
     tenants.value = result.tenants;
-    selectedTenantCode.value = result.tenantCode;
+    activeTenantCode.value = result.tenantCode;
     token.value = "";
     invalidateQueries();
     showToast("绑定成功");
@@ -74,7 +69,7 @@ const handleBind = async () => {
   } catch (error) {
     showToast(error instanceof Error ? error.message : "绑定失败", "error");
   } finally {
-    loading.value = false;
+    binding.value = false;
   }
 };
 
@@ -84,18 +79,26 @@ const handleTokenChange = (
   token.value = event.detail.value ?? "";
 };
 
-const handleUseTenant = () => {
-  if (!selectedTenantCode.value) {
-    showToast("请选择租户", "warning");
+const handleUseTenant = (tenantCode: string) => {
+  if (binding.value || switchingTenantCode.value) {
     return;
   }
 
-  const tenant = switchTenant(selectedTenantCode.value);
+  if (!tenantCode) {
+    showToast("身份无效，请刷新后重试", "warning");
+    return;
+  }
+
+  switchingTenantCode.value = tenantCode;
+
+  const tenant = switchTenant(tenantCode);
   if (!tenant) {
-    showToast("租户已失效，请刷新后重试", "error");
+    switchingTenantCode.value = "";
+    showToast("身份已失效，请刷新后重试", "error");
     return;
   }
 
+  activeTenantCode.value = tenant.tenantCode;
   invalidateQueries();
   showToast(`已切换到${tenant.tenantName}`);
   setTimeout(() => {
@@ -103,87 +106,70 @@ const handleUseTenant = () => {
   }, 300);
 };
 
-const handleTenantChange = (
-  event: WechatMiniprogram.CustomEvent<{ value?: string }>,
-) => {
-  selectedTenantCode.value = event.detail.value ?? "";
-};
-
 onShow(() => {
-  void reloadTenants();
+  wx.hideHomeButton();
+  reloadTenants();
 });
 </script>
 
 <template>
   <view
-    class="flex min-h-screen flex-col items-center justify-center bg-white px-4"
+    class="flex min-h-screen flex-col items-center justify-center bg-background px-4"
   >
     <view class="w-full max-w-sm">
       <view class="mb-8 text-center">
-        <view class="block text-2xl font-semibold text-slate-900">
-          身份绑定
-        </view>
-        <view class="mt-2 block text-sm text-slate-500">
-          请输入绑定码，或直接选择已绑定的租户
+        <view class="block text-2xl font-semibold">代理人绑定</view>
+        <view class="mt-2 block text-sm text-muted-foreground">
+          {{
+            loadingTenants
+              ? "正在加载身份信息"
+              : tenants.length
+                ? "请选择要进入的团队"
+                : "请输入管理员提供的绑定码"
+          }}
         </view>
       </view>
 
-      <t-cell-group theme="card" bordered>
-        <t-input
-          :value="token"
-          @change="handleTokenChange"
-          placeholder="请输入管理员提供的绑定码"
-          clearable
-          :disabled="loading"
-        />
-      </t-cell-group>
-
-      <t-button
-        class="mt-6"
-        theme="primary"
-        size="large"
-        block
-        :loading="loading"
-        :disabled="loading"
-        @click="handleBind"
+      <view
+        v-if="loadingTenants"
+        class="rounded-xl bg-card px-4 py-8 text-center text-sm text-muted-foreground shadow-md"
       >
-        绑定租户
-      </t-button>
+        正在加载身份信息...
+      </view>
 
-      <view v-if="tenants.length" class="mt-8 w-full">
-        <view class="mb-3 flex items-center justify-between">
-          <view class="text-sm font-medium text-slate-700">已绑定租户</view>
-          <view
-            class="flex items-center gap-1 text-xs text-slate-500"
-            @tap="reloadTenants(true)"
-          >
-            <t-icon name="refresh" size="28rpx" />
-            <view>刷新</view>
-          </view>
-        </view>
+      <view v-else-if="tenants.length" class="w-full">
+        <t-cell-group bordered>
+          <t-cell
+            v-for="tenant in tenants"
+            :key="tenant.tenantCode"
+            :title="tenant.tenantName"
+            arrow
+            @click="handleUseTenant(tenant.tenantCode)"
+          />
+        </t-cell-group>
+      </view>
 
-        <t-radio-group :value="selectedTenantCode" @change="handleTenantChange">
-          <t-cell-group theme="card" bordered>
-            <t-cell
-              v-for="tenant in tenants"
-              :key="tenant.tenantCode"
-              :title="tenant.tenantName"
-              :description="tenant.tenantCode"
-              @click="selectedTenantCode = tenant.tenantCode"
-            >
-              <t-radio slot="note" :value="tenant.tenantCode" />
-            </t-cell>
-          </t-cell-group>
-        </t-radio-group>
+      <view v-else>
+        <t-cell-group theme="card" bordered>
+          <t-input
+            :value="token"
+            @change="handleTokenChange"
+            placeholder="请输入管理员提供的绑定码"
+            clearable
+            :disabled="binding"
+          />
+        </t-cell-group>
 
         <t-button
-          class="mt-4"
-          theme="default"
+          class="mt-6"
+          theme="primary"
           size="large"
           block
-          @click="handleUseTenant"
+          :loading="binding"
+          :disabled="binding"
+          @click="handleBind"
         >
-          进入所选租户
+          完成绑定
         </t-button>
       </view>
     </view>

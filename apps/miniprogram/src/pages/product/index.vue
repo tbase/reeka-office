@@ -9,7 +9,7 @@ definePageJson({
 </script>
 
 <template>
-  <view class="flex min-h-screen items-center justify-center bg-slate-100 px-4 pb-12 pt-4">
+  <view class="flex min-h-screen items-center justify-center bg-background px-4 pb-12 pt-4">
     <t-empty
       icon="view-list"
       description="该页面由 app.vue 的 TabBar 定义自动补齐，后续可在此接入产品列表与详情能力。"

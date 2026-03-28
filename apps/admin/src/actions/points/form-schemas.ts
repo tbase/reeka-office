@@ -54,15 +54,6 @@ function optionalPositiveIntSchema(label: string) {
     .transform((value) => value ?? null)
 }
 
-function optionalPositiveIntAsUndefinedSchema(label: string) {
-  const errorMessage = `${label}必须为正整数`
-
-  return z.preprocess(
-    parseNumberInput,
-    z.number({ error: errorMessage }).int(errorMessage).positive(errorMessage).optional(),
-  )
-}
-
 const pointItemBaseSchema = z.object({
   name: requiredText("事项名称"),
   category: requiredText("事项类别"),
@@ -85,7 +76,6 @@ const productBaseSchema = z.object({
 const agentPointRecordBaseSchema = z.object({
   agentId: agentIdSchema,
   pointItemId: pointItemIdSchema,
-  points: optionalPositiveIntAsUndefinedSchema("积分值"),
   remark: optionalText(),
 })
 

@@ -10,14 +10,19 @@ import { PointItemForm } from "./point-item-form"
 export function PointItemFormNew({
   id,
   action,
+  onSuccess,
 }: {
   id: string
   action: CreatePointItemAction
+  onSuccess?: () => void
 }) {
   const router = useRouter()
 
   function handleSuccess() {
-    router.push("/points/items")
+    onSuccess?.()
+    if (!onSuccess) {
+      router.push("/points/items")
+    }
   }
 
   return (

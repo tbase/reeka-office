@@ -20,7 +20,7 @@ export default async function AgentPointsCreatePage() {
     <div className="space-y-4">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
-          新增代理人积分
+          发放积分
         </h1>
         <p className="text-muted-foreground text-sm">
           发放时会校验事项年次数上限，并自动累计当前积分余额。

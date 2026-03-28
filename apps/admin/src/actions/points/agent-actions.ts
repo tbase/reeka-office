@@ -21,7 +21,6 @@ export const createAgentPointRecordAction = adminActionClient
     await new CreatePointRecordCommand({
       agentId: parsedInput.agentId,
       pointItemId: parsedInput.pointItemId,
-      points: parsedInput.points,
       remark: parsedInput.remark,
       createdBy: DEFAULT_OPERATOR_ID,
     }).execute()

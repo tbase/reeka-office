@@ -36,7 +36,11 @@ export function PointItemNewFormDialog() {
             创建后可用于代理人积分发放。
           </DialogDescription>
         </DialogHeader>
-        <PointItemFormNew action={createPointItemAction} id="point-item-form" />
+        <PointItemFormNew
+          action={createPointItemAction}
+          id="point-item-form"
+          onSuccess={handleClose}
+        />
         <DialogFooter>
           <Button type="submit" form="point-item-form">
             创建事项

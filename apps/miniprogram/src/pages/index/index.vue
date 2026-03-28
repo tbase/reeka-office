@@ -9,7 +9,7 @@ definePageJson({
 </script>
 
 <template>
-  <view class="flex min-h-screen items-center justify-center bg-slate-100 px-4 pb-12 pt-4">
+  <view class="flex min-h-screen items-center justify-center bg-background px-4 pb-12 pt-4">
     <t-empty
       icon="view-list"
       description="快捷进入常用业务页面。"

@@ -30,7 +30,7 @@ export default async function AgentPointsPage() {
           <Badge variant="outline">共 {balances.length} 人</Badge>
           <LinkButton href="/points/agents/new" size="sm">
             <PlusIcon className="size-4" />
-            新增积分
+            发放积分
           </LinkButton>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default async function AgentPointsPage() {
                           size="sm"
                         >
                           <PlusIcon className="size-3.5" />
-                          新增
+                          发放积分
                         </LinkButton>
                         <LinkButton
                           href={`/points/agents/${balance.agentId}`}

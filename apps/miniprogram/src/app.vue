@@ -3,6 +3,8 @@ import { hydrateTenantCatalog } from "@/lib/center-api";
 import { RpcErrorCode, setRpcErrorHandler } from "@/lib/rpc";
 import { onHide, onLaunch, onShow } from "wevu";
 
+import "@/styles/theme-light.less";
+
 setRpcErrorHandler((error) => {
   if (error.code === RpcErrorCode.FORBIDDEN) {
     const currentPages = getCurrentPages();
@@ -28,7 +30,6 @@ defineAppJson({
     "pages/mine/points/index",
     "pages/mine/points-detail/index",
     "pages/mine/earn-points/index",
-    "pages/mine/redeem-detail/index",
     "pages/unauthorized/index",
   ],
   window: {
@@ -115,11 +116,45 @@ onHide(() => {
 
 page {
   font-family: "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background-color: #f6f7fb;
-  --td-brand-color-light: #fff0ed;
-  --td-brand-color-focus: #fff0ed;
-  --td-brand-color-disabled: #ffb8b0;
-  --td-brand-color: #e23a3b;
-  --td-brand-color-active: #b82529;
+  --background: var(--td-bg-color-page);
+  --foreground: var(--td-text-color-primary);
+  --muted: var(--td-bg-color-secondarycontainer);
+  --muted-foreground: var(--td-text-color-secondary);
+  --card: var(--td-bg-color-container);
+  --card-foreground: var(--td-text-color-primary);
+  --border: var(--td-border-level-1-color);
+  --input: var(--td-component-border);
+  --primary: var(--td-brand-color);
+  --primary-foreground: var(--td-text-color-anti);
+  --secondary: var(--td-bg-color-secondarycontainer);
+  --secondary-foreground: var(--td-text-color-primary);
+  --accent: var(--td-brand-color-light);
+  --accent-foreground: var(--td-text-color-brand);
+  --destructive: var(--td-error-color);
+  --destructive-foreground: var(--td-text-color-anti);
+  --success: var(--td-success-color);
+  --warning: var(--td-warning-color);
+  --ring: var(--td-brand-color-focus);
+  --shadow-sm: var(--td-shadow-4);
+  --shadow-md: var(--td-shadow-1);
+  --shadow-lg: var(--td-shadow-2);
+  --radius-sm: var(--td-radius-small, 6rpx);
+  --radius-md: var(--td-radius-default, 12rpx);
+  --radius-lg: var(--td-radius-large, 18rpx);
+  --radius-xl: var(--td-radius-extraLarge, 24rpx);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pb-safe-1 {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 8rpx);
+}
+
+.pb-safe-2 {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16rpx);
 }
 </style>

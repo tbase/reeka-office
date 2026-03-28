@@ -25,7 +25,6 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { SimpleSelect } from "@/components/ui/simple-select"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -36,15 +35,6 @@ function parseOptionalAgentId(value: string | null) {
 
   const id = Number(value)
   return Number.isInteger(id) && id > 0 ? String(id) : ""
-}
-
-function normalizeOptionalNumberInput(value: unknown) {
-  if (typeof value !== "string") {
-    return value
-  }
-
-  const trimmed = value.trim()
-  return trimmed ? Number(trimmed) : undefined
 }
 
 export function AgentPointRecordForm({
@@ -71,7 +61,6 @@ export function AgentPointRecordForm({
         defaultValues: {
           agentId: initialAgentId ? Number(initialAgentId) : undefined,
           pointItemId: undefined,
-          points: undefined,
           remark: "",
         },
       },
@@ -166,23 +155,6 @@ export function AgentPointRecordForm({
               getFieldError(actionState.result.validationErrors, "pointItemId") ??
               null}
           </FieldError>
-        </FieldContent>
-      </Field>
-
-      <Field data-invalid={Boolean(form.formState.errors.points) || undefined}>
-        <FieldContent>
-          <FieldLabel htmlFor="points">积分值（可选）</FieldLabel>
-          <Input
-            id="points"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="留空则使用事项默认积分"
-            {...form.register("points", {
-              setValueAs: normalizeOptionalNumberInput,
-            })}
-          />
-          <FieldError>{getErrorMessage(form.formState.errors.points?.message) ?? null}</FieldError>
         </FieldContent>
       </Field>
 

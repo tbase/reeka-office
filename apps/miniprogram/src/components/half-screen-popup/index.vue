@@ -47,7 +47,7 @@ const handleVisibleChange = (event: {
     @visible-change="handleVisibleChange"
   >
     <view
-      class="flex flex-col rounded-t-2xl bg-white pt-4"
+      class="flex flex-col rounded-t-2xl bg-card pt-4 text-card-foreground"
       :style="`max-height: ${props.maxHeight}`"
     >
       <view class="shrink-0 px-4">
@@ -65,7 +65,7 @@ const handleVisibleChange = (event: {
 
       <view
         v-if="props.useFooterSlot"
-        class="mt-4 shrink-0 border-t border-slate-100 bg-white px-4 pb-4 pt-3"
+        class="mt-4 shrink-0 border-t border-border bg-card px-4 pb-4 pt-3"
       >
         <slot name="footer" />
       </view>

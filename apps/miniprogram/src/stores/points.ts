@@ -86,19 +86,6 @@ export function useRedeemItemsStore(): RedeemItemsStore {
   }
 }
 
-export function useRedeemItemStore(itemId: string): RedeemItemsStore {
-  const { data, loading, error, refetch } = useQuery({
-    queryKey: () => ['points/listRedeemItems', { itemId }],
-  })
-
-  return {
-    items: data as Ref<RedeemItems | null>,
-    isLoading: loading,
-    error: error as Ref<RpcError | null>,
-    refetch,
-  }
-}
-
 export function usePointRecordsStore(): PointRecordsStore {
   const agentCode = useAgentCode()
   const { data, loading, error, refetch } = useQuery({

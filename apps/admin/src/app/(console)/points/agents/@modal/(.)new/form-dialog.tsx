@@ -41,7 +41,7 @@ export function AgentPointRecordFormDialog({
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>新增积分</DialogTitle>
+          <DialogTitle>发放积分</DialogTitle>
           <DialogDescription>
             发放时会校验事项年次数上限，并自动累计当前积分余额。
           </DialogDescription>
