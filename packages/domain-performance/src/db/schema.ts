@@ -1,0 +1,70 @@
+import { agents } from '@reeka-office/domain-agent'
+import { sql } from 'drizzle-orm'
+import {
+  datetime,
+  foreignKey,
+  index,
+  int,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from 'drizzle-orm/mysql-core'
+
+export const agentPerformanceMonthly = mysqlTable('agent_performance_monthly', {
+  id: int('id').autoincrement().primaryKey(),
+  agentCode: varchar('agent_code', { length: 8 }).notNull(),
+  year: int('year').notNull(),
+  month: int('month').notNull(),
+  nsc: int('nsc').notNull().default(0),
+  nscYtd: int('nsc_ytd').notNull().default(0),
+  netAfyp: int('net_afyp').notNull().default(0),
+  netAfypYtd: int('net_afyp_ytd').notNull().default(0),
+  netAfypAssigned: int('net_afyp_assigned').notNull().default(0),
+  netAfypAssignedYtd: int('net_afyp_assigned_ytd').notNull().default(0),
+  nscHp: int('nsc_hp').notNull().default(0),
+  nscHpYtd: int('nsc_hp_ytd').notNull().default(0),
+  netAfypHp: int('net_afyp_hp').notNull().default(0),
+  netAfypHpYtd: int('net_afyp_hp_ytd').notNull().default(0),
+  netAfypH: int('net_afyp_h').notNull().default(0),
+  netAfypHYtd: int('net_afyp_h_ytd').notNull().default(0),
+  netCaseH: int('net_case_h').notNull().default(0),
+  netCaseHYtd: int('net_case_h_ytd').notNull().default(0),
+  netCase: int('net_case').notNull().default(0),
+  netCaseYtd: int('net_case_ytd').notNull().default(0),
+  netCaseAssigned: int('net_case_assigned').notNull().default(0),
+  netCaseAssignedYtd: int('net_case_assigned_ytd').notNull().default(0),
+  amm: int('amm').notNull().default(0),
+  ammYtd: int('amm_ytd').notNull().default(0),
+  ammAssigned: int('amm_assigned').notNull().default(0),
+  ammAssignedYtd: int('amm_assigned_ytd').notNull().default(0),
+  fycYtd: int('fyc_ytd').notNull().default(0),
+  fycAssignedYtd: int('fyc_assigned_ytd').notNull().default(0),
+  rycYtd: int('ryc_ytd').notNull().default(0),
+  rycAssignedYtd: int('ryc_assigned_ytd').notNull().default(0),
+  renewalRate: int('renewal_rate').notNull().default(0),
+  renewalRateTeam: int('renewal_rate_team').notNull().default(0),
+  isMdrt: int('is_mdrt').notNull().default(0).$type<boolean>(),
+  isQualified: int('is_qualified').notNull().default(0).$type<boolean>(),
+  isQualifiedAssigned: int('is_qualified_assigned').notNull().default(0).$type<boolean>(),
+  isQualifiedNextMonth: int('is_qualified_next_month').$type<boolean>(),
+  qualifiedGap: int('qualified_gap'),
+  qualifiedGapNextMonth: int('qualified_gap_next_month'),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
+}, (t) => [
+  foreignKey({
+    name: 'agent_performance_monthly_agent_code_fk',
+    columns: [t.agentCode],
+    foreignColumns: [agents.agentCode],
+  }).onDelete('no action'),
+  uniqueIndex('agent_performance_monthly_agent_period_udx').on(
+    t.agentCode,
+    t.year,
+    t.month,
+  ),
+  index('agent_performance_monthly_period_idx').on(t.year, t.month),
+  index('agent_performance_monthly_agent_year_idx').on(t.agentCode, t.year),
+])
+
+export type AgentPerformanceMonthlyRow = typeof agentPerformanceMonthly.$inferSelect
+export type NewAgentPerformanceMonthlyRow = typeof agentPerformanceMonthly.$inferInsert

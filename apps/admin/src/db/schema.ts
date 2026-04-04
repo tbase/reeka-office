@@ -1,4 +1,4 @@
-import { mysqlTable, varchar, datetime, index, uniqueIndex, boolean } from "drizzle-orm/mysql-core";
+import { mysqlTable, varchar, datetime, index, uniqueIndex, boolean, int, text } from "drizzle-orm/mysql-core";
 
 export const admin = mysqlTable("admin", {
   id: varchar("id", { length: 128 }).primaryKey(),
@@ -55,8 +55,27 @@ export const adminVerification = mysqlTable("admin_verification", {
   index("admin_verification_identifier_idx").on(t.identifier)
 ]);
 
+export const externalSessionCache = mysqlTable("external_session_cache", {
+  id: varchar("id", { length: 191 }).primaryKey(),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  accountKey: varchar("account_key", { length: 256 }).notNull(),
+  accountLabel: varchar("account_label", { length: 256 }),
+  cookieString: text("cookie_string").notNull(),
+  cookieCount: int("cookie_count").notNull().default(0),
+  expiresAt: datetime("expires_at", { mode: "string" }).notNull(),
+  createdAt: datetime("created_at", { mode: "string" }).notNull(),
+  updatedAt: datetime("updated_at", { mode: "string" }).notNull(),
+  updatedByAdminId: varchar("updated_by_admin_id", { length: 128 }).references(() => admin.id, {
+    onDelete: "set null",
+  }),
+}, (t) => [
+  uniqueIndex("external_session_provider_account_udx").on(t.provider, t.accountKey),
+  index("external_session_provider_expire_idx").on(t.provider, t.expiresAt),
+]);
+
 // Types
 export type Admin = typeof admin.$inferSelect;
 export type AdminSession = typeof adminSession.$inferSelect;
 export type AdminAccount = typeof adminAccount.$inferSelect;
 export type AdminVerification = typeof adminVerification.$inferSelect;
+export type ExternalSessionCache = typeof externalSessionCache.$inferSelect;

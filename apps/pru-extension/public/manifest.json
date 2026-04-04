@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "PRU Data Exporter",
+  "short_name": "PRU Exporter",
+  "version": "0.2.0",
+  "description": "Fetch PRU data and download CSV files locally.",
+  "permissions": ["cookies", "storage", "tabs"],
+  "host_permissions": [
+    "https://salesforce.prudential.com.hk/*",
+    "https://aes.prudential.com.hk/*"
+  ],
+  "action": {
+    "default_title": "PRU Data Exporter"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

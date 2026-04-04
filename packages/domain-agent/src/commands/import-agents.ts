@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
-import { agents } from '../db/schema'
+import { agentHierarchy, agents } from '../db/schema'
 
 export interface ImportedAgentInput {
   agentCode: string
@@ -24,6 +24,17 @@ export interface ImportAgentsResult {
   importedCount: number
   createdCount: number
   updatedCount: number
+}
+
+interface AgentLeaderRow {
+  agentCode: string
+  leaderCode: string | null
+}
+
+interface AgentHierarchyRow {
+  agentCode: string
+  leaderCode: string
+  hierarchy: number
 }
 
 function normalizeText(value: string | null | undefined): string | null {
@@ -135,6 +146,54 @@ function normalizeAgent(agent: ImportedAgentInput): ImportedAgentInput {
     branch,
     unit,
   }
+}
+
+function buildAgentHierarchyRows(rows: AgentLeaderRow[]): AgentHierarchyRow[] {
+  const parentByCode = new Map(rows.map((row) => [row.agentCode, row.leaderCode]))
+  const cache = new Map<string, AgentHierarchyRow[]>()
+  const visiting = new Set<string>()
+
+  const visit = (agentCode: string): AgentHierarchyRow[] => {
+    const cached = cache.get(agentCode)
+    if (cached) {
+      return cached
+    }
+
+    if (visiting.has(agentCode)) {
+      throw new Error(`代理人层级存在循环: ${[...visiting, agentCode].join(' -> ')}`)
+    }
+
+    visiting.add(agentCode)
+
+    const directLeaderCode = parentByCode.get(agentCode) ?? null
+    let hierarchies: AgentHierarchyRow[] = []
+
+    if (directLeaderCode) {
+      if (!parentByCode.has(directLeaderCode)) {
+        throw new Error(`直属上级不存在: ${directLeaderCode}`)
+      }
+
+      hierarchies = [
+        {
+          agentCode,
+          leaderCode: directLeaderCode,
+          hierarchy: 1,
+        },
+        ...visit(directLeaderCode).map((item) => ({
+          agentCode,
+          leaderCode: item.leaderCode,
+          hierarchy: item.hierarchy + 1,
+        })),
+      ]
+    }
+
+    visiting.delete(agentCode)
+    cache.set(agentCode, hierarchies)
+
+    return hierarchies
+  }
+
+  return rows.flatMap((row) => visit(row.agentCode))
 }
 
 export class ImportAgentsCommand {
@@ -301,6 +360,25 @@ export class ImportAgentsCommand {
         if (existingByCode.has(agent.agentCode)) {
           updatedAgentCodes.add(agent.agentCode)
         }
+      }
+
+      const hierarchySourceRows = await tx
+        .select({
+          agentCode: agents.agentCode,
+          leaderCode: agents.leaderCode,
+        })
+        .from(agents)
+
+      const hierarchyRows = buildAgentHierarchyRows(
+        hierarchySourceRows.filter(
+          (row): row is typeof hierarchySourceRows[number] & { agentCode: string } => !!row.agentCode,
+        ),
+      )
+
+      await tx.delete(agentHierarchy)
+
+      if (hierarchyRows.length > 0) {
+        await tx.insert(agentHierarchy).values(hierarchyRows)
       }
 
       return {

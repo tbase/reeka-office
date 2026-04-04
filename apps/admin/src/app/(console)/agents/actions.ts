@@ -7,6 +7,7 @@ import { z } from "zod"
 
 import { getRequiredAdminContext } from "@/lib/admin-context"
 import { getFormDataValues } from "@/lib/form-data"
+import { refreshPruCookie } from "@/lib/pru-cookie"
 import { adminActionClient } from "@/lib/safe-action"
 
 const importAgentFieldNames = ["file"] as const
@@ -338,4 +339,18 @@ export const createBindingTokenAction = adminActionClient
       token: result.token,
       expiresAt: result.expiresAt.toISOString(),
     }
+  })
+
+const refreshPruCookieSchema = z.object({})
+
+export const refreshPruCookieAction = adminActionClient
+  .inputSchema(refreshPruCookieSchema)
+  .action(async ({ ctx }) => {
+    const result = await refreshPruCookie({
+      adminId: ctx.admin.adminId,
+    })
+
+    revalidatePath("/agents")
+
+    return result
   })

@@ -9,5 +9,6 @@ export {
 } from './context'
 export * from './commands'
 export { DESIGNATION_NAME, getDesignationName, type DesignationName } from './designation'
+export { agentHierarchy, agents } from './db/schema'
 export * from './queries'
 export type { Agent } from './types'

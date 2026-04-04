@@ -12,5 +12,11 @@ declare namespace NodeJS {
     CENTER_DB_NAME?: string
     TENANT_CODE: string
     COS_BUCKET: string
+    PRU_USERNAME?: string
+    PRU_PASSWORD?: string
+    PRU_LOGIN_URL?: string
+    PRU_COOKIE_URL?: string
+    PRU_COOKIE_TTL_MINUTES?: string
+    PRU_BROWSER_TIMEOUT_MS?: string
   }
 }
