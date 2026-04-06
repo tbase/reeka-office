@@ -5,12 +5,10 @@ import { Suspense } from "react"
 
 import { Empty } from "@/components/ui/empty"
 import { getRequiredAdminContext } from "@/lib/admin-context"
-import { getPruCookieStatus } from "@/lib/pru-cookie"
 
 import { AgentFilters } from "./agent-filters"
 import { AgentList } from "./agent-list"
 import { ImportAgentsDialog } from "./import-agents-dialog"
-import { PruCookieCard } from "./pru-cookie-card"
 import { parseAgencyFilter, parseAgentSort } from "./search-params"
 
 export default async function AgentsPage({
@@ -20,10 +18,7 @@ export default async function AgentsPage({
 }) {
   const params = (await searchParams) ?? {}
   await getRequiredAdminContext()
-  const [agencies, pruCookieStatus] = await Promise.all([
-    new ListAgentAgenciesQuery().query(),
-    getPruCookieStatus(),
-  ])
+  const agencies = await new ListAgentAgenciesQuery().query()
   const requestedAgency = parseAgencyFilter(
     typeof params.agency === "string" ? params.agency : undefined,
   )
@@ -41,13 +36,11 @@ export default async function AgentsPage({
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">代理人管理</h1>
             <p className="text-muted-foreground text-sm">
-              查看代理人基础信息。
+              通过 CSV 导入并查看代理人基础信息。
             </p>
           </div>
           <ImportAgentsDialog />
         </div>
-
-        <PruCookieCard status={pruCookieStatus} />
 
         <AgentFilters
           agencies={agencies}

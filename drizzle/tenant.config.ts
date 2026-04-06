@@ -10,6 +10,7 @@ export default defineConfig({
     "./apps/admin/src/db/schema.ts",
     "./packages/domain-agent/src/db/schema.ts",
     "./packages/domain-cms/src/db/schema.ts",
+    "./packages/domain-performance/src/db/schema.ts",
     "./packages/domain-point/src/db/schema.ts",
     "./packages/domain-plan/src/db/schema.ts",
   ],

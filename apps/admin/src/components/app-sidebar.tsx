@@ -2,6 +2,7 @@
 
 import {
   BlocksIcon,
+  ChartColumnIcon,
   FileTextIcon,
   FolderTreeIcon,
   GiftIcon,
@@ -71,12 +72,17 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    title: "用户管理",
+    title: "PRU",
     items: [
       {
         title: "代理人管理",
         url: "/agents",
         icon: UsersIcon,
+      },
+      {
+        title: "业绩管理",
+        url: "/pru/performance",
+        icon: ChartColumnIcon,
       },
     ],
   },

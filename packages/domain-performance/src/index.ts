@@ -8,7 +8,9 @@ export {
   type SetupOptions,
 } from './context'
 export {
-  agentPerformanceMonthly,
-  type AgentPerformanceMonthlyRow,
-  type NewAgentPerformanceMonthlyRow,
+  apm,
+  type ApmRow,
+  type NewApmRow,
 } from './schema'
+export * from './commands'
+export * from './queries'

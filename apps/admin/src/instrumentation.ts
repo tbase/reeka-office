@@ -1,6 +1,7 @@
 import type { CmsDB } from "@reeka-office/domain-cms"
 import type { AgentDB } from "@reeka-office/domain-agent"
 import type { IdentityDB } from "@reeka-office/domain-identity"
+import type { PerformanceDB } from "@reeka-office/domain-performance"
 import type { PlanDB } from "@reeka-office/domain-plan"
 import type { PointDB } from "@reeka-office/domain-point"
 
@@ -9,6 +10,7 @@ export async function register() {
     { agentSchema, setup: setupAgent },
     { cmsSchema, setup: setupCms },
     { setup: setupIdentity },
+    { performanceSchema, setup: setupPerformance },
     { planSchema, setup: setupPlan },
     { pointSchema, setup: setupPoint },
     { createDb },
@@ -17,6 +19,7 @@ export async function register() {
     import("@reeka-office/domain-agent"),
     import("@reeka-office/domain-cms"),
     import("@reeka-office/domain-identity"),
+    import("@reeka-office/domain-performance"),
     import("@reeka-office/domain-plan"),
     import("@reeka-office/domain-point"),
     import("@/db"),
@@ -37,4 +40,7 @@ export async function register() {
 
   const pointDb = createDb(pointSchema)
   setupPoint({ db: pointDb as unknown as PointDB })
+
+  const performanceDb = createDb(performanceSchema)
+  setupPerformance({ db: performanceDb as unknown as PerformanceDB })
 }

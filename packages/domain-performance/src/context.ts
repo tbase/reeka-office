@@ -1,13 +1,13 @@
 import type { MySql2Database } from 'drizzle-orm/mysql2'
 
-import { agentPerformanceMonthly } from './schema'
+import { apm } from './schema'
 
 export type PerformanceSchema = {
-  agentPerformanceMonthly: typeof agentPerformanceMonthly
+  apm: typeof apm
 }
 
 export const performanceSchema: PerformanceSchema = {
-  agentPerformanceMonthly,
+  apm,
 }
 
 export type DB = MySql2Database<PerformanceSchema>
