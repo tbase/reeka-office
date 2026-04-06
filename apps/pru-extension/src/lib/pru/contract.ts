@@ -7,13 +7,14 @@ export const AGENT_CODE_PATTERN = /^0\d{7}$/
 export type AgentRow = {
   agent_code: string
   pinyin: string
-  designation: string
+  email: string
   leader_code: string
   join_date: string
-  financing_scheme: string
-  financing_advance: string
+  designation: string
   agency: string
   division: string
+  branch: string
+  unit: string
 }
 
 export type SalesMonthRow = {

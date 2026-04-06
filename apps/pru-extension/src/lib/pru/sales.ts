@@ -8,10 +8,13 @@ import {
 } from "@/lib/pru/contract"
 import {
   fetchAesHtml,
+  getTableRowCells,
   normalizeAgentCode,
   parseHtml,
+  parseLinesFromHtml,
   parseMetric,
   parseStoredMetric,
+  readCsvValue,
   sleep,
   textContent,
   unique,
@@ -132,13 +135,7 @@ export function toMonthInputValue(month: string) {
 }
 
 function parseAgentCell(html: string): AgentIdentifier {
-  const lines = html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/<[^>]+>/g, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
+  const lines = parseLinesFromHtml(html)
 
   return {
     agent_code: normalizeAgentCode(lines[0]?.split(/\s+/).at(-1) ?? ""),
@@ -185,18 +182,6 @@ function sortByMonth<T extends { month: string }>(rows: T[]) {
 
 function getCurrentMetric<T extends { month: string }>(rows: T[], month: string) {
   return rows.find((row) => row.month === month)
-}
-
-function readCsvValue(record: Record<string, string>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = record[key]
-
-    if (value !== undefined) {
-      return value
-    }
-  }
-
-  return ""
 }
 
 function inferYearFromMonth(month: string) {
@@ -249,8 +234,8 @@ function parseSalesMonthCsvRow(record: Record<string, string>): SalesMonthRow {
 }
 
 function extractSaleDataRow(currentRow: HTMLTableRowElement, nextRow: HTMLTableRowElement): SalesData {
-  const currentCells = Array.from(currentRow.querySelectorAll("td"))
-  const nextCells = Array.from(nextRow.querySelectorAll("td"))
+  const currentCells = getTableRowCells(currentRow)
+  const nextCells = getTableRowCells(nextRow)
 
   return {
     month: "",
@@ -334,7 +319,7 @@ function parseSaleHpHistory(html: string, month: string): ParsedHpSale[] {
   const rows: ParsedHpSale[] = []
 
   Array.from(document.querySelectorAll("tr")).forEach((row) => {
-    const cells = Array.from(row.querySelectorAll("td"))
+    const cells = getTableRowCells(row)
     const rowMonth = normalizeHpMonth(textContent(cells[0]))
 
     if (!isWithinTargetYear(rowMonth, targetMonth, targetYear)) {
@@ -357,7 +342,7 @@ function parseSaleHHistory(html: string, month: string): ParsedHSale[] {
   const rows: ParsedHSale[] = []
 
   Array.from(document.querySelectorAll("tr")).forEach((row) => {
-    const cells = Array.from(row.querySelectorAll("td"))
+    const cells = getTableRowCells(row)
     const rowMonth = normalizeHpMonth(textContent(cells[0]).padStart(7, "0"))
 
     if (!isWithinTargetYear(rowMonth, targetMonth, targetYear)) {
@@ -385,7 +370,7 @@ function parseRenewalRateTeamHistory(html: string, month: string): ParsedRenewal
   const renewalRates: ParsedRenewalRate[] = []
 
   rows.forEach((row) => {
-    const cells = Array.from(row.querySelectorAll("td"))
+    const cells = getTableRowCells(row)
     const year = textContent(cells[1])
     const monthPart = textContent(cells[0]).padStart(2, "0")
     const rowMonth = `${year}/${monthPart}`

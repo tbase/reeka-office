@@ -17,6 +17,32 @@ export function textContent(node: Element | null | undefined) {
   return node?.textContent?.trim() ?? ""
 }
 
+export function parseLinesFromHtml(html: string) {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+export function getTableRowCells(row: Element | null | undefined) {
+  return Array.from(row?.querySelectorAll("td") ?? [])
+}
+
+export function readCsvValue(record: Record<string, string>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+
+    if (value !== undefined) {
+      return value
+    }
+  }
+
+  return ""
+}
+
 export function normalizeAgentCode(value: string) {
   const normalized = value.trim()
   return AGENT_CODE_PATTERN.test(normalized) ? normalized : ""
