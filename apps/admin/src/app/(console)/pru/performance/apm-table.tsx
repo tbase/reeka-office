@@ -13,6 +13,11 @@ import {
   StickyTableHeaderCell,
 } from "@/components/ui/sticky-table";
 import { cn } from "@/lib/utils";
+import {
+  formatCount,
+  formatMoney,
+  formatRate,
+} from "./format";
 
 const agentColumnClass = "w-[220px] min-w-[220px] max-w-[220px]";
 
@@ -29,24 +34,6 @@ type Column = {
   render: (row: ApmListItem) => string;
   renderSummaryValue?: (value: number) => string;
 };
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value / 100);
-}
-
-function formatCount(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value / 100);
-}
-
-function formatRate(value: number) {
-  return `${(value / 100).toFixed(2)}%`;
-}
 
 function sumRows(rows: ApmListItem[], getValue: (row: ApmListItem) => number) {
   return rows.reduce((total, row) => total + getValue(row), 0);

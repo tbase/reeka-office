@@ -1,8 +1,6 @@
 import type { ApmPeriod } from "@reeka-office/domain-performance"
 
-export function formatPeriod(year: number, month: number): string {
-  return `${year}-${String(month).padStart(2, "0")}`
-}
+export type PerformanceView = "table" | "stats"
 
 export function parsePerformancePeriod(value?: string): string | null {
   const period = value?.trim()
@@ -23,23 +21,64 @@ export function parsePerformancePeriod(value?: string): string | null {
   return period
 }
 
-export function resolveActivePeriod(
-  periods: readonly ApmPeriod[],
-  requested: string | null,
-): ApmPeriod | null {
-  const latestPeriod = periods[0] ?? null
-  if (!latestPeriod) {
+export function parsePerformanceView(value?: string): PerformanceView | null {
+  const view = value?.trim()
+  if (view === "table" || view === "stats") {
+    return view
+  }
+
+  return null
+}
+
+export function parsePerformanceYear(value?: string): number | null {
+  const year = value?.trim()
+  if (!year) {
     return null
   }
 
-  const parsedRequested = parsePerformancePeriod(requested ?? undefined)
-  if (!parsedRequested) {
-    return latestPeriod
+  if (!/^\d{4}$/.test(year)) {
+    return null
   }
 
-  const matchedPeriod = periods.find(
-    (period) => formatPeriod(period.year, period.month) === parsedRequested,
-  )
+  const parsedYear = Number(year)
+  return Number.isInteger(parsedYear) ? parsedYear : null
+}
 
-  return matchedPeriod ?? latestPeriod
+export function resolveActivePeriod(
+  requested: string | null,
+  latestPeriod: ApmPeriod | null,
+): ApmPeriod | null {
+  const parsedRequested = parsePerformancePeriod(requested ?? undefined)
+  if (parsedRequested) {
+    const [yearValue, monthValue] = parsedRequested.split("-")
+
+    return {
+      year: Number(yearValue),
+      month: Number(monthValue),
+    }
+  }
+
+  return latestPeriod
+}
+
+export function resolveYearOptions(periods: readonly ApmPeriod[]): number[] {
+  return [...new Set(periods.map((period) => period.year))].sort((left, right) => right - left)
+}
+
+export function resolveActiveYear(
+  periods: readonly ApmPeriod[],
+  requested: string | null,
+): number | null {
+  const yearOptions = resolveYearOptions(periods)
+  const latestYear = yearOptions[0] ?? null
+  if (!latestYear) {
+    return null
+  }
+
+  const parsedRequested = parsePerformanceYear(requested ?? undefined)
+  if (!parsedRequested) {
+    return latestYear
+  }
+
+  return yearOptions.includes(parsedRequested) ? parsedRequested : latestYear
 }

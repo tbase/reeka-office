@@ -14,3 +14,5 @@ declare namespace NodeJS {
     COS_BUCKET: string
   }
 }
+
+declare module "*.css"

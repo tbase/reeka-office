@@ -18,6 +18,7 @@ COPY packages/domain-cms/package.json ./packages/domain-cms/
 COPY packages/domain-identity/package.json ./packages/domain-identity/
 COPY packages/domain-point/package.json ./packages/domain-point/
 COPY packages/domain-plan/package.json ./packages/domain-plan/
+COPY packages/domain-performance/package.json ./packages/domain-performance/
 COPY packages/jsonrpc/package.json ./packages/jsonrpc/
 
 # Install dependencies
