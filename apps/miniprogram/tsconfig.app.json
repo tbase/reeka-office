@@ -9,7 +9,6 @@
       "DOM.Iterable"
     ],
     "moduleDetection": "force",
-    "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "paths": {

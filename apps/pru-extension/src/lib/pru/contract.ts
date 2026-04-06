@@ -46,10 +46,24 @@ export type SalesMonthRow = {
   renewal_rate_team: number
 }
 
+export type SalesExtraRow = {
+  month: string
+  nsc_hp: number
+  nsc_hp_sum: number
+  net_afyp_hp: number
+  net_afyp_hp_sum: number
+  net_afyp_h: number
+  net_afyp_h_sum: number
+  net_case_h: number
+  net_case_h_sum: number
+  renewal_rate_team: number
+}
+
 export type SalesMonthCacheStats = {
   reusedFull: number
   reusedSumOnly: number
   refreshed: number
+  skippedUnavailable: number
 }
 
 export type FetchSalesMonthResult = {

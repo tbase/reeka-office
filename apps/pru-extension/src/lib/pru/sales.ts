@@ -3,6 +3,7 @@ import {
   REQUEST_INTERVAL_MS,
   type FetchSalesMonthResult,
   type ProgressHandler,
+  type SalesExtraRow,
   type SalesMonthCacheStats,
   type SalesMonthRow,
 } from "@/lib/pru/contract"
@@ -19,6 +20,11 @@ import {
   textContent,
   unique,
 } from "@/lib/pru/shared"
+import {
+  isSalesExtraFetchable,
+  loadExtraSalesMetricsForMonth,
+  saveMergedSalesExtraRows,
+} from "@/sales-month/lib/sales-extra-storage"
 
 type AgentIdentifier = {
   agent_code: string
@@ -30,7 +36,7 @@ type SalesData = Omit<SalesMonthRow, "agent_code" | "pinyin"> & {
 }
 
 type ExtraSalesMetrics = Pick<
-  SalesMonthRow,
+  SalesExtraRow,
   | "nsc_hp"
   | "nsc_hp_sum"
   | "net_afyp_hp"
@@ -188,23 +194,6 @@ function inferYearFromMonth(month: string) {
   return month.match(/^(\d{4})\/\d{2}$/)?.[1] ?? ""
 }
 
-function isWithinTargetYear(
-  rowMonth: string | null,
-  targetMonth: string,
-  targetYear: string,
-): rowMonth is string {
-  return !!rowMonth && rowMonth.startsWith(`${targetYear}/`) && rowMonth <= targetMonth
-}
-
-function getTargetPeriod(month: string) {
-  const targetMonth = formatMonthSlash(month)
-
-  return {
-    targetMonth,
-    targetYear: targetMonth.split("/")[0] ?? "",
-  }
-}
-
 function toExtraSalesMetrics(source: Partial<ExtraSalesMetrics>) {
   return EXTRA_SALES_FIELDS.reduce<ExtraSalesMetrics>(
     (metrics, key) => {
@@ -313,16 +302,15 @@ function parseSalesRows(html: string, month: string) {
   return sales
 }
 
-function parseSaleHpHistory(html: string, month: string): ParsedHpSale[] {
+function parseSaleHpHistory(html: string): ParsedHpSale[] {
   const document = parseHtml(html)
-  const { targetMonth, targetYear } = getTargetPeriod(month)
   const rows: ParsedHpSale[] = []
 
   Array.from(document.querySelectorAll("tr")).forEach((row) => {
     const cells = getTableRowCells(row)
     const rowMonth = normalizeHpMonth(textContent(cells[0]))
 
-    if (!isWithinTargetYear(rowMonth, targetMonth, targetYear)) {
+    if (!rowMonth) {
       return
     }
 
@@ -336,16 +324,15 @@ function parseSaleHpHistory(html: string, month: string): ParsedHpSale[] {
   return sortByMonth(rows)
 }
 
-function parseSaleHHistory(html: string, month: string): ParsedHSale[] {
+function parseSaleHHistory(html: string): ParsedHSale[] {
   const document = parseHtml(html)
-  const { targetMonth, targetYear } = getTargetPeriod(month)
   const rows: ParsedHSale[] = []
 
   Array.from(document.querySelectorAll("tr")).forEach((row) => {
     const cells = getTableRowCells(row)
     const rowMonth = normalizeHpMonth(textContent(cells[0]).padStart(7, "0"))
 
-    if (!isWithinTargetYear(rowMonth, targetMonth, targetYear)) {
+    if (!rowMonth) {
       return
     }
 
@@ -359,9 +346,8 @@ function parseSaleHHistory(html: string, month: string): ParsedHSale[] {
   return sortByMonth(rows)
 }
 
-function parseRenewalRateTeamHistory(html: string, month: string): ParsedRenewalRate[] {
+function parseRenewalRateTeamHistory(html: string): ParsedRenewalRate[] {
   const document = parseHtml(html)
-  const { targetMonth, targetYear } = getTargetPeriod(month)
   const title = Array.from(document.querySelectorAll("h3")).find(
     (node) => textContent(node) === "All (LIFE)",
   )
@@ -375,7 +361,7 @@ function parseRenewalRateTeamHistory(html: string, month: string): ParsedRenewal
     const monthPart = textContent(cells[0]).padStart(2, "0")
     const rowMonth = `${year}/${monthPart}`
 
-    if (!year || !isWithinTargetYear(rowMonth, targetMonth, targetYear)) {
+    if (!year || !/^\d{4}\/\d{2}$/.test(rowMonth)) {
       return
     }
 
@@ -388,28 +374,53 @@ function parseRenewalRateTeamHistory(html: string, month: string): ParsedRenewal
   return sortByMonth(renewalRates)
 }
 
-function buildExtraSalesMetrics(
+function getYearToDateRows<T extends { month: string }>(rows: T[], month: string) {
+  const targetYear = inferYearFromMonth(month)
+
+  return rows.filter((row) => row.month.startsWith(`${targetYear}/`) && row.month <= month)
+}
+
+function buildSalesExtraHistory(
   month: string,
   hpRows: ParsedHpSale[],
   hRows: ParsedHSale[],
   renewalRates: ParsedRenewalRate[],
-): ExtraSalesMetrics {
+): SalesExtraRow[] {
   const targetMonth = formatMonthSlash(month)
-  const currentHp = getCurrentMetric(hpRows, targetMonth)
-  const currentH = getCurrentMetric(hRows, targetMonth)
-  const currentRenewalRate = getCurrentMetric(renewalRates, targetMonth)
+  const months = unique([
+    ...hpRows.map((row) => row.month),
+    ...hRows.map((row) => row.month),
+    ...renewalRates.map((row) => row.month),
+    targetMonth,
+  ]).sort((left, right) => left.localeCompare(right))
 
-  return {
-    nsc_hp: currentHp?.nsc_hp ?? 0,
-    nsc_hp_sum: hpRows.reduce((sum, row) => sum + row.nsc_hp, 0),
-    net_afyp_hp: currentHp?.net_afyp_hp ?? 0,
-    net_afyp_hp_sum: hpRows.reduce((sum, row) => sum + row.net_afyp_hp, 0),
-    net_afyp_h: currentH?.net_afyp_h ?? 0,
-    net_afyp_h_sum: hRows.reduce((sum, row) => sum + row.net_afyp_h, 0),
-    net_case_h: currentH?.net_case_h ?? 0,
-    net_case_h_sum: hRows.reduce((sum, row) => sum + row.net_case_h, 0),
-    renewal_rate_team: currentRenewalRate?.renewal_rate_team ?? 0,
-  }
+  return months.map((entryMonth) => {
+    const currentHp = getCurrentMetric(hpRows, entryMonth)
+    const currentH = getCurrentMetric(hRows, entryMonth)
+    const currentRenewalRate = getCurrentMetric(renewalRates, entryMonth)
+    const hpRowsInYear = getYearToDateRows(hpRows, entryMonth)
+    const hRowsInYear = getYearToDateRows(hRows, entryMonth)
+
+    return {
+      month: entryMonth,
+      nsc_hp: currentHp?.nsc_hp ?? 0,
+      nsc_hp_sum: hpRowsInYear.reduce((sum, row) => sum + row.nsc_hp, 0),
+      net_afyp_hp: currentHp?.net_afyp_hp ?? 0,
+      net_afyp_hp_sum: hpRowsInYear.reduce((sum, row) => sum + row.net_afyp_hp, 0),
+      net_afyp_h: currentH?.net_afyp_h ?? 0,
+      net_afyp_h_sum: hRowsInYear.reduce((sum, row) => sum + row.net_afyp_h, 0),
+      net_case_h: currentH?.net_case_h ?? 0,
+      net_case_h_sum: hRowsInYear.reduce((sum, row) => sum + row.net_case_h, 0),
+      renewal_rate_team: currentRenewalRate?.renewal_rate_team ?? 0,
+    }
+  })
+}
+
+function getExtraSalesMetricsForMonth(historyRows: SalesExtraRow[], month: string): ExtraSalesMetrics {
+  const targetMonth = formatMonthSlash(month)
+  const targetRow = historyRows.find((row) => row.month === targetMonth)
+
+  return targetRow ? toExtraSalesMetrics(targetRow) : emptyExtraSalesMetrics()
 }
 
 function resolveExtraSalesMetrics(
@@ -490,14 +501,6 @@ function logExtraSalesDecisions(salesDecisions: SalesDecisionEntry[]) {
   )
 }
 
-function countRefreshTargets(salesDecisions: SalesDecisionEntry[]) {
-  return new Set(
-    salesDecisions
-      .filter(({ decision }) => decision.type === "refresh")
-      .map(({ sale }) => sale.agent.agent_code),
-  ).size
-}
-
 function toSalesMonthRow(sale: SalesData, extraSalesMetrics: ExtraSalesMetrics): SalesMonthRow {
   return {
     ...sale,
@@ -527,9 +530,8 @@ async function getSaleHpHistory(agentCode: string, month: string) {
     await fetchAesHtml("getAnHBusiness", {
       agentCd: agentCode,
       func: "AnH_CHECK",
-      prodPeriod: "12",
+      prodPeriod: "24",
     }),
-    month,
   )
 }
 
@@ -538,9 +540,8 @@ async function getSaleHHistory(agentCode: string, month: string) {
     await fetchAesHtml("getHealthBusiness", {
       agentCd: agentCode,
       func: "HB_CHECK",
-      prodPeriod: "12",
+      prodPeriod: "24",
     }),
-    month,
   )
 }
 
@@ -548,20 +549,19 @@ async function getRenewalRateTeamHistory(agentCode: string, month: string) {
   return parseRenewalRateTeamHistory(
     await fetchAesHtml("getPreviousGroupProduction", {
       agentCd: agentCode,
-      prodPeriod: "12",
+      prodPeriod: "24",
     }),
-    month,
   )
 }
 
-async function fetchExtraSalesFull(agentCode: string, month: string) {
+async function fetchExtraSalesHistory(agentCode: string, month: string) {
   const [hpRows, hRows, renewalRates] = await Promise.all([
     getSaleHpHistory(agentCode, month),
     getSaleHHistory(agentCode, month),
     getRenewalRateTeamHistory(agentCode, month),
   ])
 
-  return buildExtraSalesMetrics(month, hpRows, hRows, renewalRates)
+  return buildSalesExtraHistory(month, hpRows, hRows, renewalRates)
 }
 
 async function materializeSalesRows(
@@ -574,13 +574,15 @@ async function materializeSalesRows(
     reusedFull: 0,
     reusedSumOnly: 0,
     refreshed: 0,
+    skippedUnavailable: 0,
   }
   const extraSalesRequestCache = new Map<string, ExtraSalesMetrics>()
-  const totalExtraSalesRefreshCount = countRefreshTargets(salesDecisions)
   let completedExtraSalesRefreshCount = 0
+  const targetMonth = formatMonthSlash(month)
 
   for (const { sale, decision } of salesDecisions) {
-    let extraSalesMetrics = decision.metrics
+    let extraSalesMetrics: ExtraSalesMetrics | null =
+      decision.type === "refresh" ? null : decision.metrics
 
     if (decision.type === "reuse-full") {
       cache.reusedFull += 1
@@ -589,18 +591,48 @@ async function materializeSalesRows(
     } else if (extraSalesRequestCache.has(sale.agent.agent_code)) {
       extraSalesMetrics = extraSalesRequestCache.get(sale.agent.agent_code)!
     } else {
-      completedExtraSalesRefreshCount += 1
-      onProgress?.(
-        `补拉额外信息 ${completedExtraSalesRefreshCount}/${totalExtraSalesRefreshCount}: ${sale.agent.agent_code}`,
-      )
+      try {
+        const cachedExtraSalesMetrics = await loadExtraSalesMetricsForMonth(
+          sale.agent.agent_code,
+          targetMonth,
+        )
 
-      extraSalesMetrics = await fetchExtraSalesFull(sale.agent.agent_code, month)
-      cache.refreshed += 1
+        if (cachedExtraSalesMetrics) {
+          extraSalesMetrics = cachedExtraSalesMetrics
+        }
+      } catch (error) {
+        console.warn("[sales-month] extra-sales cache read failed", {
+          agent_code: sale.agent.agent_code,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+
+      if (!extraSalesMetrics) {
+        if (!isSalesExtraFetchable(targetMonth)) {
+          onProgress?.(`extra 超出两年窗口，跳过请求: ${sale.agent.agent_code}`)
+          console.info("[sales-month] extra-sales skipped unavailable", {
+            agent_code: sale.agent.agent_code,
+            month: targetMonth,
+          })
+          extraSalesMetrics = emptyExtraSalesMetrics()
+          cache.skippedUnavailable += 1
+        } else {
+          onProgress?.(`补拉额外信息 ${completedExtraSalesRefreshCount + 1}: ${sale.agent.agent_code}`)
+
+          const historyRows = await fetchExtraSalesHistory(sale.agent.agent_code, month)
+          const mergedHistoryRows = await saveMergedSalesExtraRows(sale.agent.agent_code, historyRows)
+
+          extraSalesMetrics = getExtraSalesMetricsForMonth(mergedHistoryRows, month)
+          completedExtraSalesRefreshCount += 1
+          cache.refreshed += 1
+          await sleep(REQUEST_INTERVAL_MS)
+        }
+      }
+
       extraSalesRequestCache.set(sale.agent.agent_code, extraSalesMetrics)
-      await sleep(REQUEST_INTERVAL_MS)
     }
 
-    rows.push(toSalesMonthRow(sale, extraSalesMetrics))
+    rows.push(toSalesMonthRow(sale, extraSalesMetrics ?? emptyExtraSalesMetrics()))
   }
 
   return { rows, cache }
