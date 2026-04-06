@@ -1,8 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import {
-  ListApmPeriodsQuery,
-} from "@reeka-office/domain-performance";
+import { ListApmPeriodsQuery } from "@reeka-office/domain-performance";
 import { BarChart3Icon } from "lucide-react";
 import { Suspense } from "react";
 
@@ -60,9 +58,6 @@ export default async function PruPerformancePage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">业绩管理</h1>
-            <p className="text-muted-foreground text-sm">
-              查看指定月份的代理人业绩数据。
-            </p>
           </div>
           <div className="flex items-center gap-2">
             <ImportApmDialog />

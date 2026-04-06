@@ -1,43 +1,43 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-import { ListAgentAgenciesQuery } from "@reeka-office/domain-agent"
-import { Suspense } from "react"
+import { ListAgentAgenciesQuery } from "@reeka-office/domain-agent";
+import { Suspense } from "react";
 
-import { Empty } from "@/components/ui/empty"
-import { getRequiredAdminContext } from "@/lib/admin-context"
+import { Empty } from "@/components/ui/empty";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { AgentFilters } from "./agent-filters"
-import { AgentList } from "./agent-list"
-import { ImportAgentsDialog } from "./import-agents-dialog"
-import { parseAgencyFilter, parseAgentSort } from "./search-params"
+import { AgentFilters } from "./agent-filters";
+import { AgentList } from "./agent-list";
+import { ImportAgentsDialog } from "./import-agents-dialog";
+import { parseAgencyFilter, parseAgentSort } from "./search-params";
 
 export default async function AgentsPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = (await searchParams) ?? {}
-  await getRequiredAdminContext()
-  const agencies = await new ListAgentAgenciesQuery().query()
+  const params = (await searchParams) ?? {};
+  await getRequiredAdminContext();
+  const agencies = await new ListAgentAgenciesQuery().query();
   const requestedAgency = parseAgencyFilter(
     typeof params.agency === "string" ? params.agency : undefined,
-  )
-  const agency = requestedAgency && agencies.includes(requestedAgency)
-    ? requestedAgency
-    : null
+  );
+  const agency =
+    requestedAgency && agencies.includes(requestedAgency)
+      ? requestedAgency
+      : null;
   const sort = parseAgentSort(
     typeof params.sort === "string" ? params.sort : undefined,
-  )
+  );
 
   return (
     <div className="space-y-4">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">代理人管理</h1>
-            <p className="text-muted-foreground text-sm">
-              通过 CSV 导入并查看代理人基础信息。
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              代理人管理
+            </h1>
           </div>
           <ImportAgentsDialog />
         </div>
@@ -56,5 +56,5 @@ export default async function AgentsPage({
         <AgentList agency={agency} sort={sort} />
       </Suspense>
     </div>
-  )
+  );
 }

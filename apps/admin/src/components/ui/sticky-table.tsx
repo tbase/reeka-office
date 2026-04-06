@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 interface StickyTableProps extends React.ComponentProps<"div"> {
-  viewportClassName?: string
-  tableClassName?: string
+  viewportClassName?: string;
+  tableClassName?: string;
 }
 
 function StickyTable({
@@ -26,7 +26,7 @@ function StickyTable({
     >
       <div
         className={cn(
-          "max-h-[calc(100vh-16.5rem)] max-w-full overflow-auto",
+          "max-h-[calc(100vh-12.5rem)] max-w-full overflow-auto",
           viewportClassName,
         )}
       >
@@ -40,11 +40,11 @@ function StickyTable({
         </table>
       </div>
     </div>
-  )
+  );
 }
 
 interface StickyTableHeaderCellProps extends React.ComponentProps<"th"> {
-  stickyLeft?: boolean
+  stickyLeft?: boolean;
 }
 
 function StickyTableHeaderCell({
@@ -61,11 +61,11 @@ function StickyTableHeaderCell({
       )}
       {...props}
     />
-  )
+  );
 }
 
 interface StickyTableBodyCellProps extends React.ComponentProps<"td"> {
-  stickyLeft?: boolean
+  stickyLeft?: boolean;
 }
 
 function StickyTableBodyCell({
@@ -82,11 +82,11 @@ function StickyTableBodyCell({
       )}
       {...props}
     />
-  )
+  );
 }
 
 interface StickyTableFooterCellProps extends React.ComponentProps<"td"> {
-  stickyLeft?: boolean
+  stickyLeft?: boolean;
 }
 
 function StickyTableFooterCell({
@@ -103,7 +103,7 @@ function StickyTableFooterCell({
       )}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -111,4 +111,4 @@ export {
   StickyTableBodyCell,
   StickyTableFooterCell,
   StickyTableHeaderCell,
-}
+};
