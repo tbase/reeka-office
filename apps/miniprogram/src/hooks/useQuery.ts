@@ -1,7 +1,9 @@
-import { rpc, type RpcError, type RpcInput, type RpcMethodName, type RpcOutput, type RpcResult } from '@/lib/rpc';
-import { onShow, ref, shallowRef, watchEffect, type Ref, type ShallowRef } from 'wevu';
+import type { Ref, ShallowRef } from 'wevu'
+import type { RpcError, RpcInput, RpcMethodName, RpcOutput, RpcResult } from '@/lib/rpc'
+import { onShow, ref, shallowRef, watchEffect } from 'wevu'
+import { rpc } from '@/lib/rpc'
 
-const cache = new Map<string, { data: unknown; timestamp: number }>()
+const cache = new Map<string, { data: unknown, timestamp: number }>()
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000
 
@@ -35,7 +37,7 @@ export interface UseQueryReturn<T> {
 }
 
 export function useQuery<M extends RpcMethodName>(
-  options: UseQueryOptions<M>
+  options: UseQueryOptions<M>,
 ): UseQueryReturn<RpcOutput<M>> {
   type TOutput = RpcOutput<M>
 
@@ -57,7 +59,9 @@ export function useQuery<M extends RpcMethodName>(
 
   function getCachedData(cacheKey: string): TOutput | null {
     const cached = cache.get(cacheKey)
-    if (!cached) return null
+    if (!cached) {
+      return null
+    }
 
     const isExpired = Date.now() - cached.timestamp > staleTime
     isStale.value = isExpired
@@ -92,7 +96,8 @@ export function useQuery<M extends RpcMethodName>(
       data.value = result.data
       setCachedData(cacheKey, result.data)
       return result.data
-    } else {
+    }
+    else {
       error.value = result.error
       if (!skipGlobalErrorHandler && globalErrorHandler) {
         globalErrorHandler(result.error, method)
@@ -102,7 +107,9 @@ export function useQuery<M extends RpcMethodName>(
   }
 
   async function refetch(): Promise<TOutput | null> {
-    if (!lastKey) return null
+    if (!lastKey) {
+      return null
+    }
     if (lastCacheKey) {
       cache.delete(lastCacheKey)
     }
@@ -118,7 +125,9 @@ export function useQuery<M extends RpcMethodName>(
 
   watchEffect(() => {
     const key = typeof queryKey === 'function' ? queryKey() : queryKey
-    if (!key) return
+    if (!key) {
+      return
+    }
 
     lastKey = key
     execute(key)
@@ -126,7 +135,9 @@ export function useQuery<M extends RpcMethodName>(
 
   if (refetchOnShow) {
     onShow(() => {
-      if (lastKey) refetch()
+      if (lastKey) {
+        refetch()
+      }
     })
   }
 
@@ -155,7 +166,7 @@ export function invalidateQueries(keyPrefix?: RpcMethodName): void {
 
 export async function prefetchQuery<M extends RpcMethodName>(
   method: M,
-  params: RpcInput<M>
+  params: RpcInput<M>,
 ): Promise<void> {
   const cacheKey = serializeKey([method, params])
 

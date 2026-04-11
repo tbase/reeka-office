@@ -1,49 +1,49 @@
 <script setup lang="ts">
-import { computed } from "wevu";
+import { computed } from 'wevu'
 
 const props = withDefaults(
   defineProps<{
-    src?: string | null;
-    size?: number;
-    loading?: boolean;
-    disabled?: boolean;
-    placeholder?: string;
+    src?: string | null
+    size?: number
+    loading?: boolean
+    disabled?: boolean
+    placeholder?: string
   }>(),
   {
-    src: "",
+    src: '',
     size: 96,
     loading: false,
     disabled: false,
-    placeholder: "选择头像",
+    placeholder: '选择头像',
   },
-);
+)
 
-const emit = defineEmits(["choose"]);
+const emit = defineEmits(['choose'])
 
-const hasAvatar = computed(() => Boolean(props.src));
-const isDisabled = computed(() => props.disabled || props.loading);
+const hasAvatar = computed(() => Boolean(props.src))
+const isDisabled = computed(() => props.disabled || props.loading)
 const sizeStyle = computed(
   () => `width: ${props.size}rpx; height: ${props.size}rpx;`,
-);
+)
 const emptyButtonLabel = computed(() =>
-  props.loading ? "上传中..." : props.placeholder,
-);
+  props.loading ? '上传中...' : props.placeholder,
+)
 
-const handleChooseAvatar = (event: {
+function handleChooseAvatar(event: {
   detail?: {
-    avatarUrl?: string;
-  };
-  avatarUrl?: string;
-}) => {
-  const avatarUrl = event.detail?.avatarUrl ?? event.avatarUrl;
+    avatarUrl?: string
+  }
+  avatarUrl?: string
+}) {
+  const avatarUrl = event.detail?.avatarUrl ?? event.avatarUrl
   if (!avatarUrl) {
-    return;
+    return
   }
 
-  emit("choose", {
+  emit('choose', {
     avatarUrl,
-  });
-};
+  })
+}
 </script>
 
 <template>
@@ -56,7 +56,9 @@ const handleChooseAvatar = (event: {
     />
 
     <view v-else class="avatar-picker__placeholder">
-      <view class="avatar-picker__placeholder-icon">头像</view>
+      <view class="avatar-picker__placeholder-icon">
+        头像
+      </view>
     </view>
 
     <button
@@ -146,11 +148,7 @@ const handleChooseAvatar = (event: {
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 8rpx;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0) 42%,
-    rgba(15, 23, 42, 0.55) 100%
-  );
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 42%, rgba(15, 23, 42, 0.55) 100%);
 }
 
 .avatar-picker__overlay-text {

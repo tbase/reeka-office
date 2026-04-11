@@ -1,87 +1,95 @@
 <script setup lang="ts">
-import { computed, onShow, ref } from "wevu";
+import { computed, onShow, ref } from 'wevu'
 
-import AvatarPicker from "@/components/avatar-picker/index.vue";
-import { useMutation } from "@/hooks/useMutation";
-import { uploadFile } from "@/lib/upload-file";
-import { usePointSummaryStore } from "@/stores/points";
-import { useUserStore } from "@/stores/user";
+import AvatarPicker from '@/components/avatar-picker/index.vue'
+import { useMutation } from '@/hooks/useMutation'
+import { uploadFile } from '@/lib/upload-file'
+import { usePointSummaryStore } from '@/stores/points'
+import { useUserStore } from '@/stores/user'
 
 definePageJson({
-  navigationBarTitleText: "我的",
-  backgroundColor: "#ffffff",
-});
+  navigationBarTitleText: '我的',
+  backgroundColor: '#ffffff',
+})
 
-const { user, refetch: refetchUser } = useUserStore();
-const { summary } = usePointSummaryStore();
-const requestingAvatar = ref(false);
+const { user, refetch: refetchUser } = useUserStore()
+const { summary } = usePointSummaryStore()
+const requestingAvatar = ref(false)
 
 const { mutate: updateAvatar, loading: avatarUpdating } = useMutation(
-  "identity/updateAvatar",
+  'identity/updateAvatar',
   {
-    showLoading: "更新头像中...",
+    showLoading: '更新头像中...',
   },
-);
+)
 
 const member = computed(() => {
   return {
-    agentName: user.value?.agentName ?? "",
-    agentCode: user.value?.agentCode ?? "",
+    agentName: user.value?.agentName ?? '',
+    agentCode: user.value?.agentCode ?? '',
     avatar: user.value?.avatar ?? null,
-    currentPoints: summary.value?.currentPoints ?? "",
-  };
-});
+    currentPoints: summary.value?.currentPoints ?? '',
+  }
+})
 
-const syncAvatar = async (avatar: string) => {
-  const cloudPath = await uploadFile(avatar, `agent/${member.value.agentCode}`);
-  const result = await updateAvatar({ avatar: cloudPath });
+async function syncAvatar(avatar: string) {
+  const cloudPath = await uploadFile(avatar, `agent/${member.value.agentCode}`)
+  const result = await updateAvatar({ avatar: cloudPath })
   if (!result) {
     wx.showToast({
-      title: "头像更新失败",
-      icon: "none",
-    });
-    return;
+      title: '头像更新失败',
+      icon: 'none',
+    })
+    return
   }
 
-  await refetchUser();
-};
+  await refetchUser()
+}
 
-const onChooseAvatar = async (event: { avatarUrl?: string }) => {
+async function onChooseAvatar(event: { avatarUrl?: string }) {
   if (requestingAvatar.value || avatarUpdating.value) {
-    return;
+    return
   }
 
-  const avatarUrl = event.avatarUrl;
+  const avatarUrl = event.avatarUrl
   if (!avatarUrl) {
     wx.showToast({
-      title: "未获取到头像",
-      icon: "none",
-    });
-    return;
+      title: '未获取到头像',
+      icon: 'none',
+    })
+    return
   }
 
-  requestingAvatar.value = true;
+  requestingAvatar.value = true
   try {
-    await syncAvatar(avatarUrl);
-  } catch {
-    wx.showToast({
-      title: "头像更新失败",
-      icon: "none",
-    });
-  } finally {
-    requestingAvatar.value = false;
+    await syncAvatar(avatarUrl)
   }
-};
+  catch {
+    wx.showToast({
+      title: '头像更新失败',
+      icon: 'none',
+    })
+  }
+  finally {
+    requestingAvatar.value = false
+  }
+}
 
 onShow(() => {
-  void refetchUser();
-});
+  void refetchUser()
+})
 
-const goMyPoints = () => {
+function goMyPoints() {
   wx.navigateTo({
-    url: "/pages/mine/points/index",
-  });
-};
+    url: '/packages/points/pages/index/index',
+  })
+}
+
+function goGege() {
+  wx.navigateTo({
+    url: '/packages/gege/pages/index/index',
+  })
+}
 </script>
 
 <template>
@@ -111,8 +119,15 @@ const goMyPoints = () => {
         <t-cell
           title="积分管理"
           :note="`我的积分 ${member.currentPoints}`"
+          left-icon="wallet"
           arrow
           @click="goMyPoints"
+        />
+        <t-cell
+          title="咯咯咯"
+          left-icon="app"
+          arrow
+          @click="goGege"
         />
       </t-cell-group>
     </view>

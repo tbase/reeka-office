@@ -1,68 +1,69 @@
 ---
 name: weapp-vite-vue-sfc-best-practices
-description: Apply detailed usage patterns and best practices for Vue SFC in weapp-vite projects. Use when writing or refactoring `.vue` files for mini-programs, choosing `<script setup>` and JSON macro strategy, defining `usingComponents`, handling template directive compatibility (`v-model` / `v-bind` limits), coordinating wevu runtime hooks, or troubleshooting SFC compile/runtime issues.
+description: 面向使用 weapp-vite 的小程序项目的 Vue SFC 实践手册，覆盖 `<script setup lang="ts">`、JSON 宏、`definePageMeta`/layout、`defineModel`、`usingComponents`、模板指令兼容、`.weapp-vite` 类型支持文件、受管 `prepare` 工作流，以及和脚手架 `AGENTS.md` / 本地 `dist/docs` 对齐的当前 SFC 约定。
 ---
 
 # weapp-vite-vue-sfc-best-practices
 
-## Overview
+## 用途
 
-Implement Vue SFC in mini-programs with a two-layer mindset: compile-time rules (weapp-vite) and runtime behavior (wevu). Keep SFC structure explicit, avoid web-only assumptions, and optimize for predictable output.
+在小程序项目里用 Vue SFC 写出“编译可预测、运行时可验证、类型可跟上”的页面和组件。
 
-## Workflow
+## 何时使用
 
-1. Establish SFC boundaries
+- 用户问 `.vue` 文件应该怎么写。
+- 用户问 JSON 宏和 `<json>` 怎么选。
+- 用户问 `definePageMeta` / layout 怎么配。
+- 用户遇到模板兼容或编译错误。
+- 用户遇到 `.weapp-vite` 类型输出、组件声明或 route type 漂移。
 
-- Treat `<template>/<script>/<style>/<json>` as separate responsibilities.
-- Keep mini-program config in `<json>` or Script Setup JSON macros.
-- Avoid script-side ESM component registration for mini-program components.
+## 不适用场景
 
-2. Choose script strategy
+本 skill 聚焦 SFC 编写和编译期兼容。
 
-- Prefer `<script setup lang="ts">` for page/component logic.
-- Import runtime APIs from `wevu` (not `vue`) in business logic.
-- Keep hook registration synchronous in `setup()`.
+- 项目级构建配置：使用 `weapp-vite-best-practices`。
+- `wevu` 生命周期和 store：使用 `wevu-best-practices`。
+- 迁移规划：使用 `native-to-weapp-vite-wevu-migration`。
 
-3. Configure JSON correctly
+## 核心流程
 
-- Use one macro family per SFC: `definePageJson` or `defineComponentJson` or `defineAppJson`.
-- Keep macro calls top-level and single-argument.
-- Remember macro output has highest merge priority over `<json>` and auto-inferred config.
+1. 先判定问题阶段：
+   - 编译期：宏、模板、`usingComponents`
+   - 运行期：事件、hooks、响应式
+   - 工具层：Volar、`.weapp-vite`、typed outputs
+2. 默认使用 `<script setup lang="ts">`。
+3. JSON 优先走宏：`defineAppJson`、`definePageJson`、`defineComponentJson`；页面元信息走 `definePageMeta`。
+4. 套用模板兼容规则：
+   - `v-model` 只能作用于可赋值左值
+   - 不要假设 Web Vue 的所有模板特性都可用
+   - `usingComponents` 走 JSON 宏 / 自动导入，不走 Web Vue 注册思路
+5. 若 `typed-router.d.ts`、`typed-components.d.ts`、`components.d.ts` 漂移，先跑 `wv prepare`。
+6. 若项目有根 `AGENTS.md` 或本地 `dist/docs/vue-sfc.md`，SFC 写法要与其约束一致。
 
-4. Author templates with compatibility constraints
+## 约束
 
-- Use mini-program component/event semantics.
-- For `v-model`, only use assignable left values (`x`, `x.y`, `x[i]`).
-- Avoid relying on unsupported patterns (`v-model` modifiers/arguments, `v-bind="object"` expansion).
+- 不要在一个 SFC 里混多套 JSON 宏。
+- 不要把小程序组件注册当成 Web Vue 组件注册。
+- 不要忽略 `prepare` 和 `.weapp-vite` 产物。
+- 不要在修 SFC 语法时顺手做无关运行时重构。
 
-5. Coordinate with wevu runtime
+## 输出
 
-- Use `defineComponent` model for page/component registration.
-- Use explicit value/event bindings or `bindModel` for complex form components.
-- Keep page event hooks aligned with page context and trigger conditions.
+应用本 skill 时，输出必须包含：
 
-6. Troubleshoot by stage
+- 问题阶段诊断。
+- SFC 级改动建议。
+- 模板兼容注意点。
+- 最小验证命令。
 
-- Compile-time issues: check macro usage, `usingComponents`, template syntax limits.
-- Runtime issues: check API import source, hook timing, setData/diff expectations.
-- IDE/type issues: check Volar plugin and `vueCompilerOptions.lib` alignment.
+## 完成标记
 
-## Guardrails
+- 宏使用清晰且单一。
+- 模板没有踩不支持语法。
+- `usingComponents` 路径安全、来源明确。
+- `.weapp-vite` 支持文件和类型输出已同步。
 
-- Do not treat mini-program component registration like web Vue component registration.
-- Do not register hooks after `await` in `setup()`.
-- Do not assume web Vue template features are fully available in mini-program compilation.
-- Do not mix multiple JSON macro families in one SFC.
-
-## Completion Checklist
-
-- SFC config path is clear (`<json>` or one JSON macro family).
-- `usingComponents` strategy is deterministic and path-safe.
-- Template usage avoids unsupported directive forms.
-- Runtime API imports come from `wevu`.
-- Hook timing and page/component context are valid.
-
-## References
+## 参考资料
 
 - `references/macro-config-checklist.md`
 - `references/template-compat-matrix.md`

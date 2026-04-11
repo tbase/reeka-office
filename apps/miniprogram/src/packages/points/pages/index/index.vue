@@ -1,89 +1,89 @@
 <script setup lang="ts">
-import { computed, onShow, ref } from "wevu";
+import { computed, onShow, ref } from 'wevu'
 
-import { invalidateQueries } from "@/hooks/useQuery";
-import type { RpcOutput } from "@/lib/rpc";
-import { usePointSummaryStore, useRedeemItemsStore } from "@/stores/points";
-import RedeemPopup from "./redeem-popup.vue";
+import { invalidateQueries } from '@/hooks/useQuery'
+import type { RpcOutput } from '@/lib/rpc'
+import { usePointSummaryStore, useRedeemItemsStore } from '@/stores/points'
+import RedeemPopup from './redeem-popup.vue'
 
 definePageJson({
-  navigationBarTitleText: "我的积分",
-  backgroundColor: "#f6f7fb",
-});
+  navigationBarTitleText: '我的积分',
+  backgroundColor: '#f6f7fb',
+})
 
-type RedeemItem = RpcOutput<"points/listRedeemItems">[number];
+type RedeemItem = RpcOutput<'points/listRedeemItems'>[number]
 
-const { summary, refetch: refetchSummary } = usePointSummaryStore();
-const { items, refetch: refetchRedeemItems } = useRedeemItemsStore();
+const { summary, refetch: refetchSummary } = usePointSummaryStore()
+const { items, refetch: refetchRedeemItems } = useRedeemItemsStore()
 
 const member = computed(
   () =>
     summary.value ?? {
-      agentCode: "",
+      agentCode: '',
       currentPoints: 0,
     },
-);
+)
 
-const redeemItems = computed<RedeemItem[]>(() => items.value ?? []);
-const redeemPopupVisible = ref(false);
-const selectedRedeemItemId = ref("");
+const redeemItems = computed<RedeemItem[]>(() => items.value ?? [])
+const redeemPopupVisible = ref(false)
+const selectedRedeemItemId = ref('')
 
-let hasEntered = false;
+let hasEntered = false
 onShow(() => {
   if (!hasEntered) {
-    hasEntered = true;
-    return;
+    hasEntered = true
+    return
   }
 
-  void Promise.all([refetchSummary(), refetchRedeemItems()]);
-});
+  void Promise.all([refetchSummary(), refetchRedeemItems()])
+})
 
 const selectedRedeemItem = computed(
   () =>
     redeemItems.value.find((item) => item.id === selectedRedeemItemId.value) ??
     null,
-);
+)
 
 const openRedeemPopup = (item: RedeemItem) => {
   if (getRedeemDisabledReason(item)) {
-    return;
+    return
   }
 
-  selectedRedeemItemId.value = item.id;
-  redeemPopupVisible.value = true;
-};
+  selectedRedeemItemId.value = item.id
+  redeemPopupVisible.value = true
+}
 
 const closeRedeemPopup = () => {
-  redeemPopupVisible.value = false;
-  selectedRedeemItemId.value = "";
-};
+  redeemPopupVisible.value = false
+  selectedRedeemItemId.value = ''
+}
 
 const handlePopupVisibleChange = (visible: boolean) => {
   if (!visible) {
-    closeRedeemPopup();
-    return;
+    closeRedeemPopup()
+    return
   }
 
-  redeemPopupVisible.value = true;
-};
+  redeemPopupVisible.value = true
+}
 
 const getRedeemDisabledReason = (item: RedeemItem): string | null => {
   if (item.stock <= 0) {
-    return "库存不足";
+    return '库存不足'
   }
 
   if (item.redeemedCount >= item.maxRedeemPerAgent) {
-    return "已达兑换上限";
+    return '已达兑换上限'
   }
 
-  return null;
-};
+  return null
+}
 
 const handleRedeemed = async () => {
-  invalidateQueries("points/getMineSummary");
-  invalidateQueries("points/listRedeemItems");
-  await Promise.all([refetchSummary(), refetchRedeemItems()]);
-};
+  invalidateQueries('points/getMineSummary')
+  invalidateQueries('points/listRedeemItems')
+  await Promise.all([refetchSummary(), refetchRedeemItems()])
+}
 </script>
 
 <template>
@@ -98,13 +98,13 @@ const handleRedeemed = async () => {
         <t-grid-item
           text="积分明细"
           description="查看积分记录"
-          url="/pages/mine/points-detail/index"
+          url="/packages/points/pages/detail/index"
           jump-type="navigate-to"
         />
         <t-grid-item
           text="赚取积分"
           description="了解积分规则"
-          url="/pages/mine/earn-points/index"
+          url="/packages/points/pages/earn/index"
           jump-type="navigate-to"
         />
       </t-grid>
@@ -153,12 +153,12 @@ const handleRedeemed = async () => {
               @click="openRedeemPopup(item)"
             >
               <view class="space-y-1">
-                <view class="text-xs leading-none"
-                  >{{ item.redeemPoints }} 积分</view
-                >
-                <view class="text-sm leading-none">{{
-                  getRedeemDisabledReason(item) ?? "去兑换"
-                }}</view>
+                <view class="text-xs leading-none">
+                  {{ item.redeemPoints }} 积分
+                </view>
+                <view class="text-sm leading-none">
+                  {{ getRedeemDisabledReason(item) ?? '去兑换' }}
+                </view>
               </view>
             </t-button>
           </view>

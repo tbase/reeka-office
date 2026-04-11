@@ -14,15 +14,15 @@ definePageJson({
   },
 })
 
-type PointRecord = {
-  id: string;
-  title: string;
-  scene: string;
-  points: number;
-  date: string;
-  type: 'grant' | 'redeem';
-  expired: boolean;
-  note: string;
+interface PointRecord {
+  id: string
+  title: string
+  scene: string
+  points: number
+  date: string
+  type: 'grant' | 'redeem'
+  expired: boolean
+  note: string
 }
 
 const activeFilter = ref<'all' | 'grant' | 'redeem'>('all')
@@ -37,13 +37,11 @@ const visibleRecords = computed(() => {
   return recordsList.value.filter((record: PointRecord) => record.type === activeFilter.value)
 })
 
-const setFilter = (filter: 'all' | 'grant' | 'redeem') => {
+function setFilter(filter: 'all' | 'grant' | 'redeem') {
   activeFilter.value = filter
 }
 
-const handleFilterChange = (
-  event: WechatMiniprogram.CustomEvent<{ value?: string | number }>,
-) => {
+function handleFilterChange(event: WechatMiniprogram.CustomEvent<{ value?: string | number }>) {
   const nextValue = event.detail.value
 
   if (nextValue === 'all' || nextValue === 'grant' || nextValue === 'redeem') {
@@ -74,8 +72,12 @@ const handleFilterChange = (
     <view v-for="record in visibleRecords" :key="record.id" class="mt-3 rounded-xl bg-card p-4 shadow-lg">
       <view class="flex items-start justify-between">
         <view>
-          <view class="block text-base font-semibold">{{ record.title }}</view>
-          <view class="mt-1 block text-xs text-muted-foreground">{{ record.date }} · {{ record.scene }}场景</view>
+          <view class="block text-base font-semibold">
+            {{ record.title }}
+          </view>
+          <view class="mt-1 block text-xs text-muted-foreground">
+            {{ record.date }} · {{ record.scene }}场景
+          </view>
         </view>
         <view
           class="text-base font-semibold"
@@ -84,7 +86,9 @@ const handleFilterChange = (
           {{ record.points >= 0 ? `+${record.points}` : record.points }}
         </view>
       </view>
-      <view class="mt-2 block text-sm text-muted-foreground">{{ record.note }}</view>
+      <view class="mt-2 block text-sm text-muted-foreground">
+        {{ record.note }}
+      </view>
       <view class="mt-2 flex items-center gap-2">
         <t-tag
           class="mt-0"

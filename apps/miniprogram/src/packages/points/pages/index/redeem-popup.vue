@@ -1,93 +1,93 @@
 <script setup lang="ts">
-import { computed } from "wevu";
+import type { RpcOutput } from '@/lib/rpc'
 
-import HalfScreenPopup from "@/components/half-screen-popup/index.vue";
-import { useMutation } from "@/hooks/useMutation";
-import type { RpcOutput } from "@/lib/rpc";
+import { computed } from 'wevu'
+import HalfScreenPopup from '@/components/half-screen-popup/index.vue'
+import { useMutation } from '@/hooks/useMutation'
+
+const props = defineProps<{
+  visible: boolean
+  item: RedeemItem | null
+  memberPoints: number
+}>()
+
+const emit = defineEmits(['visible-change', 'redeemed'])
 
 defineComponentJson({
   usingComponents: {
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-cell": "tdesign-miniprogram/cell/cell",
-    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+    't-button': 'tdesign-miniprogram/button/button',
+    't-cell': 'tdesign-miniprogram/cell/cell',
+    't-cell-group': 'tdesign-miniprogram/cell-group/cell-group',
   },
-});
+})
 
-type RedeemItem = RpcOutput<"points/listRedeemItems">[number];
-
-const props = defineProps<{
-  visible: boolean;
-  item: RedeemItem | null;
-  memberPoints: number;
-}>();
-
-const emit = defineEmits(["visible-change", "redeemed"]);
+type RedeemItem = RpcOutput<'points/listRedeemItems'>[number]
 
 const redeemLimitReached = computed(
   () =>
-    props.item != null &&
-    props.item.redeemedCount >= props.item.maxRedeemPerAgent,
-);
+    props.item != null
+    && props.item.redeemedCount >= props.item.maxRedeemPerAgent,
+)
 
 const pointsAfterRedeem = computed(() => {
   if (!props.item) {
-    return props.memberPoints;
+    return props.memberPoints
   }
 
-  return props.memberPoints - props.item.redeemPoints;
-});
+  return props.memberPoints - props.item.redeemPoints
+})
 
 const canRedeem = computed(
   () =>
-    props.item != null &&
-    props.memberPoints >= props.item.redeemPoints &&
-    props.item.stock > 0 &&
-    !redeemLimitReached.value,
-);
+    props.item != null
+    && props.memberPoints >= props.item.redeemPoints
+    && props.item.stock > 0
+    && !redeemLimitReached.value,
+)
 
-const handleVisibleChange = (event: {
+function handleVisibleChange(event: {
   detail?: {
-    visible?: boolean;
-  };
-}) => {
-  emit("visible-change", event.detail?.visible ?? false);
-};
+    visible?: boolean
+  }
+}) {
+  emit('visible-change', event.detail?.visible ?? false)
+}
 
 const { mutate: submitRedeem, loading: redeeming } = useMutation(
-  "points/submitRedeem",
+  'points/submitRedeem',
   {
-    showLoading: "兑换中...",
+    showLoading: '兑换中...',
     onSuccess: (result) => {
       wx.showToast({
         title: result.message,
-        icon: result.success ? "success" : "none",
-      });
+        icon: result.success ? 'success' : 'none',
+      })
 
       if (!result.success) {
-        return;
+        return
       }
 
-      emit("redeemed");
-      emit("visible-change", false);
+      emit('redeemed')
+      emit('visible-change', false)
     },
     onError: (error) => {
       wx.showToast({
-        title: error.message || "兑换失败",
-        icon: "none",
-      });
+        title: error.message || '兑换失败',
+        icon: 'none',
+      })
     },
   },
-);
+)
 
-const handleRedeem = async () => {
+async function handleRedeem() {
   if (!props.item || !canRedeem.value || redeeming.value) {
-    return;
+    return
   }
 
   await submitRedeem({
     itemId: props.item.id,
-  });
-};
+  })
+}
 </script>
 
 <template>
@@ -95,7 +95,7 @@ const handleRedeem = async () => {
     v-if="props.item"
     :visible="props.visible"
     :title="props.item.title"
-    :use-footer-slot="true"
+    use-footer-slot
     @visible-change="handleVisibleChange"
   >
     <image
@@ -127,7 +127,7 @@ const handleRedeem = async () => {
         :disabled="!canRedeem || redeeming"
         @click="handleRedeem"
       >
-        {{ redeeming ? "兑换中..." : "确认兑换" }}
+        {{ redeeming ? '兑换中...' : '确认兑换' }}
       </t-button>
 
       <view

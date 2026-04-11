@@ -1,7 +1,7 @@
-import { type Ref } from 'wevu'
+import type { Ref } from 'wevu'
 
-import { useQuery } from '@/hooks/useQuery'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
+import { useQuery } from '@/hooks/useQuery'
 
 type ResourceContent = RpcOutput<'cms/getResourceContent'>
 type ResourceContents = RpcOutput<'cms/listResourceContents'>

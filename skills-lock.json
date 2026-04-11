@@ -36,20 +36,30 @@
       "sourceType": "github",
       "computedHash": "98cd9da8b23ff0211fc02066dcc89c1414d2f0d5b9e438655d7eab29b6417c86"
     },
-    "weapp-vite-best-practices": {
-      "source": "weapp-vite/weapp-vite",
+    "weapp-devtools-e2e-best-practices": {
+      "source": "sonofmagic/skills",
       "sourceType": "github",
-      "computedHash": "c6a6319ee9141b6c5f4cc7138cb24d45c4b999ff34bca060e76b43620d3bfc67"
+      "computedHash": "a1260c3305122614f256e6305ecfff8d27dd62b34d428b4a573270ac6bcde43f"
+    },
+    "weapp-tailwindcss": {
+      "source": "sonofmagic/skills",
+      "sourceType": "github",
+      "computedHash": "b9f62ed943a60de8d02e0d067dcb50d46e21512bf3ad127228b404c02352fdbe"
+    },
+    "weapp-vite-best-practices": {
+      "source": "sonofmagic/skills",
+      "sourceType": "github",
+      "computedHash": "67e90e23ccf980e4fb175074019b5233210acbff15d0031a67df372082517283"
     },
     "weapp-vite-vue-sfc-best-practices": {
-      "source": "weapp-vite/weapp-vite",
+      "source": "sonofmagic/skills",
       "sourceType": "github",
-      "computedHash": "8bf390a0cfb05c8d71b2bed0bd1ed70b99aa8816ab485d09df8d6603bee9e2a0"
+      "computedHash": "7f4a8719e91515786445a7b9e698e1a219ef1c19c216c357af930a4f83978db8"
     },
     "wevu-best-practices": {
-      "source": "weapp-vite/weapp-vite",
+      "source": "sonofmagic/skills",
       "sourceType": "github",
-      "computedHash": "a0ff9b51f37c3eea9a42a9e1ed22f7184e2b979cab6064e095d7c675487799c7"
+      "computedHash": "6aaa6023c67284dd711d2ee6d165a2044325fcb25d1a32c8e123e1952cd364a0"
     }
   }
 }

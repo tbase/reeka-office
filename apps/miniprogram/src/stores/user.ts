@@ -1,6 +1,7 @@
-import { computed, type ComputedRef, type Ref } from 'wevu'
-import { invalidateQueries, useQuery } from '@/hooks/useQuery'
+import type { ComputedRef, Ref } from 'wevu'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
+import { computed } from 'wevu'
+import { invalidateQueries, useQuery } from '@/hooks/useQuery'
 
 type GetUserResult = Exclude<RpcOutput<'identity/getCurrentUser'>, null>
 

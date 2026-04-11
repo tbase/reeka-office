@@ -1,38 +1,53 @@
 {
-  "name": "reeka-office-miniprogram",
+  "name": "weapp-vite-wevu-tailwindcss-tdesign-template",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "private": true,
-  "description": "reeka-office-miniprogram",
+  "description": "weapp-vite + wevu (Vue SFC) 模板",
+  "author": "ice breaker <1324318532@qq.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weapp-vite/weapp-vite.git",
+    "directory": "templates/weapp-vite-wevu-tailwindcss-tdesign-template"
+  },
+  "bugs": {
+    "url": "https://github.com/weapp-vite/weapp-vite/issues"
+  },
+  "keywords": [],
   "scripts": {
-    "dev": "weapp-vite dev",
-    "dev:open": "weapp-vite dev -o",
-    "build": "weapp-vite build",
+    "dev": "wv dev",
+    "dev:open": "wv dev -o",
+    "build": "wv build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
-    "tabicon": "node ./scripts/tabicon.mjs",
-    "open": "weapp-vite open",
-    "postinstall": "weapp-tw patch"
+    "open": "wv open",
+    "stylelint": "stylelint \"src/**/*.{css,scss,vue,wxss}\" --allow-empty-input",
+    "stylelint:fix": "stylelint \"src/**/*.{css,scss,vue,wxss}\" --fix --allow-empty-input",
+    "postinstall": "weapp-tw patch && wv prepare"
   },
   "dependencies": {
-    "@reeka-office/domain-identity": "workspace:*",
-    "tdesign-miniprogram": "^1.13.1"
+    "@wevu/api": "^0.2.3",
+    "tdesign-miniprogram": "^1.13.2"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
     "@egoist/tailwindcss-icons": "^1.9.2",
+    "@icebreakers/eslint-config": "^4.0.3",
+    "@icebreakers/stylelint-config": "^3.0.3",
     "@iconify-json/mdi": "^1.2.3",
     "autoprefixer": "^10.4.27",
-    "less": "^4.6.4",
-    "lucide-static": "^0.542.0",
+    "eslint": "^10.2.0",
     "miniprogram-api-typings": "^5.1.2",
-    "postcss": "^8.5.8",
+    "postcss": "^8.5.9",
     "sass": "^1.99.0",
-    "sharp": "^0.34.5",
-    "tailwindcss": "^3.4.19",
+    "stylelint": "^17.6.0",
+    "tailwindcss": "3.4.19",
     "typescript": "^6.0.2",
     "vue-tsc": "^3.2.6",
     "weapp-tailwindcss": "^4.11.2",
-    "weapp-vite": "^6.13.4",
-    "wevu": "^6.13.4"
+    "weapp-vite": "^6.15.0",
+    "wevu": "^6.15.0"
   }
 }

@@ -1,112 +1,123 @@
 <script setup lang="ts">
-import { hydrateTenantCatalog } from "@/lib/center-api";
-import { RpcErrorCode, setRpcErrorHandler } from "@/lib/rpc";
-import { onHide, onLaunch, onShow } from "wevu";
+import { onHide, onLaunch, onShow } from 'wevu'
+import { hydrateTenantCatalog } from '@/lib/center-api'
+import { RpcErrorCode, setRpcErrorHandler } from '@/lib/rpc'
 
-import "@/styles/theme-light.less";
+import '@/styles/theme-light.less'
 
 setRpcErrorHandler((error) => {
   if (error.code === RpcErrorCode.FORBIDDEN) {
-    const currentPages = getCurrentPages();
-    const currentPage = currentPages[currentPages.length - 1];
-    const currentRoute = `/${currentPage?.route ?? ""}`;
+    const currentPages = getCurrentPages()
+    const currentPage = currentPages[currentPages.length - 1]
+    const currentRoute = `/${currentPage?.route ?? ''}`
 
-    if (currentRoute === "/pages/unauthorized/index") {
-      return;
+    if (currentRoute === '/pages/unauthorized/index') {
+      return
     }
 
-    wx.reLaunch({ url: "/pages/unauthorized/index" });
+    wx.reLaunch({ url: '/pages/unauthorized/index' })
   }
-});
+})
 
 defineAppJson({
   pages: [
-    "pages/index/index",
-    "pages/product/index",
-    "pages/resource/index",
-    "pages/resource/detail/index",
-    "pages/training/index",
-    "pages/mine/index",
-    "pages/mine/points/index",
-    "pages/mine/points-detail/index",
-    "pages/mine/earn-points/index",
-    "pages/unauthorized/index",
+    'pages/index/index',
+    'pages/product/index',
+    'pages/resource/index',
+    'pages/resource/detail/index',
+    'pages/training/index',
+    'pages/mine/index',
+    'pages/unauthorized/index',
+  ],
+  subPackages: [
+    {
+      root: 'packages/gege',
+      pages: ['pages/index/index'],
+    },
+    {
+      root: 'packages/points',
+      pages: [
+        'pages/index/index',
+        'pages/detail/index',
+        'pages/earn/index',
+      ],
+    },
   ],
   window: {
-    navigationBarTitleText: "海纳API | 家族办公室",
-    navigationBarBackgroundColor: "#e23a3b",
-    navigationBarTextStyle: "white",
-    backgroundTextStyle: "dark",
+    navigationBarTitleText: '海纳API | 家族办公室',
+    navigationBarBackgroundColor: '#e23a3b',
+    navigationBarTextStyle: 'white',
+    backgroundTextStyle: 'dark',
   },
   tabBar: {
-    color: "#7a7aa0",
-    selectedColor: "#e23a3b",
-    backgroundColor: "#ffffff",
-    borderStyle: "white",
+    color: '#7a7aa0',
+    selectedColor: '#e23a3b',
+    backgroundColor: '#ffffff',
+    borderStyle: 'white',
     list: [
       {
-        pagePath: "pages/index/index",
-        text: "首页",
-        iconPath: "tabbar/home.png",
-        selectedIconPath: "tabbar/home-active.png",
+        pagePath: 'pages/index/index',
+        text: '首页',
+        iconPath: 'tabbar/home.png',
+        selectedIconPath: 'tabbar/home-active.png',
       },
       {
-        pagePath: "pages/product/index",
-        text: "产品",
-        iconPath: "tabbar/product.png",
-        selectedIconPath: "tabbar/product-active.png",
+        pagePath: 'pages/product/index',
+        text: '产品',
+        iconPath: 'tabbar/product.png',
+        selectedIconPath: 'tabbar/product-active.png',
       },
       {
-        pagePath: "pages/resource/index",
-        text: "资源",
-        iconPath: "tabbar/resource.png",
-        selectedIconPath: "tabbar/resource-active.png",
+        pagePath: 'pages/resource/index',
+        text: '资源',
+        iconPath: 'tabbar/resource.png',
+        selectedIconPath: 'tabbar/resource-active.png',
       },
       {
-        pagePath: "pages/training/index",
-        text: "培训",
-        iconPath: "tabbar/training.png",
-        selectedIconPath: "tabbar/training-active.png",
+        pagePath: 'pages/training/index',
+        text: '培训',
+        iconPath: 'tabbar/training.png',
+        selectedIconPath: 'tabbar/training-active.png',
       },
       {
-        pagePath: "pages/mine/index",
-        text: "我的",
-        iconPath: "tabbar/mine.png",
-        selectedIconPath: "tabbar/mine-active.png",
+        pagePath: 'pages/mine/index',
+        text: '我的',
+        iconPath: 'tabbar/mine.png',
+        selectedIconPath: 'tabbar/mine-active.png',
       },
     ],
   },
-  style: "v2",
-  componentFramework: "glass-easel",
-  sitemapLocation: "sitemap.json",
+  style: 'v2',
+  componentFramework: 'glass-easel',
+  sitemapLocation: 'sitemap.json',
   resolveAlias: {
-    "@/*": "/*",
+    '@/*': '/*',
   },
-});
+})
 
 async function syncTenantRoute() {
-  const { activeTenant } = await hydrateTenantCatalog();
-  const currentPages = getCurrentPages();
-  const currentPage = currentPages[currentPages.length - 1];
-  const currentRoute = `/${currentPage?.route ?? ""}`;
+  const { activeTenant } = await hydrateTenantCatalog()
+  const currentPages = getCurrentPages()
+  const currentPage = currentPages[currentPages.length - 1]
+  const currentRoute = `/${currentPage?.route ?? ''}`
 
-  if (!activeTenant && currentRoute !== "/pages/unauthorized/index") {
-    wx.reLaunch({ url: "/pages/unauthorized/index" });
+  if (!activeTenant && currentRoute !== '/pages/unauthorized/index') {
+    wx.reLaunch({ url: '/pages/unauthorized/index' })
   }
 }
 
 onLaunch(() => {
-  void syncTenantRoute();
-});
+  void syncTenantRoute()
+})
 
 onShow(() => {
-  void syncTenantRoute();
-  console.log("[reeka-office] app show");
-});
+  void syncTenantRoute()
+  console.log('[reeka-office] app show')
+})
 
 onHide(() => {
-  console.log("[reeka-office] app hide");
-});
+  console.log('[reeka-office] app hide')
+})
 </script>
 
 <style>
@@ -115,7 +126,7 @@ onHide(() => {
 @tailwind utilities;
 
 page {
-  font-family: "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --background: var(--td-bg-color-page);
   --foreground: var(--td-text-color-primary);
   --muted: var(--td-bg-color-secondarycontainer);

@@ -1,7 +1,13 @@
 interface:
   display_name: Vue SFC Best Practices
-  short_description: weapp-vite 的 Vue SFC 详细用法与最佳实践
-  default_prompt: 'Use $weapp-vite-vue-sfc-best-practices to implement or refactor my weapp-vite Vue SFC files with correct JSON macros, template compatibility, and wevu runtime patterns.'
+  short_description: 小程序 Vue SFC 宏、页面元信息、模板兼容与类型支持文件
+  default_prompt: >-
+    当任务主轴是编写或重构小程序 `.vue` 文件、JSON 宏、`definePageMeta`、layout、
+    `defineModel`、`usingComponents`、模板指令兼容性，或 SFC 编译/类型产物排障时，
+    使用 $weapp-vite-vue-sfc-best-practices。优先采用 `<script setup lang="ts">`
+    与宏约定，并结合项目根 `AGENTS.md` 与本地 packaged docs。若主轴是 wevu runtime，
+    切到 $wevu-best-practices；若主轴是项目级配置与构建，切到
+    $weapp-vite-best-practices。
 
 policy:
   allow_implicit_invocation: true

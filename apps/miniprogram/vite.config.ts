@@ -1,12 +1,13 @@
 import path from 'node:path'
 import { UnifiedViteWeappTailwindcssPlugin } from 'weapp-tailwindcss/vite'
+import { defineConfig } from 'weapp-vite'
 import { TDesignResolver } from 'weapp-vite/auto-import-components/resolvers'
-import { defineConfig } from 'weapp-vite/config'
 
 export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, 'src'),
+      '@rpc-types': path.resolve(import.meta.dirname, '../api/rpc-types.d.ts'),
     },
   },
   weapp: {
@@ -66,6 +67,6 @@ export default defineConfig({
   plugins: [
     UnifiedViteWeappTailwindcssPlugin({
       rem2rpx: true,
-    }),
+    }) as any,
   ],
 })

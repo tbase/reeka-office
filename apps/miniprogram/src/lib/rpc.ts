@@ -1,13 +1,12 @@
-import type { RpcInput, RpcMethodName, RpcOutput } from "@rpc-types"
-import { getTenantServiceName } from "./center-api"
-import { getCloudInstance } from "./cloud"
-import { config } from "./config"
-
+import type { RpcInput, RpcMethodName, RpcOutput } from '@rpc-types'
+import { getTenantServiceName } from './center-api'
+import { getCloudInstance } from './cloud'
+import { config } from './config'
 
 interface JsonRpcResponse<T> {
-  jsonrpc: "2.0"
+  jsonrpc: '2.0'
   result?: T
-  error?: { code: number; message: string; data?: unknown }
+  error?: { code: number, message: string, data?: unknown }
   id: string | number | null
 }
 
@@ -17,9 +16,9 @@ export interface RpcError extends Error {
 }
 
 // RPC 调用结果类型（discriminated union）
-export type RpcResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: RpcError }
+export type RpcResult<T>
+  = | { success: true, data: T }
+    | { success: false, error: RpcError }
 
 // RPC 错误码常量
 export const RpcErrorCode = {
@@ -47,13 +46,10 @@ export function setRpcErrorHandler(handler: RpcGlobalErrorHandler): void {
   globalRpcErrorHandler = handler
 }
 
-
-
-
 function createRpcError(
   message: string,
   code?: number,
-  data?: unknown
+  data?: unknown,
 ): RpcError {
   const error: RpcError = new Error(message)
   error.code = code
@@ -66,9 +62,9 @@ function parseResponse<T>(response: JsonRpcResponse<T>): RpcResult<T> {
     return {
       success: false,
       error: createRpcError(
-        response.error.message || "RPC 调用失败",
+        response.error.message || 'RPC 调用失败',
         response.error.code,
-        response.error.data
+        response.error.data,
       ),
     }
   }
@@ -76,7 +72,7 @@ function parseResponse<T>(response: JsonRpcResponse<T>): RpcResult<T> {
   if (response.result === undefined) {
     return {
       success: false,
-      error: createRpcError("响应格式错误：缺少 result", RpcErrorCode.INTERNAL_ERROR),
+      error: createRpcError('响应格式错误：缺少 result', RpcErrorCode.INTERNAL_ERROR),
     }
   }
 
@@ -110,37 +106,38 @@ export async function rpc<M extends RpcMethodName>(
       globalRpcErrorHandler?.(result.error, method)
     }
     return result
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "网络错误"
+  }
+  catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '网络错误'
     const rpcError = createRpcError(
       message,
-      error instanceof Error && "code" in error && typeof error.code === "number"
+      error instanceof Error && 'code' in error && typeof error.code === 'number'
         ? error.code
         : RpcErrorCode.NETWORK_ERROR,
-      error instanceof Error && "data" in error ? error.data : undefined
+      error instanceof Error && 'data' in error ? error.data : undefined,
     )
     globalRpcErrorHandler?.(rpcError, method)
     return { success: false, error: rpcError }
   }
 }
 
-const _call = async (method: string, params: unknown) => {
-  const payload = { jsonrpc: "2.0", method, params, id: Date.now() }
+async function _call(method: string, params: unknown) {
+  const payload = { jsonrpc: '2.0', method, params, id: Date.now() }
   return requestRpc(payload)
 }
 
-const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
+async function requestRpc(data: unknown): Promise<RpcTransportResponse> {
   if (config.TENANT_LOCAL_API) {
     return requestLocalRpc(data)
   }
 
   const instance = await getCloudInstance()
   const res = await instance.callContainer({
-    path: "/rpc",
-    method: "POST" as const,
+    path: '/rpc',
+    method: 'POST' as const,
     header: {
-      "X-WX-SERVICE": getTenantServiceName(),
-      "Content-Type": "application/json",
+      'X-WX-SERVICE': getTenantServiceName(),
+      'Content-Type': 'application/json',
     },
     data,
   })
@@ -148,16 +145,16 @@ const requestRpc = async (data: unknown): Promise<RpcTransportResponse> => {
   return { statusCode: res.statusCode, data: res.data }
 }
 
-const requestLocalRpc = (data: unknown): Promise<RpcTransportResponse> => {
+function requestLocalRpc(data: unknown): Promise<RpcTransportResponse> {
   return new Promise((resolve, reject) => {
     wx.request({
       url: `${config.TENANT_LOCAL_API!}/rpc`,
-      method: "POST",
+      method: 'POST',
       header: {
-        "Content-Type": "application/json",
-        "X-WX-OPENID": config.LOCAL_OPENID!,
-        "X-WX-ENV": config.LOCAL_ENV ?? 'local',
-        "X-WX-SERVICE": getTenantServiceName(),
+        'Content-Type': 'application/json',
+        'X-WX-OPENID': config.LOCAL_OPENID!,
+        'X-WX-ENV': config.LOCAL_ENV ?? 'local',
+        'X-WX-SERVICE': getTenantServiceName(),
       },
       data: JSON.stringify(data),
       success: (res) => {
@@ -170,7 +167,7 @@ const requestLocalRpc = (data: unknown): Promise<RpcTransportResponse> => {
   })
 }
 
-const _callBatch = async (data: unknown) => {
+async function _callBatch(data: unknown) {
   return requestRpc(data)
 }
 
@@ -185,28 +182,28 @@ export interface BatchRpcCall<M extends RpcMethodName = RpcMethodName> {
 /**
  * 批量 RPC 调用结果项（discriminated union）
  */
-export type BatchRpcResult<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: RpcError }
+export type BatchRpcResult<T = unknown>
+  = | { success: true, data: T }
+    | { success: false, error: RpcError }
 
 /**
  * 批量 RPC 调用（JSON-RPC 2.0 batch request）
- * 
+ *
  * 改进：通过 id 匹配响应，不依赖服务器返回顺序
- * 
+ *
  * @param calls 批量调用请求数组
  * @returns Promise<批量调用结果数组>
  */
 export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
-  calls: Calls
+  calls: Calls,
 ): Promise<{
   [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
-  ? BatchRpcResult<RpcOutput<M>>
-  : never
+    ? BatchRpcResult<RpcOutput<M>>
+    : never
 }> {
   const timestamp = Date.now()
   const requestData = calls.map((call, index) => ({
-    jsonrpc: "2.0" as const,
+    jsonrpc: '2.0' as const,
     method: call.method,
     params: call.params,
     id: `${timestamp}_${index}`,
@@ -219,8 +216,8 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
       const error = createRpcError(`HTTP ${res.statusCode}`, RpcErrorCode.INTERNAL_ERROR)
       return calls.map(() => ({ success: false as const, error })) as {
         [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
-        ? BatchRpcResult<RpcOutput<M>>
-        : never
+          ? BatchRpcResult<RpcOutput<M>>
+          : never
       }
     }
 
@@ -239,7 +236,7 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
           success: false as const,
           error: createRpcError(
             `响应缺失：${req.method}`,
-            RpcErrorCode.INTERNAL_ERROR
+            RpcErrorCode.INTERNAL_ERROR,
           ),
         }
       }
@@ -248,29 +245,30 @@ export async function rpcBatch<Calls extends readonly BatchRpcCall[]>(
         return {
           success: false as const,
           error: createRpcError(
-            response.error.message || "RPC 调用失败",
+            response.error.message || 'RPC 调用失败',
             response.error.code,
-            response.error.data
+            response.error.data,
           ),
         }
       }
 
       return { success: true as const, data: response.result }
     }) as {
-        [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
+      [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
         ? BatchRpcResult<RpcOutput<M>>
         : never
-      }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "网络错误"
+    }
+  }
+  catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '网络错误'
     const rpcError = createRpcError(message, RpcErrorCode.NETWORK_ERROR)
     return calls.map(() => ({ success: false as const, error: rpcError })) as {
       [K in keyof Calls]: Calls[K] extends BatchRpcCall<infer M>
-      ? BatchRpcResult<RpcOutput<M>>
-      : never
+        ? BatchRpcResult<RpcOutput<M>>
+        : never
     }
   }
 }
 
 // 重新导出类型，方便使用
-export type { RpcInput, RpcMethodName, RpcOutput } from "@rpc-types"
+export type { RpcInput, RpcMethodName, RpcOutput } from '@rpc-types'

@@ -11,7 +11,7 @@
     "coverView": false,
     "postcss": false,
     "minified": false,
-    "enhance": true,
+    "enhance": false,
     "showShadowRootInWxmlPanel": false,
     "packNpmRelationList": [
       {
@@ -24,17 +24,7 @@
     "skylineRenderEnable": true,
     "packNpmManually": true,
     "es6": true,
-    "minifyWXML": true,
-    "compileWorklet": false,
-    "uglifyFileName": false,
-    "uploadWithSourceMap": true,
-    "minifyWXSS": true,
-    "localPlugins": false,
-    "disableUseStrict": false,
-    "useCompilerPlugins": false,
-    "condition": false,
-    "swc": false,
-    "disableSWC": true
+    "minifyWXML": true
   },
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {},
@@ -44,7 +34,7 @@
     "tabIndent": "insertSpaces",
     "tabSize": 2
   },
-  "libVersion": "3.14.0",
+  "libVersion": "3.13.2",
   "packOptions": {
     "ignore": [],
     "include": []

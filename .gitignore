@@ -12,7 +12,6 @@ bun.lockb
 out
 
 # Build outputs
-dist
 build
 *.tsbuildinfo
 
@@ -56,6 +55,14 @@ apps/miniprogram/miniprogram_npm
 .temp
 .tmp
 .sisyphus/
+
+dist
+vite.config.ts.timestamp-*.mjs
+dist-web
+.weapp-vite/
+
+dist-plugin
+dist/web
 
 # OS
 Thumbs.db

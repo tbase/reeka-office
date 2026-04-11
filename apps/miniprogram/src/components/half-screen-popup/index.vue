@@ -1,42 +1,38 @@
 <script setup lang="ts">
-defineComponentJson({
-  usingComponents: {
-    "t-popup": "tdesign-miniprogram/popup/popup",
-  },
-});
-
 const props = withDefaults(
   defineProps<{
-    visible: boolean;
-    title: string;
-    maxHeight?: string;
-    maxContentHeight?: string;
-    closeBtn?: boolean;
-    useFooterSlot?: boolean;
+    visible: boolean
+    title: string
+    maxHeight?: string
+    maxContentHeight?: string
+    closeBtn?: boolean
+    useFooterSlot?: boolean
   }>(),
   {
-    maxHeight: "85vh",
-    maxContentHeight: "60vh",
+    maxHeight: '85vh',
+    maxContentHeight: '60vh',
     closeBtn: true,
     useFooterSlot: false,
   },
-);
+)
 
-const emit = defineEmits(["visible-change"]);
-const slots = defineSlots<{
-  default?: () => unknown;
-  footer?: () => unknown;
-}>();
+const emit = defineEmits(['visible-change'])
 
-const handleVisibleChange = (event: {
+defineComponentJson({
+  usingComponents: {
+    't-popup': 'tdesign-miniprogram/popup/popup',
+  },
+})
+
+function handleVisibleChange(event: {
   detail?: {
-    visible?: boolean;
-  };
-}) => {
-  emit("visible-change", {
+    visible?: boolean
+  }
+}) {
+  emit('visible-change', {
     visible: event.detail?.visible ?? false,
-  });
-};
+  })
+}
 </script>
 
 <template>
@@ -52,7 +48,9 @@ const handleVisibleChange = (event: {
     >
       <view class="shrink-0 px-4">
         <view class="flex items-center justify-center">
-          <view class="text-base font-semibold">{{ props.title }}</view>
+          <view class="text-base font-semibold">
+            {{ props.title }}
+          </view>
         </view>
       </view>
 
@@ -64,7 +62,7 @@ const handleVisibleChange = (event: {
       </view>
 
       <view
-        v-if="props.useFooterSlot"
+        v-if="useFooterSlot"
         class="mt-4 shrink-0 border-t border-border bg-card px-4 pb-4 pt-3"
       >
         <slot name="footer" />

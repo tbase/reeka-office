@@ -1,60 +1,60 @@
 <script setup lang="ts">
-import { computed, onLoad, ref } from "wevu";
+import { computed, onLoad, ref } from 'wevu'
 
-import { useNavTitle } from "@/hooks/useNavTitle";
-import { useResourceContentStore } from "@/stores/cms";
+import { useNavTitle } from '@/hooks/useNavTitle'
+import { useResourceContentStore } from '@/stores/cms'
 
 definePageJson({
-  navigationBarTitleText: "资源详情",
-  backgroundColor: "#ffffff",
-});
+  navigationBarTitleText: '资源详情',
+  backgroundColor: '#ffffff',
+})
 
-const resourceId = ref("");
+const resourceId = ref('')
 const emptyResource = {
   id: 0,
-  name: "资源详情",
-  content: "",
-  category: "",
-  logo: "",
+  name: '资源详情',
+  content: '',
+  category: '',
+  logo: '',
   contentImages: [],
-  contactName: "",
-  contactPhone: "",
+  contactName: '',
+  contactPhone: '',
   createdAt: new Date(),
   updatedAt: new Date(),
-};
+}
 
 onLoad((options) => {
-  resourceId.value = typeof options?.id === "string" ? options.id : "";
-});
+  resourceId.value = typeof options?.id === 'string' ? options.id : ''
+})
 
-const { data, isLoading } = useResourceContentStore(resourceId);
+const { data, isLoading } = useResourceContentStore(resourceId)
 
 const resource = computed(() => {
-  return data.value ?? emptyResource;
-});
+  return data.value ?? emptyResource
+})
 
-const bodyImages = computed(() => resource.value.contentImages);
-useNavTitle(() => resource.value.name);
+const bodyImages = computed(() => resource.value.contentImages)
+useNavTitle(() => resource.value.name)
 
-const previewImages = (current?: string) => {
-  const urls = bodyImages.value.length > 0 ? bodyImages.value : [];
+function previewImages(current?: string) {
+  const urls = bodyImages.value.length > 0 ? bodyImages.value : []
 
   if (urls.length === 0) {
-    return;
+    return
   }
 
   wx.previewImage({
     current: current ?? urls[0],
     urls,
-  });
-};
+  })
+}
 
-const contactManager = () => {
+function contactManager() {
   wx.showToast({
-    title: "请联系您的上级经理",
-    icon: "none",
-  });
-};
+    title: '请联系您的上级经理',
+    icon: 'none',
+  })
+}
 </script>
 
 <template>
@@ -62,7 +62,9 @@ const contactManager = () => {
     <scroll-view scroll-y class="min-h-0 flex-1 py-4">
       <view class="px-4">
         <view class="flex flex-wrap items-center gap-2">
-          <view class="text-xl font-semibold">{{ resource.name }}</view>
+          <view class="text-xl font-semibold">
+            {{ resource.name }}
+          </view>
           <t-tag
             v-if="resource.category"
             theme="primary"

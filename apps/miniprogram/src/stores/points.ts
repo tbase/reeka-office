@@ -1,7 +1,8 @@
-import { computed, type ComputedRef, type Ref } from 'wevu'
+import type { ComputedRef, Ref } from 'wevu'
 
-import { useQuery } from '@/hooks/useQuery'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
+import { computed } from 'wevu'
+import { useQuery } from '@/hooks/useQuery'
 import { useUserStore } from './user'
 
 type MineSummary = RpcOutput<'points/getMineSummary'>
@@ -47,14 +48,18 @@ export interface PointRulesStore {
   refetch: () => Promise<PointRules | null>
 }
 
+const AGENT_CODE_REGEXP = /^[A-Z0-9]{8}$/
+
 function useAgentCode(): ComputedRef<string | undefined> {
   const { user } = useUserStore()
 
   return computed(() => {
     const code = user.value?.agentCode
-    if (!code) return undefined
+    if (!code) {
+      return undefined
+    }
 
-    return /^[A-Z0-9]{8}$/.test(code) ? code : undefined
+    return AGENT_CODE_REGEXP.test(code) ? code : undefined
   })
 }
 

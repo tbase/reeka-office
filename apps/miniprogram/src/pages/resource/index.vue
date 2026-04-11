@@ -1,93 +1,93 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "wevu";
+import { computed, ref, watch } from 'wevu'
 
-import { useResourceContentsStore } from "@/stores/cms";
+import { useResourceContentsStore } from '@/stores/cms'
 
 definePageJson({
-  navigationBarTitleText: "家族办公室",
-  backgroundColor: "#f6f7fb",
+  navigationBarTitleText: '家族办公室',
+  backgroundColor: '#f6f7fb',
   usingComponents: {
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-empty": "tdesign-miniprogram/empty/empty",
-    "t-tabs": "tdesign-miniprogram/tabs/tabs",
-    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
+    't-button': 'tdesign-miniprogram/button/button',
+    't-empty': 'tdesign-miniprogram/empty/empty',
+    't-tabs': 'tdesign-miniprogram/tabs/tabs',
+    't-tab-panel': 'tdesign-miniprogram/tab-panel/tab-panel',
   },
-});
+})
 
-const LOGO_PLACEHOLDER = "/logo.png";
-const selectedCategorySlug = ref<string | undefined>(undefined);
+const LOGO_PLACEHOLDER = '/logo.png'
+const selectedCategorySlug = ref<string | undefined>(undefined)
 
-const { data, isLoading: resourcesLoading } = useResourceContentsStore();
+const { data, isLoading: resourcesLoading } = useResourceContentsStore()
 
-const contents = computed(() => data.value?.contents ?? []);
-const categories = computed(() => data.value?.categories ?? []);
+const contents = computed(() => data.value?.contents ?? [])
+const categories = computed(() => data.value?.categories ?? [])
 const resources = computed(() => {
-  const allResources = contents.value;
+  const allResources = contents.value
 
   if (!selectedCategorySlug.value) {
-    return allResources;
+    return allResources
   }
 
   return allResources.filter(
-    (item) => item.category === selectedCategorySlug.value,
-  );
-});
+    item => item.category === selectedCategorySlug.value,
+  )
+})
 
 watch(
   categories,
   (nextCategories) => {
     if (
-      selectedCategorySlug.value &&
-      nextCategories.includes(selectedCategorySlug.value)
+      selectedCategorySlug.value
+      && nextCategories.includes(selectedCategorySlug.value)
     ) {
-      return;
+      return
     }
 
-    const nextSlug = nextCategories[0];
+    const nextSlug = nextCategories[0]
     if (!selectedCategorySlug.value && nextSlug) {
-      selectedCategorySlug.value = nextSlug;
+      selectedCategorySlug.value = nextSlug
     }
 
     if (selectedCategorySlug.value && !nextSlug) {
-      selectedCategorySlug.value = undefined;
+      selectedCategorySlug.value = undefined
     }
 
     if (
-      selectedCategorySlug.value &&
-      nextSlug &&
-      !nextCategories.includes(selectedCategorySlug.value)
+      selectedCategorySlug.value
+      && nextSlug
+      && !nextCategories.includes(selectedCategorySlug.value)
     ) {
-      selectedCategorySlug.value = nextSlug;
+      selectedCategorySlug.value = nextSlug
     }
   },
   { immediate: true },
-);
+)
 
-const isLoading = computed(() => resourcesLoading.value);
+const isLoading = computed(() => resourcesLoading.value)
 
-const selectCategory = (slug: string) => {
+function selectCategory(slug: string) {
   if (slug === selectedCategorySlug.value) {
-    return;
+    return
   }
 
-  selectedCategorySlug.value = slug;
-};
+  selectedCategorySlug.value = slug
+}
 
-const handleCategoryChange = (event: { value: string }) => {
-  const nextSlug = event.value;
+function handleCategoryChange(event: { value: string }) {
+  const nextSlug = event.value
 
-  if (typeof nextSlug !== "string") {
-    return;
+  if (typeof nextSlug !== 'string') {
+    return
   }
 
-  selectCategory(nextSlug);
-};
+  selectCategory(nextSlug)
+}
 
-const openDetail = (id: number) => {
+function openDetail(id: number) {
   wx.navigateTo({
     url: `/pages/resource/detail/index?id=${id}`,
-  });
-};
+  })
+}
 </script>
 
 <template>
@@ -126,7 +126,9 @@ const openDetail = (id: number) => {
           :src="item.logo || LOGO_PLACEHOLDER"
         />
         <view class="p-3">
-          <view class="block font-semibold">{{ item.name }}</view>
+          <view class="block font-semibold">
+            {{ item.name }}
+          </view>
           <view class="mt-2 flex justify-end">
             <t-button size="small" theme="light" @click="openDetail(item.id)">
               查看
