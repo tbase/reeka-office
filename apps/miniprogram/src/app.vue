@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onHide, onLaunch, onShow } from 'wevu'
+import { onLaunch, onShow } from 'wevu'
 import { hydrateTenantCatalog } from '@/lib/center-api'
 import { RpcErrorCode, setRpcErrorHandler } from '@/lib/rpc'
 
@@ -32,7 +32,12 @@ defineAppJson({
   subPackages: [
     {
       root: 'packages/gege',
-      pages: ['pages/index/index'],
+      pages: [
+        'pages/index/index',
+        'pages/my-performance/index',
+        'pages/team/index',
+        'pages/member/index',
+      ],
     },
     {
       root: 'packages/points',
@@ -112,18 +117,59 @@ onLaunch(() => {
 
 onShow(() => {
   void syncTenantRoute()
-  console.log('[reeka-office] app show')
-})
-
-onHide(() => {
-  console.log('[reeka-office] app hide')
 })
 </script>
 
-<style>
+<style lang="postcss">
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .card {
+    @apply rounded-lg bg-card text-card-foreground shadow-lg;
+  }
+
+  .pill {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium;
+  }
+
+  .pill-lg {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .pill-primary {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .pill-accent {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  .pill-muted {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .pill-success {
+    @apply bg-success-soft text-success-foreground;
+  }
+
+  .pill-warning {
+    @apply bg-warning-soft text-warning-foreground;
+  }
+
+  .pill-selected {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+
+  .pill-surface {
+    @apply bg-card text-foreground shadow-sm;
+  }
+
+  .pill-card {
+    @apply bg-card text-muted-foreground shadow-sm;
+  }
+}
 
 page {
   font-family: 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -136,6 +182,7 @@ page {
   --border: var(--td-border-level-1-color);
   --input: var(--td-component-border);
   --primary: var(--td-brand-color);
+  --primary-2: var(--td-warning-color);
   --primary-foreground: var(--td-text-color-anti);
   --secondary: var(--td-bg-color-secondarycontainer);
   --secondary-foreground: var(--td-text-color-primary);
@@ -144,7 +191,11 @@ page {
   --destructive: var(--td-error-color);
   --destructive-foreground: var(--td-text-color-anti);
   --success: var(--td-success-color);
+  --success-soft: var(--td-success-color-light);
+  --success-foreground: var(--td-success-color);
   --warning: var(--td-warning-color);
+  --warning-soft: var(--td-warning-color-light);
+  --warning-foreground: var(--td-warning-color);
   --ring: var(--td-brand-color-focus);
   --shadow-sm: var(--td-shadow-4);
   --shadow-md: var(--td-shadow-1);
@@ -153,6 +204,10 @@ page {
   --radius-md: var(--td-radius-default, 12rpx);
   --radius-lg: var(--td-radius-large, 18rpx);
   --radius-xl: var(--td-radius-extraLarge, 24rpx);
+  --hero-start: var(--td-brand-color-light);
+  --hero-middle: var(--td-warning-color-light);
+  --hero-end: var(--td-bg-color-container);
+
   background-color: var(--background);
   color: var(--foreground);
 }

@@ -1,4 +1,5 @@
-import Toast, { type ToastOptionsType } from 'tdesign-miniprogram/toast/index'
+import type { ToastOptionsType } from 'tdesign-miniprogram/toast/index'
+import { showToast as _showToast } from 'tdesign-miniprogram/toast/index'
 import { getCurrentInstance } from 'wevu'
 
 export interface ToastOptions {
@@ -17,7 +18,7 @@ export function useToast(options: ToastOptions = {}) {
     if (!mpContext) {
       return
     }
-    Toast({
+    _showToast({
       selector,
       context: mpContext as any,
       message,

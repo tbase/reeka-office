@@ -1,5 +1,5 @@
 import { agents } from '@reeka-office/domain-agent'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, inArray, sql } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import {

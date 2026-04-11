@@ -59,7 +59,7 @@ function DialogContent({
       />
       <div
         className={cn(
-          "relative z-10 w-full max-w-md rounded-3xl border border-white/60 bg-white/95 shadow-2xl",
+          "relative z-10 w-full max-w-md rounded-lg border border-white/60 bg-white/95 shadow-2xl",
           className,
         )}
       >

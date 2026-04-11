@@ -3,6 +3,13 @@ import {
   getResourceContent,
   listResourceContents,
 } from "./rpc/cms";
+import {
+  getDashboard,
+  getMetricChart,
+  getMyPerformance,
+  getTeamMemberDetail,
+  listTeamMembers,
+} from "./rpc/gege";
 import { getCurrentUser, updateAvatar } from "./rpc/identity";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
 
@@ -33,6 +40,14 @@ const identityRegistry = rpc.registry({
   updateAvatar,
 });
 
+const gegeRegistry = rpc.registry({
+  getDashboard,
+  getMetricChart,
+  getMyPerformance,
+  listTeamMembers,
+  getTeamMemberDetail,
+});
+
 const pointsRegistry = rpc.registry({
   getMineSummary,
   listRedeemItems,
@@ -43,6 +58,7 @@ const pointsRegistry = rpc.registry({
 });
 export const registry = {
   ...prefixRegistry("cms", cmsRegistry),
+  ...prefixRegistry("gege", gegeRegistry),
   ...prefixRegistry("identity", identityRegistry),
   ...prefixRegistry("points", pointsRegistry),
 };

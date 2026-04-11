@@ -156,6 +156,9 @@ importers:
       '@reeka-office/domain-identity':
         specifier: workspace:*
         version: link:../../packages/domain-identity
+      '@reeka-office/domain-performance':
+        specifier: workspace:*
+        version: link:../../packages/domain-performance
       '@reeka-office/domain-point':
         specifier: workspace:*
         version: link:../../packages/domain-point

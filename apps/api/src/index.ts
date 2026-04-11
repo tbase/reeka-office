@@ -5,6 +5,11 @@ import {
   setup as setupDomainIdentity,
   type IdentityDB,
 } from "@reeka-office/domain-identity";
+import {
+  performanceSchema,
+  setup as setupDomainPerformance,
+  type PerformanceDB,
+} from "@reeka-office/domain-performance";
 import { GetAgentQuery, agentSchema, setup as setupDomainAgent, type AgentDB } from "@reeka-office/domain-agent";
 import { type PointDB, pointSchema, setup as setupDomainPoint } from "@reeka-office/domain-point";
 import { handleRPC, RpcError, RpcErrorCode } from "@reeka-office/jsonrpc";
@@ -157,6 +162,9 @@ setupDomainCms({ db: cmsDb as unknown as CmsDB })
 
 const pointDb = createBusinessDb(pointSchema)
 setupDomainPoint({ db: pointDb as unknown as PointDB })
+
+const performanceDb = createBusinessDb(performanceSchema)
+setupDomainPerformance({ db: performanceDb as unknown as PerformanceDB })
 
 const server = Bun.serve({
   port: config.server.port,

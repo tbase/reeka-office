@@ -25,6 +25,7 @@ export default {
         input: cssVar('input'),
         primary: {
           DEFAULT: cssVar('primary'),
+          2: cssVar('primary-2'),
           foreground: cssVar('primary-foreground'),
         },
         secondary: {
@@ -39,9 +40,21 @@ export default {
           DEFAULT: cssVar('destructive'),
           foreground: cssVar('destructive-foreground'),
         },
-        success: cssVar('success'),
-        warning: cssVar('warning'),
+        success: {
+          DEFAULT: cssVar('success'),
+          soft: cssVar('success-soft'),
+          foreground: cssVar('success-foreground'),
+        },
+        warning: {
+          DEFAULT: cssVar('warning'),
+          soft: cssVar('warning-soft'),
+          foreground: cssVar('warning-foreground'),
+        },
         ring: cssVar('ring'),
+      },
+      backgroundImage: {
+        hero:
+          'linear-gradient(135deg, var(--hero-start) 0%, var(--hero-middle) 55%, var(--hero-end) 100%)',
       },
       boxShadow: {
         sm: cssVar('shadow-sm'),
