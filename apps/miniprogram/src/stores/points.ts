@@ -67,6 +67,7 @@ export function usePointSummaryStore(): PointSummaryStore {
   const agentCode = useAgentCode()
   const { data, loading, error, refetch } = useQuery({
     queryKey: () => ['points/getMineSummary', { agentCode: agentCode.value }],
+    showLoading: '加载积分中...',
   })
 
   return {
@@ -81,6 +82,7 @@ export function usePointSummaryStore(): PointSummaryStore {
 export function useRedeemItemsStore(): RedeemItemsStore {
   const { data, loading, error, refetch } = useQuery({
     queryKey: ['points/listRedeemItems', {}],
+    showLoading: '加载积分中...',
   })
 
   return {

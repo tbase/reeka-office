@@ -15,7 +15,15 @@ export const gegeMetricNameSchema = z.enum(["nsc", "netCase"]);
 
 export const gegeTeamMembersInputSchema = z.object({
   scope: gegeTeamScopeSchema.optional(),
-});
+  year: z.number().int().min(2000).max(2100).optional(),
+  month: z.number().int().min(1).max(12).optional(),
+}).refine(
+  input => (input.year == null) === (input.month == null),
+  {
+    message: "year 和 month 需要同时传入",
+    path: ["month"],
+  },
+);
 
 export const gegeMetricChartInputSchema = z.object({
   year: z.number().int().min(2000).max(2100),

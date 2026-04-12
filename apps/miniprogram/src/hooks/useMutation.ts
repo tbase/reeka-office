@@ -1,5 +1,8 @@
-import { ref, shallowRef, type Ref, type ShallowRef } from 'wevu'
-import { rpc, type RpcMethodName, type RpcInput, type RpcOutput, type RpcError, type RpcResult } from '@/lib/rpc'
+import type { Ref, ShallowRef } from 'wevu'
+import type { RpcError, RpcInput, RpcMethodName, RpcOutput, RpcResult } from '@/lib/rpc'
+import { onHide, onUnload, onUnmounted, ref, shallowRef } from 'wevu'
+import { rpc } from '@/lib/rpc'
+import { useToast } from './useToast'
 
 export interface UseMutationOptions<T, TInput> {
   /** 显示 loading，传 string 自定义提示文案，传 true 使用默认 "处理中..." */
@@ -18,16 +21,21 @@ export interface UseMutationReturn<T, TInput> {
 
 export function useMutation<M extends RpcMethodName>(
   method: M,
-  options: UseMutationOptions<RpcOutput<M>, RpcInput<M>> = {}
+  options: UseMutationOptions<RpcOutput<M>, RpcInput<M>> = {},
 ): UseMutationReturn<RpcOutput<M>, RpcInput<M>> {
   type TOutput = RpcOutput<M>
   type TInput = RpcInput<M>
 
   const { showLoading, onSuccess, onError } = options
+  const { hideLoading: hideLoadingToast, showLoading: showLoadingToast } = useToast()
 
   const data = shallowRef<TOutput | undefined>(undefined) as ShallowRef<TOutput | undefined>
   const loading = ref(false)
   const error = shallowRef<RpcError | undefined>(undefined) as ShallowRef<RpcError | undefined>
+
+  onHide(hideLoadingToast)
+  onUnload(hideLoadingToast)
+  onUnmounted(hideLoadingToast)
 
   async function mutate(params?: TInput): Promise<TOutput | undefined> {
     loading.value = true
@@ -35,7 +43,7 @@ export function useMutation<M extends RpcMethodName>(
 
     if (showLoading) {
       const title = typeof showLoading === 'string' ? showLoading : '处理中...'
-      wx.showLoading({ title, mask: true })
+      showLoadingToast(title)
     }
 
     const rpcMethod = rpc as (method: M, params?: TInput) => Promise<RpcResult<TOutput>>
@@ -44,14 +52,15 @@ export function useMutation<M extends RpcMethodName>(
     loading.value = false
 
     if (showLoading) {
-      wx.hideLoading()
+      hideLoadingToast()
     }
 
     if (result.success) {
       data.value = result.data
       onSuccess?.(result.data, params)
       return result.data
-    } else {
+    }
+    else {
       error.value = result.error
       onError?.(result.error)
       return undefined

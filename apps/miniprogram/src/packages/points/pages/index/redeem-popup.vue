@@ -123,11 +123,10 @@ async function handleRedeem() {
       <t-button
         theme="primary"
         block
-        :loading="redeeming"
         :disabled="!canRedeem || redeeming"
         @click="handleRedeem"
       >
-        {{ redeeming ? '兑换中...' : '确认兑换' }}
+        确认兑换
       </t-button>
 
       <view
@@ -137,5 +136,7 @@ async function handleRedeem() {
         积分不足、库存不足或已达限兑次数，暂不可兑换
       </view>
     </template>
+
+    <t-toast id="t-toast" />
   </HalfScreenPopup>
 </template>

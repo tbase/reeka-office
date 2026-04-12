@@ -1,7 +1,8 @@
 import type { Ref, ShallowRef } from 'wevu'
 import type { RpcError, RpcInput, RpcMethodName, RpcOutput, RpcResult } from '@/lib/rpc'
-import { onShow, ref, shallowRef, watchEffect } from 'wevu'
+import { onHide, onShow, onUnload, onUnmounted, ref, shallowRef, watchEffect } from 'wevu'
 import { rpc } from '@/lib/rpc'
+import { useToast } from './useToast'
 
 const cache = new Map<string, { data: unknown, timestamp: number }>()
 
@@ -25,6 +26,7 @@ export interface UseQueryOptions<M extends RpcMethodName> {
   staleTime?: number
   skipGlobalErrorHandler?: boolean
   refetchOnShow?: boolean
+  showLoading?: boolean | string
 }
 
 export interface UseQueryReturn<T> {
@@ -47,20 +49,26 @@ export function useQuery<M extends RpcMethodName>(
     staleTime = DEFAULT_STALE_TIME,
     skipGlobalErrorHandler = false,
     refetchOnShow = false,
+    showLoading = false,
   } = options
 
   const data = shallowRef<TOutput | null>(initialData ?? null) as ShallowRef<TOutput | null>
   const loading = ref(false)
   const error = shallowRef<RpcError | null>(null) as ShallowRef<RpcError | null>
   const isStale = ref(false)
+  const { hideLoading, showLoading: showLoadingToast } = useToast()
 
   let lastKey: [M, RpcInput<M>] | undefined
   let lastCacheKey: string | undefined
 
-  function getCachedData(cacheKey: string): TOutput | null {
+  onHide(hideLoading)
+  onUnload(hideLoading)
+  onUnmounted(hideLoading)
+
+  function getCachedData(cacheKey: string): TOutput | undefined {
     const cached = cache.get(cacheKey)
     if (!cached) {
-      return null
+      return undefined
     }
 
     const isExpired = Date.now() - cached.timestamp > staleTime
@@ -87,10 +95,16 @@ export function useQuery<M extends RpcMethodName>(
     loading.value = !hasCachedData
     error.value = null
 
+    if (showLoading && !hasCachedData) {
+      const message = typeof showLoading === 'string' ? showLoading : '加载中...'
+      showLoadingToast(message)
+    }
+
     const rpcMethod = rpc as (method: M, params?: RpcInput<M>) => Promise<RpcResult<TOutput>>
     const result = await rpcMethod(method, params)
 
     loading.value = false
+    hideLoading()
 
     if (result.success) {
       data.value = result.data
@@ -102,7 +116,7 @@ export function useQuery<M extends RpcMethodName>(
       if (!skipGlobalErrorHandler && globalErrorHandler) {
         globalErrorHandler(result.error, method)
       }
-      return cachedData
+      return cachedData ?? null
     }
   }
 
@@ -126,6 +140,8 @@ export function useQuery<M extends RpcMethodName>(
   watchEffect(() => {
     const key = typeof queryKey === 'function' ? queryKey() : queryKey
     if (!key) {
+      loading.value = false
+      hideLoading()
       return
     }
 

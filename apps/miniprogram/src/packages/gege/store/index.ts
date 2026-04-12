@@ -3,83 +3,114 @@ import type { Ref } from 'wevu'
 import type { RpcError, RpcOutput } from '@/lib/rpc'
 import { useQuery } from '@/hooks/useQuery'
 
-type GegeDashboard = RpcOutput<'gege/getDashboard'>
-type GegeMetricChart = RpcOutput<'gege/getMetricChart'>
-type GegeMyPerformance = RpcOutput<'gege/getMyPerformance'>
-type GegeTeamMembers = RpcOutput<'gege/listTeamMembers'>
-type GegeMemberDetail = RpcOutput<'gege/getTeamMemberDetail'>
+type Dashboard = RpcOutput<'gege/getDashboard'>
+type MetricChart = RpcOutput<'gege/getMetricChart'>
+type MyPerformanceHistory = RpcOutput<'gege/getMyPerformanceHistory'>
+type MyPerformanceMeta = RpcOutput<'gege/getMyPerformanceMeta'>
+type TeamMembers = RpcOutput<'gege/listTeamMembers'>
+type MemberDetail = RpcOutput<'gege/getTeamMemberDetail'>
 
-export interface GegeDashboardStore {
-  dashboard: Ref<GegeDashboard | null>
+export interface DashboardStore {
+  dashboard: Ref<Dashboard | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<GegeDashboard | null>
+  refetch: () => Promise<Dashboard | null>
 }
 
-export interface GegeMyPerformanceStore {
-  performance: Ref<GegeMyPerformance | null>
+export interface MyPerformanceMetaStore {
+  meta: Ref<MyPerformanceMeta | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<GegeMyPerformance | null>
+  refetch: () => Promise<MyPerformanceMeta | null>
 }
 
-export interface GegeMetricChartStore {
-  chart: Ref<GegeMetricChart | null>
+export interface MyPerformanceHistoryStore {
+  history: Ref<MyPerformanceHistory | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<GegeMetricChart | null>
+  refetch: () => Promise<MyPerformanceHistory | null>
 }
 
-export interface GegeTeamMembersStore {
-  team: Ref<GegeTeamMembers | null>
+export interface MetricChartStore {
+  chart: Ref<MetricChart | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<GegeTeamMembers | null>
+  refetch: () => Promise<MetricChart | null>
 }
 
-export interface GegeMemberDetailStore {
-  detail: Ref<GegeMemberDetail | null>
+export interface TeamMembersStore {
+  team: Ref<TeamMembers | null>
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
-  refetch: () => Promise<GegeMemberDetail | null>
+  refetch: () => Promise<TeamMembers | null>
 }
 
-export function useGegeDashboardStore(): GegeDashboardStore {
+export interface MemberDetailStore {
+  detail: Ref<MemberDetail | null>
+  isLoading: Ref<boolean>
+  error: Ref<RpcError | null>
+  refetch: () => Promise<MemberDetail | null>
+}
+
+export function useDashboardStore(): DashboardStore {
   const { data, loading, error, refetch } = useQuery({
     queryKey: ['gege/getDashboard', undefined],
     refetchOnShow: true,
+    showLoading: '加载业绩中...',
   })
 
   return {
-    dashboard: data as Ref<GegeDashboard | null>,
+    dashboard: data as Ref<Dashboard | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,
   }
 }
 
-export function useGegeMyPerformanceStore(
-  year: Ref<number | null>,
-): GegeMyPerformanceStore {
+export function useMyPerformanceMetaStore(): MyPerformanceMetaStore {
   const { data, loading, error, refetch } = useQuery({
-    queryKey: () => ['gege/getMyPerformance', year.value ? { year: year.value } : {}],
+    queryKey: ['gege/getMyPerformanceMeta', undefined],
     refetchOnShow: true,
+    showLoading: '加载业绩中...',
   })
 
   return {
-    performance: data as Ref<GegeMyPerformance | null>,
+    meta: data as Ref<MyPerformanceMeta | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,
   }
 }
 
-export function useGegeMetricChartStore(
+export function useMyPerformanceHistoryStore(
+  year: Ref<number | null>,
+): MyPerformanceHistoryStore {
+  const { data, loading, error, refetch } = useQuery({
+    queryKey: () => {
+      if (year.value == null) {
+        return undefined
+      }
+
+      return ['gege/getMyPerformanceHistory', { year: year.value }]
+    },
+    refetchOnShow: true,
+    showLoading: '加载业绩中...',
+  })
+
+  return {
+    history: data as Ref<MyPerformanceHistory | null>,
+    isLoading: loading,
+    error: error as Ref<RpcError | null>,
+    refetch,
+  }
+}
+
+export function useMetricChartStore(
   year: Ref<number | null>,
   metricName: Ref<'nsc' | 'netCase' | null>,
   scope: Ref<'self' | 'direct' | 'all' | null>,
   enabled: Ref<boolean>,
-): GegeMetricChartStore {
+): MetricChartStore {
   const { data, loading, error, refetch } = useQuery({
     queryKey: () => {
       if (
@@ -97,36 +128,48 @@ export function useGegeMetricChartStore(
         scope: scope.value,
       }]
     },
+    showLoading: '加载图表中...',
   })
 
   return {
-    chart: data as Ref<GegeMetricChart | null>,
+    chart: data as Ref<MetricChart | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,
   }
 }
 
-export function useGegeTeamMembersStore(
+export function useTeamMembersStore(
   scope: Ref<'direct' | 'all'>,
-): GegeTeamMembersStore {
+  year: Ref<number | null>,
+  month: Ref<number | null>,
+): TeamMembersStore {
   const { data, loading, error, refetch } = useQuery({
-    queryKey: () => ['gege/listTeamMembers', { scope: scope.value }],
+    queryKey: () => ['gege/listTeamMembers', {
+      scope: scope.value,
+      ...(year.value != null && month.value != null
+        ? {
+            year: year.value,
+            month: month.value,
+          }
+        : {}),
+    }],
     refetchOnShow: true,
+    showLoading: '加载团队数据中...',
   })
 
   return {
-    team: data as Ref<GegeTeamMembers | null>,
+    team: data as Ref<TeamMembers | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,
   }
 }
 
-export function useGegeMemberDetailStore(
+export function useMemberDetailStore(
   agentCode: Ref<string>,
   year: Ref<number | null>,
-): GegeMemberDetailStore {
+): MemberDetailStore {
   const { data, loading, error, refetch } = useQuery({
     queryKey: () => {
       const code = agentCode.value.trim()
@@ -136,10 +179,11 @@ export function useGegeMemberDetailStore(
         : { agentCode: code }]
     },
     refetchOnShow: true,
+    showLoading: '加载成员详情中...',
   })
 
   return {
-    detail: data as Ref<GegeMemberDetail | null>,
+    detail: data as Ref<MemberDetail | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,

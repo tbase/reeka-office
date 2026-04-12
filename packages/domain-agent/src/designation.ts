@@ -1,4 +1,4 @@
-export const DESIGNATION_NAME = [
+export const DESIGNATION_NAMES = [
   'LA',
   'FC',
   'UM',
@@ -12,7 +12,7 @@ export const DESIGNATION_NAME = [
   'SBSM',
 ] as const
 
-export type DesignationName = (typeof DESIGNATION_NAME)[number]
+export type DesignationName = (typeof DESIGNATION_NAMES)[number]
 
 export function getDesignationName(
   designation: number | null | undefined,
@@ -21,7 +21,5 @@ export function getDesignationName(
     return null
   }
 
-  const index = designation as number
-
-  return DESIGNATION_NAME[index] ?? null
+  return DESIGNATION_NAMES[designation as number] ?? null
 }

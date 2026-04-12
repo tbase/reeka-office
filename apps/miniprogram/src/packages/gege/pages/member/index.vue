@@ -11,7 +11,7 @@ import {
   formatQualified,
   formatRate,
 } from '../../lib/format'
-import { useGegeMemberDetailStore } from '../../store'
+import { useMemberDetailStore } from '../../store'
 
 definePageJson({
   navigationBarTitleText: '成员详情',
@@ -30,7 +30,7 @@ onLoad((options) => {
     : ''
 })
 
-const { detail, isLoading, error, refetch } = useGegeMemberDetailStore(agentCode, selectedYear)
+const { detail, isLoading, error, refetch } = useMemberDetailStore(agentCode, selectedYear)
 
 usePullDownRefresh(async () => {
   await refetch()
@@ -113,32 +113,6 @@ function chooseYear(year: number) {
 
 <template>
   <view class="min-h-screen bg-background px-4 pb-16 pt-4">
-    <view class="card-hero p-5">
-      <view class="flex items-start justify-between gap-3">
-        <view class="min-w-0">
-          <view class="text-xl font-semibold text-foreground">
-            {{ profile.name }}
-          </view>
-          <view v-if="profile.agentCode" class="mt-1 text-sm text-muted-foreground">
-            {{ profile.agentCode }}
-          </view>
-        </view>
-
-        <view v-if="profile.relationLabel" class="pill pill-accent">
-          {{ profile.relationLabel }}
-        </view>
-      </view>
-
-      <view class="mt-3 flex items-center justify-between gap-3">
-        <view class="pill pill-muted">
-          {{ profile.designationName }}
-        </view>
-        <view class="text-xs text-muted-foreground">
-          {{ profile.periodLabel }}
-        </view>
-      </view>
-    </view>
-
     <view v-if="!agentCode" class="card mt-4 p-4">
       <t-empty icon="view-list" description="缺少成员编码" />
     </view>
@@ -147,133 +121,167 @@ function chooseYear(year: number) {
       <t-empty icon="error-circle" :description="error.message || '数据加载失败'" />
     </view>
 
-    <view v-else-if="!canShowPerformance && !isLoading" class="card mt-4 p-4">
+    <template v-else-if="detail">
+      <view class="card-hero p-5">
+        <view class="flex items-start justify-between gap-3">
+          <view class="min-w-0">
+            <view class="text-xl font-semibold text-foreground">
+              {{ profile.name }}
+            </view>
+            <view v-if="profile.agentCode" class="mt-1 text-sm text-muted-foreground">
+              {{ profile.agentCode }}
+            </view>
+          </view>
+
+          <view v-if="profile.relationLabel" class="pill pill-accent">
+            {{ profile.relationLabel }}
+          </view>
+        </view>
+
+        <view class="mt-3 flex items-center justify-between gap-3">
+          <view class="pill pill-muted">
+            {{ profile.designationName }}
+          </view>
+          <view class="text-xs text-muted-foreground">
+            {{ profile.periodLabel }}
+          </view>
+        </view>
+      </view>
+
+      <view v-if="!canShowPerformance && !isLoading" class="card mt-4 p-4">
+        <t-empty icon="view-list" description="该成员暂无业绩数据" />
+      </view>
+
+      <view v-else class="space-y-4">
+        <view v-if="availableYears.length > 0" class="mt-4">
+          <view class="mb-3 text-sm font-semibold text-foreground">
+            年份
+          </view>
+          <scroll-view scroll-x class="whitespace-nowrap">
+            <view class="inline-flex gap-2">
+              <view
+                v-for="year in availableYears"
+                :key="year"
+                class="pill pill-lg"
+                :class="activeYear === year
+                  ? 'pill-selected'
+                  : 'pill-card'"
+                @tap="chooseYear(year)"
+              >
+                {{ year }} 年
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view>
+          <view class="mb-3 text-sm font-semibold text-foreground">
+            当前核心指标
+          </view>
+          <view class="grid grid-cols-2 gap-3">
+            <view
+              v-for="item in coreMetrics"
+              :key="item.label"
+              class="card p-4"
+            >
+              <view class="text-xs text-muted-foreground">
+                {{ item.label }}
+              </view>
+              <view class="mt-2 text-lg font-semibold" :class="item.tone">
+                {{ item.value }}
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view>
+          <view class="mb-3 text-sm font-semibold text-foreground">
+            扩展指标
+          </view>
+          <view class="card-list">
+            <view
+              v-for="item in extendedMetrics"
+              :key="item.label"
+              class="flex items-center justify-between border-b border-border/60 px-4 py-3 last:border-b-0"
+            >
+              <view class="text-sm text-muted-foreground">
+                {{ item.label }}
+              </view>
+              <view class="text-sm font-semibold text-foreground">
+                {{ item.value }}
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view>
+          <view class="mb-3 text-sm font-semibold text-foreground">
+            {{ activeYear ? `${activeYear} 年月度趋势` : '月度趋势' }}
+          </view>
+          <view class="space-y-3">
+            <view
+              v-for="item in history"
+              :key="`${item.year}-${item.month}`"
+              class="card p-4"
+            >
+              <view class="flex items-center justify-between">
+                <view class="text-base font-semibold text-foreground">
+                  {{ formatMonth(item.month) }}
+                </view>
+                <view
+                  class="pill"
+                  :class="item.isQualified
+                    ? 'pill-success'
+                    : 'pill-warning'"
+                >
+                  {{ formatQualified(item.isQualified) }}
+                </view>
+              </view>
+
+              <view class="mt-4 grid grid-cols-2 gap-3">
+                <view class="rounded-2xl bg-muted/60 px-3 py-3">
+                  <view class="text-xs text-muted-foreground">
+                    NSC
+                  </view>
+                  <view class="mt-1 text-lg font-semibold text-[#d9485f]">
+                    {{ formatNumber(item.nsc) }}
+                  </view>
+                </view>
+                <view class="rounded-2xl bg-muted/60 px-3 py-3">
+                  <view class="text-xs text-muted-foreground">
+                    CASE
+                  </view>
+                  <view class="mt-1 text-lg font-semibold text-[#dd6b20]">
+                    {{ formatNumber(item.netCase) }}
+                  </view>
+                </view>
+                <view class="rounded-2xl bg-muted/60 px-3 py-3">
+                  <view class="text-xs text-muted-foreground">
+                    累计 NSC
+                  </view>
+                  <view class="mt-1 text-lg font-semibold">
+                    {{ formatNumber(item.nscSum) }}
+                  </view>
+                </view>
+                <view class="rounded-2xl bg-muted/60 px-3 py-3">
+                  <view class="text-xs text-muted-foreground">
+                    累计 CASE
+                  </view>
+                  <view class="mt-1 text-lg font-semibold">
+                    {{ formatNumber(item.netCaseSum) }}
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </template>
+
+    <view v-else-if="!isLoading" class="card mt-4 p-4">
       <t-empty icon="view-list" description="该成员暂无业绩数据" />
     </view>
 
-    <view v-else class="space-y-4">
-      <view v-if="availableYears.length > 0" class="mt-4">
-        <view class="mb-3 text-sm font-semibold text-foreground">
-          年份
-        </view>
-        <scroll-view scroll-x class="whitespace-nowrap">
-          <view class="inline-flex gap-2">
-            <view
-              v-for="year in availableYears"
-              :key="year"
-              class="pill pill-lg"
-              :class="activeYear === year
-                ? 'pill-selected'
-                : 'pill-card'"
-              @tap="chooseYear(year)"
-            >
-              {{ year }} 年
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-
-      <view>
-        <view class="mb-3 text-sm font-semibold text-foreground">
-          当前核心指标
-        </view>
-        <view class="grid grid-cols-2 gap-3">
-          <view
-            v-for="item in coreMetrics"
-            :key="item.label"
-            class="card p-4"
-          >
-            <view class="text-xs text-muted-foreground">
-              {{ item.label }}
-            </view>
-            <view class="mt-2 text-lg font-semibold" :class="item.tone">
-              {{ item.value }}
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view>
-        <view class="mb-3 text-sm font-semibold text-foreground">
-          扩展指标
-        </view>
-        <view class="card-list">
-          <view
-            v-for="item in extendedMetrics"
-            :key="item.label"
-            class="flex items-center justify-between border-b border-border/60 px-4 py-3 last:border-b-0"
-          >
-            <view class="text-sm text-muted-foreground">
-              {{ item.label }}
-            </view>
-            <view class="text-sm font-semibold text-foreground">
-              {{ item.value }}
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view>
-        <view class="mb-3 text-sm font-semibold text-foreground">
-          {{ activeYear ? `${activeYear} 年月度趋势` : '月度趋势' }}
-        </view>
-        <view class="space-y-3">
-          <view
-            v-for="item in history"
-            :key="`${item.year}-${item.month}`"
-            class="card p-4"
-          >
-            <view class="flex items-center justify-between">
-              <view class="text-base font-semibold text-foreground">
-                {{ formatMonth(item.month) }}
-              </view>
-              <view
-                class="pill"
-                :class="item.isQualified
-                  ? 'pill-success'
-                  : 'pill-warning'"
-              >
-                {{ formatQualified(item.isQualified) }}
-              </view>
-            </view>
-
-            <view class="mt-4 grid grid-cols-2 gap-3">
-              <view class="rounded-2xl bg-muted/60 px-3 py-3">
-                <view class="text-xs text-muted-foreground">
-                  NSC
-                </view>
-                <view class="mt-1 text-lg font-semibold text-[#d9485f]">
-                  {{ formatNumber(item.nsc) }}
-                </view>
-              </view>
-              <view class="rounded-2xl bg-muted/60 px-3 py-3">
-                <view class="text-xs text-muted-foreground">
-                  CASE
-                </view>
-                <view class="mt-1 text-lg font-semibold text-[#dd6b20]">
-                  {{ formatNumber(item.netCase) }}
-                </view>
-              </view>
-              <view class="rounded-2xl bg-muted/60 px-3 py-3">
-                <view class="text-xs text-muted-foreground">
-                  累计 NSC
-                </view>
-                <view class="mt-1 text-lg font-semibold">
-                  {{ formatNumber(item.nscSum) }}
-                </view>
-              </view>
-              <view class="rounded-2xl bg-muted/60 px-3 py-3">
-                <view class="text-xs text-muted-foreground">
-                  累计 CASE
-                </view>
-                <view class="mt-1 text-lg font-semibold">
-                  {{ formatNumber(item.netCaseSum) }}
-                </view>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
+    <t-toast id="t-toast" />
   </view>
 </template>

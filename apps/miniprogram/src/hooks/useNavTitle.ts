@@ -1,4 +1,5 @@
-import { watchEffect, type Ref } from 'wevu'
+import type { Ref } from 'wevu'
+import { watchEffect } from 'wevu'
 
 type NavTitleValue = string | null | undefined
 

@@ -31,6 +31,7 @@ export function useResourceContentStore(resourceId: Ref<string>): ResourceConten
 
       return ['cms/getResourceContent', { id }]
     },
+    showLoading: '加载详情中...',
   })
 
   return {
@@ -44,6 +45,7 @@ export function useResourceContentStore(resourceId: Ref<string>): ResourceConten
 export function useResourceContentsStore(): ResourceContentsStore {
   const { data, loading, error, refetch } = useQuery({
     queryKey: ['cms/listResourceContents', undefined],
+    showLoading: '加载资源中...',
   })
 
   return {

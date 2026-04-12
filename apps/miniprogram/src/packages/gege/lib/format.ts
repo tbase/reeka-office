@@ -21,6 +21,22 @@ export function formatMetricValue(value: number | null | undefined): string {
   })
 }
 
+function formatMetricUnit(
+  value: number,
+  divisor: number,
+  unit: '万' | '亿',
+): string {
+  const unitValue = value / divisor
+  const absoluteValue = Math.abs(unitValue)
+  const maximumFractionDigits = absoluteValue >= 10 ? 1 : 2
+  const formattedValue = unitValue.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  })
+
+  return `${formattedValue}${unit}`
+}
+
 export function formatCompactMetricValue(value: number | null | undefined): string {
   const safeValue = Number.isFinite(value) ? Number(value) : 0
   const normalized = safeValue / 100
@@ -40,22 +56,6 @@ export function formatCompactMetricValue(value: number | null | undefined): stri
   })
 }
 
-function formatMetricUnit(
-  value: number,
-  divisor: number,
-  unit: '万' | '亿',
-): string {
-  const unitValue = value / divisor
-  const absoluteValue = Math.abs(unitValue)
-  const maximumFractionDigits = absoluteValue >= 10 ? 1 : 2
-  const formattedValue = unitValue.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits,
-  })
-
-  return `${formattedValue}${unit}`
-}
-
 export function formatPeriod(period: Period): string {
   if (!period) {
     return '暂无业绩数据'
@@ -70,6 +70,10 @@ export function formatMonth(month: number): string {
 
 export function formatQualified(value: boolean): string {
   return value ? '已合资格' : '未合资格'
+}
+
+export function formatGap(value: number | null | undefined): string {
+  return `Gap ${formatMetricValue(value)}`
 }
 
 export function formatDesignation(value: string | null | undefined): string {

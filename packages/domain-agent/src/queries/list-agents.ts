@@ -1,7 +1,6 @@
 import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
-import { getDesignationName } from '../designation'
 import type { Agent } from '../types'
 
 export const LIST_AGENT_SORTS = [
@@ -107,9 +106,6 @@ export class ListAgentsQuery {
       ? query.limit(this.input.limit)
       : query)
 
-    return rows.map((row) => ({
-      ...row,
-      designationName: getDesignationName(row.designation),
-    }))
+    return rows
   }
 }

@@ -27,7 +27,7 @@ onLoad((options) => {
   resourceId.value = typeof options?.id === 'string' ? options.id : ''
 })
 
-const { data, isLoading } = useResourceContentStore(resourceId)
+const { data, error } = useResourceContentStore(resourceId)
 
 const resource = computed(() => {
   return data.value ?? emptyResource
@@ -87,10 +87,17 @@ function contactManager() {
         </view>
 
         <t-empty
+          v-else-if="error && !data"
+          class="mt-4 rounded-xl bg-muted py-10"
+          icon="error-circle"
+          :description="error.message || '详情加载失败'"
+        />
+
+        <t-empty
           v-else
           class="mt-4 rounded-xl bg-muted py-10"
           icon="view-list"
-          :description="isLoading ? '加载中...' : '暂无介绍'"
+          description="暂无介绍"
         />
       </view>
     </scroll-view>
@@ -106,5 +113,7 @@ function contactManager() {
         请联系您的上级经理
       </t-button>
     </view>
+
+    <t-toast id="t-toast" />
   </view>
 </template>

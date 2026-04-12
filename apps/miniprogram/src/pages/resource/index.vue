@@ -17,7 +17,7 @@ definePageJson({
 const LOGO_PLACEHOLDER = '/logo.png'
 const selectedCategorySlug = ref<string | undefined>(undefined)
 
-const { data, isLoading: resourcesLoading } = useResourceContentsStore()
+const { data, error, isLoading: resourcesLoading } = useResourceContentsStore()
 
 const contents = computed(() => data.value?.contents ?? [])
 const categories = computed(() => data.value?.categories ?? [])
@@ -108,7 +108,14 @@ function openDetail(id: number) {
     </t-tabs>
 
     <t-empty
-      v-if="categories.length === 0 && !isLoading"
+      v-if="error && !data"
+      class="mt-4 rounded-xl bg-card py-8 shadow-md"
+      icon="error-circle"
+      :description="error.message || '资源加载失败'"
+    />
+
+    <t-empty
+      v-else-if="categories.length === 0 && !isLoading"
       class="mt-4 rounded-xl bg-card py-8 shadow-md"
       icon="view-list"
       description="暂无家办内容"
@@ -144,5 +151,7 @@ function openDetail(id: number) {
       icon="view-list"
       description="当前分类暂无资源"
     />
+
+    <t-toast id="t-toast" />
   </view>
 </template>

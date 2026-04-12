@@ -3,7 +3,7 @@ import { computed } from 'wevu'
 
 import HalfScreenPopup from '@/components/half-screen-popup/index.vue'
 import { formatCompactMetricValue } from '../../lib/format'
-import { useGegeMetricChartStore } from '../../store'
+import { useMetricChartStore } from '../../store'
 
 const props = defineProps<{
   visible: boolean
@@ -25,7 +25,7 @@ const chartYear = computed(() => props.year)
 const chartMetricName = computed(() => props.metric?.metricName ?? null)
 const chartScope = computed(() => props.metric?.scope ?? null)
 
-const { chart, isLoading, error, refetch } = useGegeMetricChartStore(
+const { chart, isLoading, error, refetch } = useMetricChartStore(
   chartYear,
   chartMetricName,
   chartScope,
@@ -87,14 +87,7 @@ function handleRetry() {
   >
     <view class="pb-4">
       <view
-        v-if="isLoading"
-        class="flex h-64 items-center justify-center text-sm text-muted-foreground"
-      >
-        加载中...
-      </view>
-
-      <view
-        v-else-if="error"
+        v-if="error && !chart"
         class="flex h-64 flex-col items-center justify-center gap-3"
       >
         <view class="text-sm text-muted-foreground">
@@ -106,7 +99,7 @@ function handleRetry() {
       </view>
 
       <view
-        v-else-if="bars.length === 0"
+        v-else-if="!isLoading && bars.length === 0"
         class="flex h-64 items-center justify-center text-sm text-muted-foreground"
       >
         暂无图表数据
@@ -139,5 +132,7 @@ function handleRetry() {
         </view>
       </scroll-view>
     </view>
+
+    <t-toast id="t-toast" />
   </HalfScreenPopup>
 </template>

@@ -1,4 +1,15 @@
+export {
+  GetAgentByCodeQuery,
+  type AgentProfile,
+  type GetAgentByCodeInput,
+  type GetAgentByCodeResult,
+} from './get-agent-by-code'
 export { GetAgentQuery, type GetAgentInput, type GetAgentResult } from './get-agent'
+export {
+  GetTeamMemberRelationQuery,
+  type GetTeamMemberRelationInput,
+  type GetTeamMemberRelationResult,
+} from './get-team-member-relation'
 export {
   ListAgentAgenciesQuery,
   type ListAgentAgenciesResult,
@@ -10,3 +21,10 @@ export {
   type ListAgentsInput,
   type ListAgentsResult,
 } from './list-agents'
+export {
+  ListTeamMemberBaseQuery,
+  type ListTeamMemberBaseInput,
+  type ListTeamMemberBaseResult,
+  type TeamMemberBaseItem,
+  type TeamScope,
+} from './list-team-member-base'

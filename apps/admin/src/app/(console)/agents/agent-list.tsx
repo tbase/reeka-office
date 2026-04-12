@@ -1,4 +1,4 @@
-import { ListAgentsQuery } from "@reeka-office/domain-agent";
+import { ListAgentsQuery, getDesignationName } from "@reeka-office/domain-agent";
 import { InfoIcon, UsersIcon } from "lucide-react";
 
 import { Empty } from "@/components/ui/empty";
@@ -31,7 +31,7 @@ export async function AgentList({ agency, sort }: AgentListProps) {
   const designationStats = Array.from(
     agents
       .reduce((stats, agent) => {
-        const label = agent.designationName ?? "未设置职级";
+        const label = getDesignationName(agent.designation) ?? "未设置职级";
         const order = agent.designation ?? Number.MAX_SAFE_INTEGER;
         const current = stats.get(label);
 
@@ -104,7 +104,7 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                     </td>
                     <td className="px-4 py-3">{agent.name}</td>
                     <td className="px-4 py-3">{formatMonth(agent.joinDate)}</td>
-                    <td className="px-4 py-3">{agent.designationName ?? "-"}</td>
+                    <td className="px-4 py-3">{getDesignationName(agent.designation) ?? "-"}</td>
                     <td className="px-4 py-3 font-mono">
                       {agent.leaderCode ?? "-"}
                     </td>

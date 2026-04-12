@@ -26,7 +26,7 @@
     "@icebreakers/eslint-config": "^4.0.3",
     "@icebreakers/stylelint-config": "^3.0.3",
     "@iconify-json/mdi": "^1.2.3",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "autoprefixer": "^10.4.27",
     "eslint": "^10.2.0",
     "miniprogram-api-typings": "^5.1.2",
@@ -37,7 +37,7 @@
     "typescript": "^6.0.2",
     "vue-tsc": "^3.2.6",
     "weapp-tailwindcss": "^4.11.2",
-    "weapp-vite": "^6.15.0",
-    "wevu": "^6.15.0"
+    "weapp-vite": "^6.15.1",
+    "wevu": "^6.15.1"
   }
 }

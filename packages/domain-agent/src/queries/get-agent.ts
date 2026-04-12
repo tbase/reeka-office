@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
-import { getDesignationName } from '../designation'
 import type { Agent } from '../types'
 
 export interface GetAgentInput {
@@ -47,7 +46,6 @@ export class GetAgentQuery {
 
     return {
       ...row,
-      designationName: getDesignationName(row.designation),
     }
   }
 }

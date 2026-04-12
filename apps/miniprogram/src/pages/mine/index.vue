@@ -3,6 +3,7 @@ import { computed, onShow, ref } from 'wevu'
 
 import AvatarPicker from '@/components/avatar-picker/index.vue'
 import { useMutation } from '@/hooks/useMutation'
+import { useToast } from '@/hooks/useToast'
 import { uploadFile } from '@/lib/upload-file'
 import { usePointSummaryStore } from '@/stores/points'
 import { useUserStore } from '@/stores/user'
@@ -15,13 +16,9 @@ definePageJson({
 const { user, refetch: refetchUser } = useUserStore()
 const { summary } = usePointSummaryStore()
 const requestingAvatar = ref(false)
+const { hideLoading, showLoading, showToast } = useToast()
 
-const { mutate: updateAvatar, loading: avatarUpdating } = useMutation(
-  'identity/updateAvatar',
-  {
-    showLoading: '更新头像中...',
-  },
-)
+const { mutate: updateAvatar, loading: avatarUpdating } = useMutation('identity/updateAvatar')
 
 const member = computed(() => {
   return {
@@ -36,10 +33,7 @@ async function syncAvatar(avatar: string) {
   const cloudPath = await uploadFile(avatar, `agent/${member.value.agentCode}`)
   const result = await updateAvatar({ avatar: cloudPath })
   if (!result) {
-    wx.showToast({
-      title: '头像更新失败',
-      icon: 'none',
-    })
+    showToast('头像更新失败', 'error')
     return
   }
 
@@ -53,25 +47,21 @@ async function onChooseAvatar(event: { avatarUrl?: string }) {
 
   const avatarUrl = event.avatarUrl
   if (!avatarUrl) {
-    wx.showToast({
-      title: '未获取到头像',
-      icon: 'none',
-    })
+    showToast('未获取到头像', 'warning')
     return
   }
 
   requestingAvatar.value = true
+  showLoading('更新头像中...')
   try {
     await syncAvatar(avatarUrl)
   }
   catch {
-    wx.showToast({
-      title: '头像更新失败',
-      icon: 'none',
-    })
+    showToast('头像更新失败', 'error')
   }
   finally {
     requestingAvatar.value = false
+    hideLoading()
   }
 }
 
@@ -99,7 +89,7 @@ function goGege() {
         <AvatarPicker
           class="shrink-0"
           :src="member.avatar"
-          :loading="requestingAvatar || avatarUpdating"
+          :disabled="requestingAvatar || avatarUpdating"
           @choose="onChooseAvatar"
         />
 
@@ -131,5 +121,7 @@ function goGege() {
         />
       </t-cell-group>
     </view>
+
+    <t-toast id="t-toast" />
   </view>
 </template>

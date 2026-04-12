@@ -1,5 +1,5 @@
 import type { ToastOptionsType } from 'tdesign-miniprogram/toast/index'
-import { showToast as _showToast } from 'tdesign-miniprogram/toast/index'
+import { hideToast as _hideToast, showToast as _showToast } from 'tdesign-miniprogram/toast/index'
 import { getCurrentInstance } from 'wevu'
 
 export interface ToastOptions {
@@ -27,7 +27,34 @@ export function useToast(options: ToastOptions = {}) {
     })
   }
 
+  function showLoading(message = '加载中...') {
+    if (!mpContext) {
+      return
+    }
+
+    _showToast({
+      selector,
+      context: mpContext as any,
+      message,
+      theme: 'loading',
+      duration: 0,
+    })
+  }
+
+  function hideLoading() {
+    if (!mpContext) {
+      return
+    }
+
+    _hideToast({
+      selector,
+      context: mpContext as any,
+    })
+  }
+
   return {
+    hideLoading,
+    showLoading,
     showToast,
   }
 }

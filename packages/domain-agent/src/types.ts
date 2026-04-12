@@ -4,7 +4,6 @@ export interface Agent {
   name: string
   joinDate: string | null
   designation: number | null
-  designationName: string | null
   finacingScheme: string[] | null
   leaderCode: string | null
   lastPromotionDate: string | null

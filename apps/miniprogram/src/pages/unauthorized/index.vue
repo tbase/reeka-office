@@ -17,7 +17,7 @@ definePageJson({
   navigationBarTextStyle: 'white',
 })
 
-const { showToast } = useToast()
+const { hideLoading, showLoading, showToast } = useToast()
 const token = ref('')
 const binding = ref(false)
 const switchingTenantCode = ref('')
@@ -27,6 +27,7 @@ const activeTenantCode = ref('')
 
 async function reloadTenants(showError = false) {
   loadingTenants.value = true
+  showLoading('加载身份信息中...')
 
   try {
     const result = await refreshTenantCatalog()
@@ -47,6 +48,7 @@ async function reloadTenants(showError = false) {
   }
   finally {
     loadingTenants.value = false
+    hideLoading()
   }
 }
 
@@ -58,6 +60,7 @@ async function handleBind() {
   }
 
   binding.value = true
+  showLoading('绑定中...')
 
   try {
     const result = await bindByToken(nextToken)
@@ -65,16 +68,21 @@ async function handleBind() {
     activeTenantCode.value = result.tenantCode
     token.value = ''
     invalidateQueries()
+    binding.value = false
+    hideLoading()
     showToast('绑定成功')
     setTimeout(() => {
       wx.reLaunch({ url: '/pages/index/index' })
     }, 400)
   }
   catch (error) {
+    binding.value = false
+    hideLoading()
     showToast(error instanceof Error ? error.message : '绑定失败', 'error')
   }
   finally {
     binding.value = false
+    hideLoading()
   }
 }
 
@@ -93,16 +101,20 @@ function handleUseTenant(tenantCode: string) {
   }
 
   switchingTenantCode.value = tenantCode
+  showLoading('切换身份中...')
 
   const tenant = switchTenant(tenantCode)
   if (!tenant) {
     switchingTenantCode.value = ''
+    hideLoading()
     showToast('身份已失效，请刷新后重试', 'error')
     return
   }
 
   activeTenantCode.value = tenant.tenantCode
   invalidateQueries()
+  switchingTenantCode.value = ''
+  hideLoading()
   showToast(`已切换到${tenant.tenantName}`)
   setTimeout(() => {
     wx.reLaunch({ url: '/pages/index/index' })
@@ -135,14 +147,7 @@ onShow(() => {
         </view>
       </view>
 
-      <view
-        v-if="loadingTenants"
-        class="rounded-xl bg-card px-4 py-8 text-center text-sm text-muted-foreground shadow-md"
-      >
-        正在加载身份信息...
-      </view>
-
-      <view v-else-if="tenants.length" class="w-full">
+      <view v-if="!loadingTenants && tenants.length" class="w-full">
         <t-cell-group bordered>
           <t-cell
             v-for="tenant in tenants"
@@ -154,7 +159,7 @@ onShow(() => {
         </t-cell-group>
       </view>
 
-      <view v-else>
+      <view v-else-if="!loadingTenants">
         <t-cell-group theme="card" bordered>
           <t-input
             :value="token"
@@ -170,7 +175,6 @@ onShow(() => {
           theme="primary"
           size="large"
           block
-          :loading="binding"
           :disabled="binding"
           @click="handleBind"
         >
