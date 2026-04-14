@@ -1,3 +1,4 @@
+import type { RpcErrorData } from '@reeka-office/jsonrpc'
 import type { RpcInput, RpcMethodName, RpcOutput } from '@rpc-types'
 import { getTenantServiceName } from './center-api'
 import { getCloudInstance } from './cloud'
@@ -6,13 +7,13 @@ import { config } from './config'
 interface JsonRpcResponse<T> {
   jsonrpc: '2.0'
   result?: T
-  error?: { code: number, message: string, data?: unknown }
+  error?: { code: number, message: string, data?: RpcErrorData }
   id: string | number | null
 }
 
 export interface RpcError extends Error {
   code?: number
-  data?: unknown
+  data?: RpcErrorData
 }
 
 // RPC 调用结果类型（discriminated union）
@@ -42,6 +43,28 @@ interface RpcTransportResponse {
   data: unknown
 }
 
+function parseRpcErrorData(data: unknown): RpcErrorData | undefined {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return undefined
+  }
+
+  const candidate = data as Partial<RpcErrorData>
+
+  if (candidate.kind === 'business' && typeof candidate.reason === 'string') {
+    return candidate as RpcErrorData
+  }
+
+  if (candidate.kind === 'internal' && typeof candidate.requestId === 'string') {
+    return candidate as RpcErrorData
+  }
+
+  if (candidate.kind === 'validation' && Array.isArray(candidate.issues)) {
+    return candidate as RpcErrorData
+  }
+
+  return undefined
+}
+
 export function setRpcErrorHandler(handler: RpcGlobalErrorHandler): void {
   globalRpcErrorHandler = handler
 }
@@ -49,7 +72,7 @@ export function setRpcErrorHandler(handler: RpcGlobalErrorHandler): void {
 function createRpcError(
   message: string,
   code?: number,
-  data?: unknown,
+  data?: RpcErrorData,
 ): RpcError {
   const error: RpcError = new Error(message)
   error.code = code
@@ -114,7 +137,7 @@ export async function rpc<M extends RpcMethodName>(
       error instanceof Error && 'code' in error && typeof error.code === 'number'
         ? error.code
         : RpcErrorCode.NETWORK_ERROR,
-      error instanceof Error && 'data' in error ? error.data : undefined,
+      error instanceof Error && 'data' in error ? parseRpcErrorData(error.data) : undefined,
     )
     globalRpcErrorHandler?.(rpcError, method)
     return { success: false, error: rpcError }

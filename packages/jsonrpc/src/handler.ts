@@ -34,7 +34,7 @@ function createInternalErrorResponse(
     RpcErrorCode.INTERNAL_ERROR,
     "服务器内部错误",
     id,
-    { requestId }
+    { kind: "internal", requestId }
   );
 }
 
@@ -103,7 +103,7 @@ async function handleRequest<TContext>(
         RpcErrorCode.INVALID_PARAMS,
         "参数验证失败",
         id,
-        { issues }
+        { kind: "validation", issues }
       );
     }
     validatedInput = parseResult.data;

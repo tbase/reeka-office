@@ -1,3 +1,4 @@
+import type { RpcErrorData } from '@reeka-office/jsonrpc'
 import { getCloudInstance } from './cloud'
 import { config } from './config'
 import {
@@ -12,14 +13,14 @@ import {
 
 interface CenterApiError extends Error {
   code?: number
-  data?: unknown
+  data?: RpcErrorData
   statusCode?: number
 }
 
 interface JsonRpcResponse<T> {
   jsonrpc: '2.0'
   result?: T
-  error?: { code: number; message: string; data?: unknown }
+  error?: { code: number; message: string; data?: RpcErrorData }
   id: string | number | null
 }
 
@@ -34,7 +35,7 @@ function createCenterApiError(
   message: string,
   statusCode?: number,
   code?: number,
-  data?: unknown,
+  data?: RpcErrorData,
 ): CenterApiError {
   const error = new Error(message) as CenterApiError
   error.code = code

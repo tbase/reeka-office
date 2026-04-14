@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { RpcOutput } from '@/lib/rpc'
 
-import { computed, ref } from 'wevu'
+import { computed, onLoad, ref } from 'wevu'
 
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import { parseRouteAgentCode } from '../../lib/agent-code'
 import {
   formatGap,
   formatMetricValue,
@@ -47,6 +48,10 @@ interface YearOption {
 }
 
 const LARGE_METRIC_THRESHOLD = 100_000_000
+const routeReady = ref(false)
+const routeAgentCode = ref<string | null>(null)
+const routeError = ref<string | null>(null)
+const canQueryPerformance = computed(() => routeReady.value && !routeError.value)
 const selectedYear = ref<number | null>(null)
 const selectedMonth = ref<PersonalHistoryItem | null>(null)
 const {
@@ -54,7 +59,20 @@ const {
   isLoading: isMetaLoading,
   error: metaError,
   refetch: refetchMeta,
-} = useMyPerformanceMetaStore()
+} = useMyPerformanceMetaStore(routeAgentCode, canQueryPerformance)
+
+onLoad((options) => {
+  const parsedAgentCode = parseRouteAgentCode(options?.agentCode)
+
+  routeAgentCode.value = parsedAgentCode.agentCode
+  routeError.value = parsedAgentCode.error
+
+  wx.setNavigationBarTitle({
+    title: parsedAgentCode.agentCode ? '代理人业绩' : '我的业绩',
+  })
+
+  routeReady.value = true
+})
 
 const availableYears = computed(() => meta.value?.availableYears ?? [])
 const activeYear = computed(() => {
@@ -68,15 +86,26 @@ const {
   isLoading: isHistoryLoading,
   error: historyError,
   refetch: refetchHistory,
-} = useMyPerformanceHistoryStore(activeYear)
+} = useMyPerformanceHistoryStore(routeAgentCode, activeYear, canQueryPerformance)
 
 usePullDownRefresh(async () => {
+  if (!canQueryPerformance.value) {
+    return
+  }
+
   await Promise.all([
     refetchMeta(),
     refetchHistory(),
   ])
 })
 
+const pageError = computed(() => routeError.value ?? metaError.value?.message ?? null)
+const pageTitle = computed(() => routeAgentCode.value ? '代理人业绩' : '我的业绩')
+const viewContextLabel = computed(() => {
+  return routeAgentCode.value
+    ? `当前查看 ${routeAgentCode.value}`
+    : null
+})
 const quickYears = computed(() => availableYears.value.slice(0, 2))
 const overflowYears = computed<YearOption[]>(() => {
   return availableYears.value.slice(2).map(year => ({
@@ -261,11 +290,20 @@ function handleRetryHistory() {
 
 <template>
   <view class="min-h-screen bg-background px-4 pb-16 pt-4">
-    <view v-if="metaError && !meta" class="card p-4">
-      <t-empty icon="error-circle" :description="metaError.message || '数据加载失败'" />
+    <view v-if="pageError && !meta" class="card p-4">
+      <t-empty icon="error-circle" :description="pageError || '数据加载失败'" />
     </view>
 
     <view v-else-if="meta" class="space-y-3">
+      <view v-if="viewContextLabel" class="card bg-hero p-4">
+        <view class="text-lg font-semibold text-foreground">
+          {{ pageTitle }}
+        </view>
+        <view class="mt-1 text-sm text-muted-foreground">
+          {{ viewContextLabel }}
+        </view>
+      </view>
+
       <view v-if="availableYears.length > 0">
         <view class="flex flex-wrap items-center gap-2">
           <view
@@ -348,7 +386,7 @@ function handleRetryHistory() {
               <view class="text-xs text-muted-foreground">
                 {{ metric.label }}
               </view>
-              <view class="mt-1.5">
+              <view class="mt-0.5">
                 <view
                   class="font-semibold"
                   :class="[metric.tone, metric.isCompactValue ? 'text-base' : 'text-lg']"

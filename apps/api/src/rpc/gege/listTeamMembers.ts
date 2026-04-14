@@ -2,32 +2,36 @@ import { ListTeamMemberBaseQuery } from "@reeka-office/domain-agent";
 import type { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
-import { getCurrentPerformanceMetrics, type CurrentPerformanceResult } from "./current-performance";
+import { getCurrentPerformanceMetrics } from "./current-performance";
 import {
   createMetricsMap,
   normalizeScope,
   presentTeamMembers,
-  summarizeTeamMembers,
   type PresentedTeamMember,
-  type TeamSummary,
 } from "./presentation";
-import { gegeTeamMembersInputSchema, requireAgentCode } from "./shared";
+import { gegeListTeamMembersInputSchema, resolveAccessibleAgentCode } from "./shared";
 
-export type ListTeamMembersInput = z.infer<typeof gegeTeamMembersInputSchema>;
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 20;
+
+export type ListTeamMembersInput = z.infer<typeof gegeListTeamMembersInputSchema>;
 export interface ListTeamMembersOutput {
-  latestPeriod: CurrentPerformanceResult["latestPeriod"];
-  period: CurrentPerformanceResult["period"];
-  scope: "direct" | "all";
-  summary: TeamSummary;
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
   members: PresentedTeamMember[];
 }
 
 export const listTeamMembers = rpc.define({
-  inputSchema: gegeTeamMembersInputSchema,
+  inputSchema: gegeListTeamMembersInputSchema,
   execute: mustAgent(async ({ context, input }): Promise<ListTeamMembersOutput> => {
     const scope = normalizeScope(input.scope);
+    const page = input.page ?? DEFAULT_PAGE;
+    const pageSize = input.pageSize ?? DEFAULT_PAGE_SIZE;
+    const agentCode = await resolveAccessibleAgentCode(context, input.agentCode);
     const members = await new ListTeamMemberBaseQuery({
-      leaderCode: requireAgentCode(context),
+      leaderCode: agentCode,
       scope,
     }).query();
     const requestedPeriod = input.year != null && input.month != null
@@ -42,13 +46,15 @@ export const listTeamMembers = rpc.define({
     });
     const metricsMap = createMetricsMap(metricResult.items);
     const presentedMembers = presentTeamMembers(members, metricsMap);
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
 
     return {
-      latestPeriod: metricResult.latestPeriod,
-      period: metricResult.period,
-      scope,
-      summary: summarizeTeamMembers(presentedMembers),
-      members: presentedMembers,
+      page,
+      pageSize,
+      total: presentedMembers.length,
+      hasMore: end < presentedMembers.length,
+      members: presentedMembers.slice(start, end),
     };
   }),
 });

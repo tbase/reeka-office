@@ -2,13 +2,27 @@ import type { Ref } from 'wevu'
 
 import type { RpcError, RpcOutput } from '@/lib/rpc'
 import { useQuery } from '@/hooks/useQuery'
+import { useToast } from '@/hooks/useToast'
+import { rpc } from '@/lib/rpc'
+import { computed, onShow, ref, shallowRef, watch } from 'wevu'
 
 type Dashboard = RpcOutput<'gege/getDashboard'>
 type MetricChart = RpcOutput<'gege/getMetricChart'>
 type MyPerformanceHistory = RpcOutput<'gege/getMyPerformanceHistory'>
 type MyPerformanceMeta = RpcOutput<'gege/getMyPerformanceMeta'>
-type TeamMembers = RpcOutput<'gege/listTeamMembers'>
-type MemberDetail = RpcOutput<'gege/getTeamMemberDetail'>
+type TeamStats = RpcOutput<'gege/getTeamStats'>
+type TeamMembersPage = RpcOutput<'gege/listTeamMembers'>
+type TeamMember = TeamMembersPage['members'][number]
+
+const DEFAULT_TEAM_PAGE_SIZE = 20
+
+function buildAgentCodeInput(agentCode: string | null): { agentCode: string } | undefined {
+  const code = agentCode?.trim()
+
+  return code
+    ? { agentCode: code }
+    : undefined
+}
 
 export interface DashboardStore {
   dashboard: Ref<Dashboard | null>
@@ -38,23 +52,36 @@ export interface MetricChartStore {
   refetch: () => Promise<MetricChart | null>
 }
 
-export interface TeamMembersStore {
-  team: Ref<TeamMembers | null>
+export interface TeamStore {
+  stats: Ref<TeamStats | null>
+  members: Ref<TeamMember[]>
+  hasMore: Ref<boolean>
   isLoading: Ref<boolean>
+  isLoadingMore: Ref<boolean>
+  statsError: Ref<RpcError | null>
+  membersError: Ref<RpcError | null>
+  loadMoreError: Ref<RpcError | null>
   error: Ref<RpcError | null>
-  refetch: () => Promise<TeamMembers | null>
+  refetch: () => Promise<void>
+  loadMore: () => Promise<void>
 }
 
-export interface MemberDetailStore {
-  detail: Ref<MemberDetail | null>
-  isLoading: Ref<boolean>
-  error: Ref<RpcError | null>
-  refetch: () => Promise<MemberDetail | null>
-}
-
-export function useDashboardStore(): DashboardStore {
+export function useDashboardStore(
+  agentCode: Ref<string | null>,
+  enabled: Ref<boolean>,
+): DashboardStore {
   const { data, loading, error, refetch } = useQuery({
-    queryKey: ['gege/getDashboard', undefined],
+    queryKey: () => {
+      if (!enabled.value) {
+        return undefined
+      }
+
+      const code = agentCode.value?.trim()
+
+      return ['gege/getDashboard', code
+        ? { agentCode: code }
+        : undefined]
+    },
     refetchOnShow: true,
     showLoading: '加载业绩中...',
   })
@@ -67,9 +94,18 @@ export function useDashboardStore(): DashboardStore {
   }
 }
 
-export function useMyPerformanceMetaStore(): MyPerformanceMetaStore {
+export function useMyPerformanceMetaStore(
+  agentCode: Ref<string | null>,
+  enabled: Ref<boolean>,
+): MyPerformanceMetaStore {
   const { data, loading, error, refetch } = useQuery({
-    queryKey: ['gege/getMyPerformanceMeta', undefined],
+    queryKey: () => {
+      if (!enabled.value) {
+        return undefined
+      }
+
+      return ['gege/getMyPerformanceMeta', buildAgentCodeInput(agentCode.value)]
+    },
     refetchOnShow: true,
     showLoading: '加载业绩中...',
   })
@@ -83,15 +119,20 @@ export function useMyPerformanceMetaStore(): MyPerformanceMetaStore {
 }
 
 export function useMyPerformanceHistoryStore(
+  agentCode: Ref<string | null>,
   year: Ref<number | null>,
+  enabled: Ref<boolean>,
 ): MyPerformanceHistoryStore {
   const { data, loading, error, refetch } = useQuery({
     queryKey: () => {
-      if (year.value == null) {
+      if (!enabled.value || year.value == null) {
         return undefined
       }
 
-      return ['gege/getMyPerformanceHistory', { year: year.value }]
+      return ['gege/getMyPerformanceHistory', {
+        ...buildAgentCodeInput(agentCode.value),
+        year: year.value,
+      }]
     },
     refetchOnShow: true,
     showLoading: '加载业绩中...',
@@ -106,6 +147,7 @@ export function useMyPerformanceHistoryStore(
 }
 
 export function useMetricChartStore(
+  agentCode: Ref<string | null>,
   year: Ref<number | null>,
   metricName: Ref<'nsc' | 'netCase' | null>,
   scope: Ref<'self' | 'direct' | 'all' | null>,
@@ -123,6 +165,7 @@ export function useMetricChartStore(
       }
 
       return ['gege/getMetricChart', {
+        ...buildAgentCodeInput(agentCode.value),
         year: year.value,
         metricName: metricName.value,
         scope: scope.value,
@@ -139,13 +182,48 @@ export function useMetricChartStore(
   }
 }
 
-export function useTeamMembersStore(
+export function useTeamStore(
+  agentCode: Ref<string | null>,
+  enabled: Ref<boolean>,
   scope: Ref<'direct' | 'all'>,
   year: Ref<number | null>,
   month: Ref<number | null>,
-): TeamMembersStore {
-  const { data, loading, error, refetch } = useQuery({
-    queryKey: () => ['gege/listTeamMembers', {
+): TeamStore {
+  const statsQuery = useQuery({
+    queryKey: () => {
+      if (!enabled.value) {
+        return undefined
+      }
+
+      return ['gege/getTeamStats', {
+        ...buildAgentCodeInput(agentCode.value),
+        scope: scope.value,
+        ...(year.value != null && month.value != null
+          ? {
+              year: year.value,
+              month: month.value,
+            }
+          : {}),
+      }]
+    },
+    refetchOnShow: true,
+    showLoading: '加载团队数据中...',
+  })
+  const members = ref<TeamMember[]>([])
+  const hasMore = ref(false)
+  const currentPage = ref(1)
+  const isLoadingMore = ref(false)
+  const isMembersLoading = ref(false)
+  const membersError = shallowRef<RpcError | null>(null) as Ref<RpcError | null>
+  const loadMoreError = shallowRef<RpcError | null>(null) as Ref<RpcError | null>
+  const { hideLoading: hideMembersLoading, showLoading: showMembersLoading } = useToast()
+
+  let hasMembersShownOnce = false
+  let latestMembersRequestId = 0
+
+  function buildMembersInput(page: number) {
+    return {
+      ...buildAgentCodeInput(agentCode.value),
       scope: scope.value,
       ...(year.value != null && month.value != null
         ? {
@@ -153,39 +231,149 @@ export function useTeamMembersStore(
             month: month.value,
           }
         : {}),
-    }],
-    refetchOnShow: true,
-    showLoading: '加载团队数据中...',
-  })
-
-  return {
-    team: data as Ref<TeamMembers | null>,
-    isLoading: loading,
-    error: error as Ref<RpcError | null>,
-    refetch,
+      page,
+      pageSize: DEFAULT_TEAM_PAGE_SIZE,
+    }
   }
-}
 
-export function useMemberDetailStore(
-  agentCode: Ref<string>,
-  year: Ref<number | null>,
-): MemberDetailStore {
-  const { data, loading, error, refetch } = useQuery({
-    queryKey: () => {
-      const code = agentCode.value.trim()
+  async function fetchMembersPage(
+    page: number,
+    options: {
+      append?: boolean
+      showLoadingToast?: boolean
+    } = {},
+  ): Promise<void> {
+    if (!enabled.value) {
+      return
+    }
 
-      return ['gege/getTeamMemberDetail', year.value
-        ? { agentCode: code, year: year.value }
-        : { agentCode: code }]
+    const { append = false, showLoadingToast = false } = options
+    const requestId = ++latestMembersRequestId
+
+    if (append) {
+      isLoadingMore.value = true
+      loadMoreError.value = null
+    }
+    else {
+      isMembersLoading.value = true
+      membersError.value = null
+      loadMoreError.value = null
+
+      if (showLoadingToast) {
+        showMembersLoading('加载团队成员中...')
+      }
+    }
+
+    const result = await rpc('gege/listTeamMembers', buildMembersInput(page))
+
+    if (requestId !== latestMembersRequestId) {
+      return
+    }
+
+    if (append) {
+      isLoadingMore.value = false
+    }
+    else {
+      isMembersLoading.value = false
+      hideMembersLoading()
+    }
+
+    if (!result.success) {
+      if (append) {
+        loadMoreError.value = result.error
+      }
+      else {
+        membersError.value = result.error
+      }
+      return
+    }
+
+    currentPage.value = result.data.page
+    hasMore.value = result.data.hasMore
+    members.value = append
+      ? [...members.value, ...result.data.members]
+      : [...result.data.members]
+  }
+
+  watch(
+    () => [agentCode.value, enabled.value, scope.value, year.value, month.value],
+    () => {
+      latestMembersRequestId += 1
+      hideMembersLoading()
+      members.value = []
+      hasMore.value = false
+      currentPage.value = 1
+      isLoadingMore.value = false
+      isMembersLoading.value = false
+      membersError.value = null
+      loadMoreError.value = null
+
+      if (!enabled.value) {
+        return
+      }
+
+      void fetchMembersPage(1, { showLoadingToast: true })
     },
-    refetchOnShow: true,
-    showLoading: '加载成员详情中...',
+    { immediate: true },
+  )
+
+  onShow(() => {
+    if (!hasMembersShownOnce) {
+      hasMembersShownOnce = true
+      return
+    }
+
+    if (!enabled.value) {
+      return
+    }
+
+    void fetchMembersPage(1)
   })
 
+  async function refetch(): Promise<void> {
+    if (!enabled.value) {
+      return
+    }
+
+    membersError.value = null
+    loadMoreError.value = null
+    await Promise.all([
+      statsQuery.refetch(),
+      fetchMembersPage(1),
+    ])
+  }
+
+  async function loadMore(): Promise<void> {
+    if (
+      !enabled.value
+      || isMembersLoading.value
+      || isLoadingMore.value
+      || !hasMore.value
+    ) {
+      return
+    }
+
+    await fetchMembersPage(currentPage.value + 1, { append: true })
+  }
+
+  const isLoading = computed(() => {
+    return statsQuery.loading.value || isMembersLoading.value
+  }) as Ref<boolean>
+  const error = computed(() => {
+    return statsQuery.error.value ?? membersError.value ?? loadMoreError.value
+  }) as Ref<RpcError | null>
+
   return {
-    detail: data as Ref<MemberDetail | null>,
-    isLoading: loading,
-    error: error as Ref<RpcError | null>,
+    stats: statsQuery.data as Ref<TeamStats | null>,
+    members,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    statsError: statsQuery.error as Ref<RpcError | null>,
+    membersError,
+    loadMoreError,
+    error,
     refetch,
+    loadMore,
   }
 }

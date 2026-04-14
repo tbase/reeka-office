@@ -37,15 +37,22 @@ export type RpcValidationIssue = Readonly<{
 }>;
 
 export type RpcValidationErrorData = Readonly<{
+  kind: "validation";
   issues: ReadonlyArray<RpcValidationIssue>;
 }>;
 
 export type RpcInternalErrorData = Readonly<{
+  kind: "internal";
   requestId: string;
   retryable?: boolean;
 }>;
 
-export type RpcErrorData = RpcValidationErrorData | RpcInternalErrorData;
+export type RpcBusinessErrorData = Readonly<{
+  kind: "business";
+  reason: string;
+} & Record<string, unknown>>;
+
+export type RpcErrorData = RpcValidationErrorData | RpcInternalErrorData | RpcBusinessErrorData;
 
 export interface JsonRpcErrorResponse {
   jsonrpc: "2.0";

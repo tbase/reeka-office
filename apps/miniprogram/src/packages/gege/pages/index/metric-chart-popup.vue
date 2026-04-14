@@ -6,6 +6,7 @@ import { formatCompactMetricValue } from '../../lib/format'
 import { useMetricChartStore } from '../../store'
 
 const props = defineProps<{
+  agentCode: string | null
   visible: boolean
   title: string
   year: number | null
@@ -24,8 +25,10 @@ const enabled = computed(() => props.visible)
 const chartYear = computed(() => props.year)
 const chartMetricName = computed(() => props.metric?.metricName ?? null)
 const chartScope = computed(() => props.metric?.scope ?? null)
+const chartAgentCode = computed(() => props.agentCode)
 
 const { chart, isLoading, error, refetch } = useMetricChartStore(
+  chartAgentCode,
   chartYear,
   chartMetricName,
   chartScope,

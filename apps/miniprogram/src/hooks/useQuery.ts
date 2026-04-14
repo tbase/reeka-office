@@ -60,6 +60,7 @@ export function useQuery<M extends RpcMethodName>(
 
   let lastKey: [M, RpcInput<M>] | undefined
   let lastCacheKey: string | undefined
+  let hasShownOnce = false
 
   onHide(hideLoading)
   onUnload(hideLoading)
@@ -151,6 +152,11 @@ export function useQuery<M extends RpcMethodName>(
 
   if (refetchOnShow) {
     onShow(() => {
+      if (!hasShownOnce) {
+        hasShownOnce = true
+        return
+      }
+
       if (lastKey) {
         refetch()
       }

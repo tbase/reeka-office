@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'wevu'
+import { computed, onLoad, ref } from 'wevu'
 
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import {
+  buildPageUrl,
+  parseRouteAgentCode,
+} from '../../lib/agent-code'
 import {
   formatDesignation,
   formatMetricValue,
@@ -16,11 +20,33 @@ definePageJson({
   navigationBarTitleText: '咯咯咯',
 })
 
-const { dashboard, isLoading, error, refetch } = useDashboardStore()
+const routeReady = ref(false)
+const routeAgentCode = ref<string | null>(null)
+const routeError = ref<string | null>(null)
+const canQueryDashboard = computed(() => routeReady.value && !routeError.value)
+
+onLoad((options) => {
+  const parsedAgentCode = parseRouteAgentCode(options?.agentCode)
+
+  routeAgentCode.value = parsedAgentCode.agentCode
+  routeError.value = parsedAgentCode.error
+  routeReady.value = true
+})
+
+const { dashboard, isLoading, error, refetch } = useDashboardStore(
+  routeAgentCode,
+  canQueryDashboard,
+)
 
 usePullDownRefresh(async () => {
+  if (!canQueryDashboard.value) {
+    return
+  }
+
   await refetch()
 })
+
+const pageError = computed(() => routeError.value ?? error.value?.message ?? null)
 
 const profile = computed(() => ({
   name: dashboard.value?.agent.name ?? '咯咯咯',
@@ -92,13 +118,18 @@ function createAmountMetric(
 
 function goPersonal() {
   wx.navigateTo({
-    url: '/packages/gege/pages/personal/index',
+    url: buildPageUrl('/packages/gege/pages/personal/index', {
+      agentCode: routeAgentCode.value,
+    }),
   })
 }
 
 function goTeam(scope: 'direct' | 'all') {
   wx.navigateTo({
-    url: `/packages/gege/pages/team/index?scope=${scope}`,
+    url: buildPageUrl('/packages/gege/pages/team/index', {
+      scope,
+      agentCode: routeAgentCode.value,
+    }),
   })
 }
 
@@ -198,11 +229,11 @@ const performanceCards = computed<PerformanceCard[]>(() => {
 
 <template>
   <view class="min-h-screen bg-background px-4 pb-16 pt-4">
-    <view v-if="error && !dashboard" class="card mt-4 p-4">
-      <t-empty icon="error-circle" :description="error.message || '数据加载失败'" />
+    <view v-if="pageError && !dashboard" class="card mt-4 p-4">
+      <t-empty icon="error-circle" :description="pageError || '数据加载失败'" />
     </view>
 
-    <template v-else-if="dashboard">
+    <template v-else-if="dashboard && !routeError">
       <view class="card bg-hero p-5">
         <view class="flex items-start justify-between gap-3">
           <view class="min-w-0">
@@ -290,12 +321,13 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       </view>
     </template>
 
-    <MetricChartPopup
-      :visible="Boolean(selectedMetric)"
-      :title="chartPopupTitle"
-      :year="chartYear"
-      :metric="selectedMetric"
-      @visible-change="handleMetricPopupVisibleChange"
+      <MetricChartPopup
+        :agent-code="routeAgentCode"
+        :visible="Boolean(selectedMetric)"
+        :title="chartPopupTitle"
+        :year="chartYear"
+        :metric="selectedMetric"
+        @visible-change="handleMetricPopupVisibleChange"
     />
 
     <t-toast id="t-toast" />

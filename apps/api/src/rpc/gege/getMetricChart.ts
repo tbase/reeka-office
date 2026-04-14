@@ -7,7 +7,7 @@ import type { z } from "zod";
 import { mustAgent, rpc } from "../../context";
 import { getMonthlyMetricValues } from "./monthly-metric-values";
 import { normalizeScope } from "./presentation";
-import { gegeMetricChartInputSchema, requireAgentCode } from "./shared";
+import { gegeMetricChartInputSchema, resolveAccessibleAgentCode } from "./shared";
 
 export type GetMetricChartInput = z.infer<typeof gegeMetricChartInputSchema>;
 export interface GetMetricChartOutput {
@@ -24,11 +24,11 @@ export interface GetMetricChartOutput {
 export const getMetricChart = rpc.define({
   inputSchema: gegeMetricChartInputSchema,
   execute: mustAgent(async ({ context, input }): Promise<GetMetricChartOutput> => {
-    const agentCode = requireAgentCode(context);
+    const targetAgentCode = await resolveAccessibleAgentCode(context, input.agentCode);
     const agentCodes = input.scope === "self"
-      ? [agentCode]
+      ? [targetAgentCode]
       : (await new ListTeamMemberBaseQuery({
-          leaderCode: agentCode,
+          leaderCode: targetAgentCode,
           scope: normalizeScope(input.scope),
         }).query()).map((member) => member.agentCode);
 

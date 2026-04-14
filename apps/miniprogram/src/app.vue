@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { onLaunch, onShow } from 'wevu'
 import { hydrateTenantCatalog } from '@/lib/center-api'
-import { RpcErrorCode, setRpcErrorHandler } from '@/lib/rpc'
+import { RpcErrorCode, setRpcErrorHandler, type RpcError } from '@/lib/rpc'
 
 import '@/styles/theme-light.less'
 
+function shouldIgnoreForbiddenRedirect(error: RpcError) {
+  return error.data?.kind === 'business'
+    && error.data.reason === 'INVALID_AGENT_TARGET'
+}
+
 setRpcErrorHandler((error) => {
   if (error.code === RpcErrorCode.FORBIDDEN) {
+    if (shouldIgnoreForbiddenRedirect(error)) {
+      return
+    }
+
     const currentPages = getCurrentPages()
     const currentPage = currentPages[currentPages.length - 1]
     const currentRoute = `/${currentPage?.route ?? ''}`
@@ -36,7 +45,6 @@ defineAppJson({
         'pages/index/index',
         'pages/personal/index',
         'pages/team/index',
-        'pages/member/index',
       ],
     },
     {

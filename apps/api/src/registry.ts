@@ -8,7 +8,7 @@ import {
   getMetricChart,
   getMyPerformanceHistory,
   getMyPerformanceMeta,
-  getTeamMemberDetail,
+  getTeamStats,
   listTeamMembers,
 } from "./rpc/gege";
 import { getCurrentUser, updateAvatar } from "./rpc/identity";
@@ -46,8 +46,8 @@ const gegeRegistry = rpc.registry({
   getMetricChart,
   getMyPerformanceHistory,
   getMyPerformanceMeta,
+  getTeamStats,
   listTeamMembers,
-  getTeamMemberDetail,
 });
 
 const pointsRegistry = rpc.registry({

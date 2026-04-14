@@ -17,7 +17,7 @@ import {
   summarizeTeamMembers,
   type TeamSummary,
 } from "./presentation";
-import { requireAgentCode } from "./shared";
+import { gegeDashboardInputSchema, resolveAccessibleAgentCode } from "./shared";
 
 export interface GetDashboardOutput {
   period: CurrentPerformanceResult["period"];
@@ -30,28 +30,30 @@ export interface GetDashboardOutput {
 }
 
 export const getDashboard = rpc.define({
-  execute: mustAgent(async ({ context }): Promise<GetDashboardOutput> => {
-    const agentCode = requireAgentCode(context);
-    const agent = await new GetAgentByCodeQuery({ agentCode }).query();
+  inputSchema: gegeDashboardInputSchema,
+  execute: mustAgent(async ({ context, input }): Promise<GetDashboardOutput> => {
+    const effectiveAgentCode = await resolveAccessibleAgentCode(context, input?.agentCode);
+
+    const agent = await new GetAgentByCodeQuery({ agentCode: effectiveAgentCode }).query();
 
     if (!agent) {
-      throw new Error(`代理人不存在: ${agentCode}`);
+      throw new Error(`代理人不存在: ${effectiveAgentCode}`);
     }
 
     const [directMembers, allMembers] = await Promise.all([
       new ListTeamMemberBaseQuery({
-        leaderCode: agentCode,
+        leaderCode: effectiveAgentCode,
         scope: "direct",
       }).query(),
       new ListTeamMemberBaseQuery({
-        leaderCode: agentCode,
+        leaderCode: effectiveAgentCode,
         scope: "all",
       }).query(),
     ]);
 
     const metricResult = await getCurrentPerformanceMetrics({
       agentCodes: [
-        agentCode,
+        effectiveAgentCode,
         ...new Set([
           ...directMembers.map((member) => member.agentCode),
           ...allMembers.map((member) => member.agentCode),
@@ -65,7 +67,7 @@ export const getDashboard = rpc.define({
     return {
       period: metricResult.period,
       agent: presentAgentProfile(agent),
-      self: getMetrics(metricsMap, agentCode),
+      self: getMetrics(metricsMap, effectiveAgentCode),
       team: {
         direct: summarizeTeamMembers(presentedDirectMembers),
         all: summarizeTeamMembers(presentedAllMembers),

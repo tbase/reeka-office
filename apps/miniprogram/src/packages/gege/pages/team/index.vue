@@ -2,6 +2,7 @@
 import { computed, onLoad, ref } from 'wevu'
 
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import { buildPageUrl, parseRouteAgentCode } from '../../lib/agent-code'
 import {
   formatDesignation,
   formatMetricValue,
@@ -9,7 +10,8 @@ import {
   formatPeriod,
   formatQualified,
 } from '../../lib/format'
-import { useTeamMembersStore } from '../../store'
+import { useTeamStore } from '../../store'
+import TeamStatsPopup from './team-stats-popup.vue'
 
 definePageJson({
   navigationBarTitleText: '我的团队',
@@ -37,42 +39,100 @@ interface AmountMetric {
   tone: string
 }
 
+interface TeamSummary {
+  memberCount: number
+  qualifiedCount: number
+  nsc: number
+  nscSum: number
+  netCase: number
+  netCaseSum: number
+}
+
 const MAX_BACKTRACK_MONTHS = 36
+const routeReady = ref(false)
+const routeAgentCode = ref<string | null>(null)
+const routeError = ref<string | null>(null)
+const canQueryTeam = computed(() => routeReady.value && !routeError.value)
 const activeScope = ref<'direct' | 'all'>('direct')
 const activeYear = ref<number | null>(null)
 const activeMonth = ref<number | null>(null)
-const { team, isLoading, error, refetch } = useTeamMembersStore(
+const isStatsPopupVisible = ref(false)
+const {
+  stats,
+  members,
+  hasMore,
+  isLoading,
+  isLoadingMore,
+  statsError,
+  membersError,
+  loadMoreError,
+  refetch,
+  loadMore,
+} = useTeamStore(
+  routeAgentCode,
+  canQueryTeam,
   activeScope,
   activeYear,
   activeMonth,
 )
+const emptySummary: TeamSummary = {
+  memberCount: 0,
+  qualifiedCount: 0,
+  nsc: 0,
+  nscSum: 0,
+  netCase: 0,
+  netCaseSum: 0,
+}
 
 onLoad((options) => {
+  const parsedAgentCode = parseRouteAgentCode(options?.agentCode)
+
+  routeAgentCode.value = parsedAgentCode.agentCode
+  routeError.value = parsedAgentCode.error
+
+  wx.setNavigationBarTitle({
+    title: parsedAgentCode.agentCode ? '代理人团队' : '我的团队',
+  })
+
   if (options?.scope === 'all') {
     activeScope.value = 'all'
   }
+
+  routeReady.value = true
 })
 
 usePullDownRefresh(async () => {
+  if (!canQueryTeam.value) {
+    return
+  }
+
   await refetch()
 })
+
+const pageError = computed(() => routeError.value ?? statsError.value?.message ?? null)
+const pageTitle = computed(() => routeAgentCode.value ? '代理人团队' : '我的团队')
+const viewContextLabel = computed(() => {
+  return routeAgentCode.value
+    ? `当前查看 ${routeAgentCode.value}`
+    : null
+})
+const teamSummary = computed<TeamSummary>(() => stats.value?.summary ?? emptySummary)
 
 const summaryItems = computed(() => [
   {
     label: '成员数',
-    value: formatNumber(team.value?.summary.memberCount),
+    value: formatNumber(teamSummary.value.memberCount),
     tone: 'text-foreground',
   },
   {
     label: '合资格人数',
-    value: formatNumber(team.value?.summary.qualifiedCount),
-    tone: 'text-[#0f9d58]',
+    value: formatNumber(teamSummary.value.qualifiedCount),
+    tone: 'text-success',
   },
 ])
 
-const members = computed(() => team.value?.members ?? [])
-const latestPeriod = computed<Period | null>(() => team.value?.latestPeriod ?? team.value?.period ?? null)
-const currentPeriod = computed<Period | null>(() => team.value?.period ?? latestPeriod.value)
+const latestPeriod = computed<Period | null>(() => stats.value?.latestPeriod ?? stats.value?.period ?? null)
+const currentPeriod = computed<Period | null>(() => stats.value?.period ?? latestPeriod.value)
 const periodLabel = computed(() => formatPeriod(currentPeriod.value))
 const hasPerformance = computed(() => Boolean(latestPeriod.value))
 const periodOptions = computed<PeriodOption[]>(() => {
@@ -109,9 +169,19 @@ const currentPeriodOptionIndex = computed(() => {
 })
 
 const summaryMetrics = computed(() => [
-  createAmountMetric('NSC', team.value?.summary.nsc, team.value?.summary.nscSum, 'text-primary'),
-  createAmountMetric('CASE', team.value?.summary.netCase, team.value?.summary.netCaseSum, 'text-primary-2'),
+  createAmountMetric('NSC', teamSummary.value.nsc, teamSummary.value.nscSum, 'text-primary'),
+  createAmountMetric('CASE', teamSummary.value.netCase, teamSummary.value.netCaseSum, 'text-primary-2'),
 ])
+const showMembersLoading = computed(() => isLoading.value && members.value.length === 0)
+const showMembersError = computed(() => {
+  return Boolean(membersError.value) && members.value.length === 0 && !isLoading.value
+})
+const showMembersEmpty = computed(() => {
+  return members.value.length === 0 && !isLoading.value
+})
+const membersErrorDescription = computed(() => {
+  return membersError.value?.message || '团队成员加载失败'
+})
 
 const memberCards = computed(() => {
   return members.value.map(member => ({
@@ -156,6 +226,22 @@ function changeScope(scope: TeamScope) {
   activeScope.value = scope
 }
 
+function openStatsPopup() {
+  isStatsPopupVisible.value = true
+}
+
+function handleStatsPopupVisibleChange(visible: boolean) {
+  isStatsPopupVisible.value = visible
+}
+
+function handleMembersScrollToLower() {
+  if (!hasMore.value || isLoadingMore.value) {
+    return
+  }
+
+  void loadMore()
+}
+
 function handlePeriodChange(
   event: WechatMiniprogram.CustomEvent<{ value?: number | string }>,
 ) {
@@ -176,162 +262,193 @@ function handlePeriodChange(
 
 function goMemberDetail(agentCode: string) {
   wx.navigateTo({
-    url: `/packages/gege/pages/member/index?agentCode=${agentCode}`,
+    url: buildPageUrl('/packages/gege/pages/index/index', {
+      agentCode,
+    }),
   })
 }
 </script>
 
 <template>
-  <view class="min-h-screen bg-background px-4 pb-16 pt-4">
-    <view v-if="error && !team" class="card mt-4 p-4">
-      <t-empty icon="error-circle" :description="error.message || '数据加载失败'" />
+  <view class="h-screen flex flex-col bg-background">
+    <view v-if="pageError && !stats" class="px-4 pt-4">
+      <view class="card p-4">
+        <t-empty icon="error-circle" :description="pageError || '团队统计加载失败'" />
+      </view>
     </view>
 
-    <template v-else-if="team">
-      <view class="card bg-card p-4">
-        <view class="flex items-start justify-between gap-3">
-          <view class="min-w-0">
-            <view class="text-xl font-semibold text-foreground">
-              我的团队
-            </view>
-          </view>
-
-          <view class="inline-flex rounded-full bg-muted p-1">
-            <view
-              class="pill"
-              :class="activeScope === 'direct'
-                ? 'pill-surface'
-                : 'text-muted-foreground'"
-              @tap="changeScope('direct')"
-            >
-              直属
-            </view>
-            <view
-              class="pill"
-              :class="activeScope === 'all'
-                ? 'pill-surface'
-                : 'text-muted-foreground'"
-              @tap="changeScope('all')"
-            >
-              全团队
-            </view>
-          </view>
-        </view>
-
-        <picker
-          v-if="periodOptions.length > 0"
-          class="mt-4 block"
-          mode="selector"
-          :range="periodOptions"
-          range-key="label"
-          :value="currentPeriodOptionIndex"
-          @change="handlePeriodChange"
-        >
-          <view class="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
-            <view class="text-sm font-medium text-foreground">
-              {{ periodLabel }}
-            </view>
-            <view class="pill pill-card">
-              切换月份
-            </view>
-          </view>
-        </picker>
-
-        <view class="mt-2.5 grid grid-cols-2 gap-2.5">
-          <view
-            v-for="item in summaryItems"
-            :key="item.label"
-            class="card bg-muted p-2.5 shadow-none"
-          >
-            <view class="text-xs text-muted-foreground">
-              {{ item.label }}
-            </view>
-            <view class="mt-1.5 text-lg font-semibold" :class="item.tone">
-              {{ item.value }}
-            </view>
-          </view>
-        </view>
-
-        <view class="mt-4 grid grid-cols-2 gap-2.5">
-          <view
-            v-for="metric in summaryMetrics"
-            :key="metric.label"
-            class="card bg-muted p-2.5 shadow-none"
-          >
-            <view class="text-xs text-muted-foreground">
-              {{ metric.label }}
-            </view>
-            <view class="mt-1.5 text-lg font-semibold" :class="metric.tone">
-              {{ metric.monthValue }}
-            </view>
-            <view class="mt-0.5 text-xs text-muted-foreground">
-              累计 {{ metric.totalValue }}
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view v-if="!hasPerformance && !isLoading" class="card mt-4 p-4">
-        <t-empty icon="view-list" description="暂无团队业绩数据" />
-      </view>
-
-      <view v-else class="mt-4 space-y-3">
-        <view v-if="members.length === 0" class="card p-4">
-          <t-empty icon="view-list" description="当前范围暂无成员" />
-        </view>
-
-        <view v-else class="space-y-3">
-          <view
-            v-for="member in memberCards"
-            :key="member.agentCode"
-            class="card p-3.5"
-            @tap="goMemberDetail(member.agentCode)"
-          >
-            <view class="flex items-start justify-between gap-3">
-              <view class="min-w-0">
-                <view class="text-sm font-semibold text-foreground">
-                  {{ member.name }}
-                </view>
-                <view class="mt-0.5 text-xs text-muted-foreground">
-                  {{ member.agentCode }}
-                </view>
+    <template v-else-if="stats">
+      <view class="shrink-0 px-4 pt-4">
+        <view class="card bg-hero p-4">
+          <view class="flex items-start justify-between gap-3">
+            <view class="min-w-0">
+              <view class="text-xl font-semibold text-foreground">
+                {{ pageTitle }}
               </view>
-
-              <view class="flex shrink-0 items-center gap-2">
-                <view class="pill pill-muted">
-                  {{ formatDesignation(member.designationName) }}
-                </view>
-                <view
-                  class="pill"
-                  :class="member.isQualified
-                    ? 'pill-success'
-                    : 'pill-warning'"
-                >
-                  {{ formatQualified(member.isQualified) }}
-                </view>
+              <view v-if="viewContextLabel" class="mt-1 text-sm text-muted-foreground">
+                {{ viewContextLabel }}
               </view>
             </view>
 
-            <view class="mt-3 grid grid-cols-2 gap-2.5">
+            <view class="inline-flex rounded-full bg-card p-1">
               <view
-                v-for="metric in member.metrics"
-                :key="metric.label"
-                class="card bg-muted p-2.5 shadow-none"
+                class="pill"
+                :class="activeScope === 'direct'
+                  ? 'pill-primary'
+                  : 'text-muted-foreground'"
+                @tap="changeScope('direct')"
               >
-                <view class="text-xs text-muted-foreground">
-                  {{ metric.label }}
-                </view>
-                <view class="mt-1.5 text-lg font-semibold" :class="metric.tone">
-                  {{ metric.monthValue }}
-                </view>
-                <view class="mt-0.5 text-xs text-muted-foreground">
-                  累计 {{ metric.totalValue }}
-                </view>
+                直属
               </view>
+              <view
+                class="pill"
+                :class="activeScope === 'all'
+                  ? 'pill-primary'
+                  : 'text-muted-foreground'"
+                @tap="changeScope('all')"
+              >
+                全团队
+              </view>
+            </view>
+          </view>
+
+          <picker
+            v-if="periodOptions.length > 0"
+            class="mt-4 block"
+            mode="selector"
+            :range="periodOptions"
+            range-key="label"
+            :value="currentPeriodOptionIndex"
+            @change="handlePeriodChange"
+          >
+            <view class="flex items-center justify-between rounded-lg bg-card px-4 py-3">
+              <view class="text-sm font-medium text-foreground">
+                {{ periodLabel }}
+              </view>
+              <view class="pill pill-card">
+                切换月份
+              </view>
+            </view>
+          </picker>
+
+          <view class="mt-3 flex justify-center">
+            <view class="text-primary text-xs" @tap="openStatsPopup">
+              查看统计
             </view>
           </view>
         </view>
       </view>
+
+      <scroll-view
+        scroll-y
+        lower-threshold="96"
+        class="min-h-0 flex-1"
+        @scrolltolower="handleMembersScrollToLower"
+      >
+        <view class="px-4 pb-16 pt-4">
+          <view v-if="!hasPerformance && !isLoading" class="card p-4">
+            <t-empty icon="view-list" description="暂无团队业绩数据" />
+          </view>
+
+          <view v-else class="space-y-3">
+            <view v-if="showMembersLoading" class="card p-4">
+              <view class="text-center text-sm text-muted-foreground">
+                加载团队成员中...
+              </view>
+            </view>
+
+            <view v-else-if="showMembersError" class="card p-4">
+              <t-empty icon="error-circle" :description="membersErrorDescription" />
+            </view>
+
+            <view v-else-if="showMembersEmpty" class="card p-4">
+              <t-empty icon="view-list" description="当前范围暂无成员" />
+            </view>
+
+            <view v-else class="space-y-3">
+              <view
+                v-for="member in memberCards"
+                :key="member.agentCode"
+                class="card p-3.5"
+                @tap="goMemberDetail(member.agentCode)"
+              >
+                <view class="flex items-start justify-between gap-3">
+                  <view class="min-w-0">
+                    <view class="text-sm font-semibold text-foreground">
+                      {{ member.name }}
+                    </view>
+                    <view class="mt-0.5 text-xs text-muted-foreground">
+                      {{ member.agentCode }}
+                    </view>
+                  </view>
+
+                  <view class="flex shrink-0 items-center gap-2">
+                    <view class="pill pill-muted">
+                      {{ formatDesignation(member.designationName) }}
+                    </view>
+                    <view
+                      class="pill"
+                      :class="member.isQualified
+                        ? 'pill-success'
+                        : 'pill-warning'"
+                    >
+                      {{ formatQualified(member.isQualified) }}
+                    </view>
+                  </view>
+                </view>
+
+                <view class="mt-3 grid grid-cols-2 gap-2.5">
+                  <view
+                    v-for="metric in member.metrics"
+                    :key="metric.label"
+                    class="card bg-muted p-2.5 shadow-none"
+                  >
+                    <view class="text-xs text-muted-foreground">
+                      {{ metric.label }}
+                    </view>
+                    <view class="mt-0.5 text-lg font-semibold" :class="metric.tone">
+                      {{ metric.monthValue }}
+                    </view>
+                    <view class="mt-0.5 text-xs text-muted-foreground">
+                      {{ metric.totalValue }}
+                    </view>
+                  </view>
+                </view>
+              </view>
+
+              <view
+                v-if="loadMoreError"
+                class="card p-3 text-center text-sm text-destructive"
+                @tap="loadMore"
+              >
+                {{ loadMoreError.message || '加载更多失败' }}，点击重试
+              </view>
+
+              <view
+                v-else-if="hasMore"
+                class="card p-3 text-center text-sm text-muted-foreground"
+              >
+                {{ isLoadingMore ? '加载中...' : '继续下拉加载更多' }}
+              </view>
+
+              <view
+                v-else
+                class="py-1 text-center text-xs text-muted-foreground"
+              >
+                已加载全部成员
+              </view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <TeamStatsPopup
+        :visible="isStatsPopupVisible"
+        :period-label="periodLabel"
+        :summary-items="summaryItems"
+        :summary-metrics="summaryMetrics"
+        @visible-change="handleStatsPopupVisibleChange"
+      />
     </template>
 
     <t-toast id="t-toast" />
