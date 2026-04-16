@@ -23,6 +23,7 @@ export const agents = mysqlTable('agents', {
   division: varchar('division', { length: 100 }),
   branch: varchar('branch', { length: 100 }),
   unit: varchar('unit', { length: 100 }),
+  deletedAt: datetime('deleted_at'),
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
 }, (t) => [

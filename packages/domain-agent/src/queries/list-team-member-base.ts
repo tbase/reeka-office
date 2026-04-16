@@ -1,4 +1,4 @@
-import { and, asc, eq, gt } from 'drizzle-orm'
+import { and, asc, eq, gt, isNull } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { agentHierarchy, agents } from '../db/schema'
@@ -42,6 +42,7 @@ export class ListTeamMemberBaseQuery {
       .innerJoin(agents, eq(agentHierarchy.agentCode, agents.agentCode))
       .where(and(
         eq(agentHierarchy.leaderCode, this.input.leaderCode),
+        isNull(agents.deletedAt),
         this.input.scope === 'direct'
           ? eq(agentHierarchy.hierarchy, 1)
           : gt(agentHierarchy.hierarchy, 0),

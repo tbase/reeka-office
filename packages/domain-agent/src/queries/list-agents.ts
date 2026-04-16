@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, like, or, sql } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
 import type { Agent } from '../types'
@@ -32,7 +32,7 @@ export class ListAgentsQuery {
   }
 
   async query(): Promise<ListAgentsResult> {
-    const conditions = []
+    const conditions = [isNull(agents.deletedAt)]
     const agency = this.input.agency?.trim()
     const keyword = this.input.keyword?.trim()
 

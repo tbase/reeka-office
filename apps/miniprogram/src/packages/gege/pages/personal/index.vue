@@ -4,6 +4,7 @@ import type { RpcOutput } from '@/lib/rpc'
 import { computed, onLoad, ref } from 'wevu'
 
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import MetricRows from '../../components/metric-rows/index.vue'
 import { parseRouteAgentCode } from '../../lib/agent-code'
 import {
   formatGap,
@@ -30,10 +31,10 @@ definePageJson({
 type PersonalHistoryItem = RpcOutput<'gege/getMyPerformanceHistory'>['history'][number]
 
 interface AmountMetric {
+  kind: 'amount'
   label: 'NSC' | 'CASE'
   monthValue: string
   totalValue: string
-  isCompactValue: boolean
   tone: string
 }
 
@@ -47,7 +48,6 @@ interface YearOption {
   value: number
 }
 
-const LARGE_METRIC_THRESHOLD = 100_000_000
 const routeReady = ref(false)
 const routeAgentCode = ref<string | null>(null)
 const routeError = ref<string | null>(null)
@@ -186,13 +186,11 @@ function createAmountMetric(
   totalValue: number | null | undefined,
   tone: string,
 ): AmountMetric {
-  const safeMonthValue = Number.isFinite(monthValue) ? Number(monthValue) / 100 : 0
-
   return {
+    kind: 'amount' as const,
     label,
     monthValue: formatMetricValue(monthValue),
     totalValue: formatMetricValue(totalValue),
-    isCompactValue: safeMonthValue >= LARGE_METRIC_THRESHOLD,
     tone,
   }
 }
@@ -377,28 +375,7 @@ function handleRetryHistory() {
             </view>
           </view>
 
-          <view class="mt-3 grid grid-cols-2 gap-2.5">
-            <view
-              v-for="metric in card.metrics"
-              :key="metric.label"
-              class="card bg-muted p-2 shadow-none"
-            >
-              <view class="text-xs text-muted-foreground">
-                {{ metric.label }}
-              </view>
-              <view class="mt-0.5">
-                <view
-                  class="font-semibold"
-                  :class="[metric.tone, metric.isCompactValue ? 'text-base' : 'text-lg']"
-                >
-                  {{ metric.monthValue }}
-                </view>
-                <view class="mt-0.5 text-xs text-muted-foreground">
-                  {{ metric.totalValue }}
-                </view>
-              </view>
-            </view>
-          </view>
+          <MetricRows class="mt-2.5" :rows="card.metrics" />
         </view>
       </view>
     </view>

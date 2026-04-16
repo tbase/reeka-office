@@ -5,6 +5,7 @@ import { computed, onLoad, ref, watch } from 'wevu'
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
 import { parseRouteAgentCode } from '../../lib/agent-code'
+import { showOrg as getShowOrg } from '../../lib/designation'
 import { formatNumber } from '../../lib/format'
 import { useOrgTreeStore } from '../../store'
 
@@ -74,6 +75,7 @@ watch(tree, (value) => {
 
 const pageError = computed(() => routeError.value ?? error.value?.message ?? null)
 const rootNode = computed(() => tree.value?.root ?? null)
+const showOrg = computed(() => getShowOrg(rootNode.value?.designationName))
 const summaryItems = computed(() => [
   {
     label: '成员数',
@@ -160,7 +162,7 @@ function createIndentStyle(depth: number) {
       </view>
     </view>
 
-    <template v-else-if="tree && rootNode">
+    <template v-else-if="tree && rootNode && showOrg">
       <view class="shrink-0 px-4 pt-4">
         <view class="card bg-hero p-4">
             <view class="min-w-0">
@@ -261,6 +263,12 @@ function createIndentStyle(depth: number) {
         </view>
       </scroll-view>
     </template>
+
+    <view v-else-if="tree && rootNode && !showOrg" class="px-4 pt-4">
+      <view class="card p-4">
+        <t-empty icon="view-list" description="SUM 及以上职级可查看组织架构" />
+      </view>
+    </view>
 
     <t-toast id="t-toast" />
   </view>

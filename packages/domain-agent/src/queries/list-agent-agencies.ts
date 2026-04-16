@@ -1,4 +1,4 @@
-import { asc } from 'drizzle-orm'
+import { asc, isNull } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
@@ -20,6 +20,7 @@ export class ListAgentAgenciesQuery {
         agency: agents.agency,
       })
       .from(agents)
+      .where(isNull(agents.deletedAt))
       .groupBy(agents.agency)
       .orderBy(asc(agents.agency))
 

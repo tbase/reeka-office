@@ -12,6 +12,18 @@ export const DESIGNATION_NAMES = [
 
 export type DesignationName = (typeof DESIGNATION_NAMES)[number]
 
+export function getDesignationValue(
+  designationName: string | null | undefined,
+): number | null {
+  const normalizedName = designationName?.trim().toUpperCase()
+  if (!normalizedName) {
+    return null
+  }
+
+  const index = DESIGNATION_NAMES.findIndex((name) => name === normalizedName)
+  return index >= 0 ? index : null
+}
+
 export function getDesignationName(
   designation: number | null | undefined,
 ): DesignationName | null {

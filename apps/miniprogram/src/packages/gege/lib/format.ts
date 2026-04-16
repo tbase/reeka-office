@@ -16,7 +16,7 @@ export function formatMetricValue(value: number | null | undefined): string {
   const normalized = safeValue / 100
 
   return normalized.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })
 }
@@ -77,5 +77,12 @@ export function formatGap(value: number | null | undefined): string {
 }
 
 export function formatRate(value: number | null | undefined): string {
-  return `${formatNumber(value)}%`
+  const safeValue = Number.isFinite(value) ? Number(value) : 0
+  const formatted = safeValue.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  })
+
+  return `${formatted}%`
 }

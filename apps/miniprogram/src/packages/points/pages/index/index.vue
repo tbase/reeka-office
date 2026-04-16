@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onShow, ref } from 'wevu'
-
-import { invalidateQueries } from '@/hooks/useQuery'
 import type { RpcOutput } from '@/lib/rpc'
+
+import { computed, onShow, ref } from 'wevu'
+import { invalidateQueries } from '@/hooks/useQuery'
 import { usePointSummaryStore, useRedeemItemsStore } from '@/stores/points'
 import RedeemPopup from './redeem-popup.vue'
 
@@ -51,11 +51,11 @@ onShow(() => {
 
 const selectedRedeemItem = computed(
   () =>
-    redeemItems.value.find((item) => item.id === selectedRedeemItemId.value) ??
-    null,
+    redeemItems.value.find(item => item.id === selectedRedeemItemId.value)
+    ?? null,
 )
 
-const openRedeemPopup = (item: RedeemItem) => {
+function openRedeemPopup(item: RedeemItem) {
   if (getRedeemDisabledReason(item)) {
     return
   }
@@ -64,12 +64,12 @@ const openRedeemPopup = (item: RedeemItem) => {
   redeemPopupVisible.value = true
 }
 
-const closeRedeemPopup = () => {
+function closeRedeemPopup() {
   redeemPopupVisible.value = false
   selectedRedeemItemId.value = ''
 }
 
-const handlePopupVisibleChange = (visible: boolean) => {
+function handlePopupVisibleChange(visible: boolean) {
   if (!visible) {
     closeRedeemPopup()
     return
@@ -78,7 +78,7 @@ const handlePopupVisibleChange = (visible: boolean) => {
   redeemPopupVisible.value = true
 }
 
-const getRedeemDisabledReason = (item: RedeemItem): string | null => {
+function getRedeemDisabledReason(item: RedeemItem): string | null {
   if (item.stock <= 0) {
     return '库存不足'
   }
@@ -90,7 +90,7 @@ const getRedeemDisabledReason = (item: RedeemItem): string | null => {
   return null
 }
 
-const handleRedeemed = async () => {
+async function handleRedeemed() {
   invalidateQueries('points/getMineSummary')
   invalidateQueries('points/listRedeemItems')
   await Promise.all([refetchSummary(), refetchRedeemItems()])
@@ -115,10 +115,14 @@ const handleRedeemed = async () => {
 
     <template v-else-if="hasSummary">
       <view class="rounded-xl bg-card p-4 shadow-lg">
-        <view class="block text-sm text-muted-foreground">当前积分总额</view>
-        <view class="mt-1 block text-center text-3xl font-bold">{{
-          member.currentPoints
-        }}</view>
+        <view class="block text-sm text-muted-foreground">
+          当前积分总额
+        </view>
+        <view class="mt-1 block text-center text-3xl font-bold">
+          {{
+            member.currentPoints
+          }}
+        </view>
 
         <t-grid class="mt-4" :column="2" theme="card">
           <t-grid-item
@@ -138,7 +142,9 @@ const handleRedeemed = async () => {
 
       <view class="mt-4 rounded-xl bg-card p-4 shadow-lg">
         <view class="flex items-end justify-between">
-          <view class="text-lg font-semibold">积分兑换专区</view>
+          <view class="text-lg font-semibold">
+            积分兑换专区
+          </view>
         </view>
 
         <t-empty
@@ -171,11 +177,15 @@ const handleRedeemed = async () => {
                 v-else
                 class="flex h-20 w-20 items-center justify-center rounded-md bg-muted"
               >
-                <view class="text-xs text-muted-foreground">暂无商品图</view>
+                <view class="text-xs text-muted-foreground">
+                  暂无商品图
+                </view>
               </view>
-              <view class="mt-2 block text-sm font-semibold">{{
-                item.title
-              }}</view>
+              <view class="mt-2 block text-sm font-semibold">
+                {{
+                  item.title
+                }}
+              </view>
             </view>
             <view class="mt-auto flex">
               <t-button

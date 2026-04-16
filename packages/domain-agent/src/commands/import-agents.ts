@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
 import { getDb, type DB } from '../context'
 import { agentHierarchy, agents } from '../db/schema'
 
@@ -24,6 +24,7 @@ export interface ImportAgentsResult {
   importedCount: number
   createdCount: number
   updatedCount: number
+  deletedCount: number
 }
 
 interface AgentLeaderRow {
@@ -234,9 +235,17 @@ export class ImportAgentsCommand {
           division: agents.division,
           branch: agents.branch,
           unit: agents.unit,
+          deletedAt: agents.deletedAt,
         })
         .from(agents)
         .where(inArray(agents.agentCode, importedCodes))
+
+      const activeAgentRows = await tx
+        .select({
+          agentCode: agents.agentCode,
+        })
+        .from(agents)
+        .where(isNull(agents.deletedAt))
 
       const existingByCode = new Map(
         existingRows
@@ -245,17 +254,16 @@ export class ImportAgentsCommand {
       )
       const updatedAgentCodes = new Set<string>()
       let createdCount = 0
-      const knownAgentCodes = new Set([
-        ...importedCodes,
-        ...existingRows
-          .map((row) => row.agentCode)
-          .filter((code): code is string => !!code),
-      ])
+      const importedCodeSet = new Set(importedCodes)
+      const deletedCount = activeAgentRows
+        .map((row) => row.agentCode)
+        .filter((code): code is string => !!code && !importedCodeSet.has(code))
+        .length
 
       const missingLeaderCodes = [...new Set(
         importedAgents
           .map((agent) => agent.leaderCode)
-          .filter((code): code is string => !!code && !knownAgentCodes.has(code)),
+          .filter((code): code is string => !!code && !importedCodeSet.has(code)),
       )]
 
       if (missingLeaderCodes.length > 0) {
@@ -278,6 +286,7 @@ export class ImportAgentsCommand {
             division: agent.division ?? null,
             branch: agent.branch ?? null,
             unit: agent.unit ?? null,
+            deletedAt: null,
           })
           createdCount += 1
           continue
@@ -301,6 +310,7 @@ export class ImportAgentsCommand {
           || existing.division !== nextDivision
           || existing.branch !== nextBranch
           || existing.unit !== nextUnit
+          || existing.deletedAt !== null
 
         if (!hasChanges) {
           continue
@@ -318,6 +328,7 @@ export class ImportAgentsCommand {
             division: nextDivision,
             branch: nextBranch,
             unit: nextUnit,
+            deletedAt: null,
           })
           .where(eq(agents.id, existing.id))
 
@@ -362,12 +373,23 @@ export class ImportAgentsCommand {
         }
       }
 
+      await tx
+        .update(agents)
+        .set({
+          deletedAt: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(and(
+          isNull(agents.deletedAt),
+          notInArray(agents.agentCode, importedCodes),
+        ))
+
       const hierarchySourceRows = await tx
         .select({
           agentCode: agents.agentCode,
           leaderCode: agents.leaderCode,
         })
         .from(agents)
+        .where(isNull(agents.deletedAt))
 
       const hierarchyRows = buildAgentHierarchyRows(
         hierarchySourceRows.filter(
@@ -385,6 +407,7 @@ export class ImportAgentsCommand {
         importedCount: dedupedAgents.size,
         createdCount,
         updatedCount: updatedAgentCodes.size,
+        deletedCount,
       }
     })
   }

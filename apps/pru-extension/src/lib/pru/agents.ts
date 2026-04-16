@@ -24,6 +24,11 @@ type FetchAgentsOptions = {
   cacheRows?: AgentRow[];
 };
 
+type LeaderIntegrityIssue = {
+  agent_code: string
+  leader_code: string
+}
+
 function parseDdMmYyyy(text: string) {
   const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
 
@@ -179,6 +184,103 @@ function mergeBatchWithCache(base: BaseAgentRow, cached: AgentRow | undefined): 
   };
 }
 
+function toBaseAgentRow(row: AgentRow): BaseAgentRow {
+  return {
+    agent_code: row.agent_code,
+    pinyin: row.pinyin,
+    email: row.email,
+    designation: row.designation,
+    join_date: row.join_date,
+    agency: row.agency,
+    division: row.division,
+    branch: row.branch,
+    unit: row.unit,
+  }
+}
+
+function clearRootLeaderCode(rowsByCode: Map<string, AgentRow>, rootAgentCode: string) {
+  const rootRow = rowsByCode.get(rootAgentCode)
+
+  if (!rootRow || !rootRow.leader_code) {
+    return
+  }
+
+  rowsByCode.set(rootAgentCode, {
+    ...rootRow,
+    leader_code: "",
+  })
+}
+
+function buildOrderedAgentRows(agentCodes: string[], rowsByCode: Map<string, AgentRow>) {
+  return agentCodes.flatMap((code) => {
+    const row = rowsByCode.get(code)
+    return row ? [row] : []
+  })
+}
+
+function findLeaderIntegrityIssues(rows: AgentRow[], rootAgentCode: string): LeaderIntegrityIssue[] {
+  const agentCodes = new Set(rows.map((row) => row.agent_code))
+
+  return rows.reduce<LeaderIntegrityIssue[]>((issues, row) => {
+    if (row.agent_code === rootAgentCode) {
+      return issues
+    }
+
+    if (!row.leader_code || !agentCodes.has(row.leader_code)) {
+      issues.push({
+        agent_code: row.agent_code,
+        leader_code: row.leader_code,
+      })
+    }
+
+    return issues
+  }, [])
+}
+
+function formatLeaderIntegrityIssue(issue: LeaderIntegrityIssue) {
+  return `${issue.agent_code} -> ${issue.leader_code || "空"}`
+}
+
+async function refreshRowsWithInvalidLeaders(
+  rowsByCode: Map<string, AgentRow>,
+  agentCodes: string[],
+  rootAgentCode: string,
+  onProgress: ProgressHandler | undefined,
+) {
+  clearRootLeaderCode(rowsByCode, rootAgentCode)
+
+  const issues = findLeaderIntegrityIssues(buildOrderedAgentRows(agentCodes, rowsByCode), rootAgentCode)
+
+  if (issues.length === 0) {
+    return
+  }
+
+  for (const [index, issue] of issues.entries()) {
+    const row = rowsByCode.get(issue.agent_code)
+
+    if (!row) {
+      continue
+    }
+
+    onProgress?.(`重拉上级异常成员 ${index + 1}/${issues.length}: ${issue.agent_code}`)
+    const detail = await getAgentDetails(issue.agent_code)
+
+    rowsByCode.set(issue.agent_code, mergeAgentRows(issue.agent_code, toBaseAgentRow(row), detail))
+
+    if (index < issues.length - 1) {
+      await sleep(REQUEST_INTERVAL_MS)
+    }
+  }
+
+  clearRootLeaderCode(rowsByCode, rootAgentCode)
+
+  const unresolvedIssues = findLeaderIntegrityIssues(buildOrderedAgentRows(agentCodes, rowsByCode), rootAgentCode)
+
+  if (unresolvedIssues.length > 0) {
+    throw new Error(`代理人直属上级不存在，已重拉仍无法修正: ${unresolvedIssues.map(formatLeaderIntegrityIssue).join(", ")}`)
+  }
+}
+
 async function getSubordinateAgents(agentCode: string) {
   const html = await fetchAesHtml("getSubordinate", {
     agentCd: agentCode,
@@ -273,11 +375,12 @@ export async function fetchAgents(agentCode: string, options?: FetchAgentsOption
     onProgress?.("已复用本地缓存，无需补充详情");
   }
 
-  return unique([
+  const agentCodes = unique([
     rootAgentCode,
     ...subordinateAgents.map((row) => row.agent_code),
-  ]).flatMap((code) => {
-    const row = rowsByCode.get(code);
-    return row ? [row] : [];
-  });
+  ])
+
+  await refreshRowsWithInvalidLeaders(rowsByCode, agentCodes, rootAgentCode, onProgress)
+
+  return buildOrderedAgentRows(agentCodes, rowsByCode)
 }

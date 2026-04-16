@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, onLoad, ref } from 'wevu'
+import type { MetricRow } from '../../components/metric-rows/types'
 
+import { computed, onLoad, ref } from 'wevu'
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import MetricRows from '../../components/metric-rows/index.vue'
 import {
   buildPageUrl,
   parseRouteAgentCode,
 } from '../../lib/agent-code'
+import { showOrg as getShowOrg } from '../../lib/designation'
 import {
   formatMetricValue,
   formatNumber,
@@ -47,6 +50,7 @@ usePullDownRefresh(async () => {
 })
 
 const pageError = computed(() => routeError.value ?? error.value?.message ?? null)
+const showOrg = computed(() => getShowOrg(dashboard.value?.agent.designationName))
 
 const profile = computed(() => ({
   name: dashboard.value?.agent.name ?? '咯咯咯',
@@ -57,7 +61,6 @@ const profile = computed(() => ({
 }))
 
 const hasPerformance = computed(() => Boolean(dashboard.value?.period))
-const LARGE_METRIC_THRESHOLD = 100_000_000
 
 type MetricName = 'nsc' | 'netCase'
 type MetricScope = 'self' | 'direct' | 'all'
@@ -68,15 +71,14 @@ interface AmountMetric {
   metricName: MetricName
   monthValue: string
   totalValue: string
-  isCompactValue: boolean
   tone: string
 }
 
 interface ValueMetric {
-  kind: 'value'
-  label: string
-  value: string
-  tone: string
+  kind: 'member'
+  label: '成员'
+  qualifiedValue: string
+  totalValue: string
 }
 
 interface PerformanceCard {
@@ -102,7 +104,6 @@ function createAmountMetric(
   totalValue: number | null | undefined,
   tone: string,
 ): AmountMetric {
-  const safeMonthValue = Number.isFinite(monthValue) ? Number(monthValue) / 100 : 0
   const metricName: MetricName = label === 'NSC' ? 'nsc' : 'netCase'
 
   return {
@@ -111,8 +112,19 @@ function createAmountMetric(
     metricName,
     monthValue: formatMetricValue(monthValue),
     totalValue: formatMetricValue(totalValue),
-    isCompactValue: safeMonthValue >= LARGE_METRIC_THRESHOLD,
     tone,
+  }
+}
+
+function createMemberMetric(
+  qualifiedCount: number | null | undefined,
+  memberCount: number | null | undefined,
+): ValueMetric {
+  return {
+    kind: 'member' as const,
+    label: '成员',
+    qualifiedValue: formatNumber(qualifiedCount),
+    totalValue: formatNumber(memberCount),
   }
 }
 
@@ -141,8 +153,8 @@ function goOrg() {
   })
 }
 
-function openMetricPopup(card: PerformanceCard, item: AmountMetric | ValueMetric) {
-  if (item.kind !== 'amount') {
+function openMetricPopup(card: PerformanceCard, item: MetricRow) {
+  if (!isDashboardAmountMetric(item)) {
     return
   }
 
@@ -152,6 +164,10 @@ function openMetricPopup(card: PerformanceCard, item: AmountMetric | ValueMetric
     metricName: item.metricName,
     label: item.label,
   }
+}
+
+function isDashboardAmountMetric(item: MetricRow): item is AmountMetric {
+  return item.kind === 'amount' && 'metricName' in item
 }
 
 function handleMetricPopupVisibleChange(visible: boolean) {
@@ -194,18 +210,7 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       metrics: [
         createAmountMetric('NSC', direct?.nsc, direct?.nscSum, 'text-primary'),
         createAmountMetric('CASE', direct?.netCase, direct?.netCaseSum, 'text-primary-2'),
-        {
-          kind: 'value' as const,
-          label: '成员',
-          value: formatNumber(direct?.memberCount),
-          tone: 'text-foreground',
-        },
-        {
-          kind: 'value' as const,
-          label: '合资格',
-          value: formatNumber(direct?.qualifiedCount),
-          tone: 'text-success',
-        },
+        createMemberMetric(direct?.qualifiedCount, direct?.memberCount),
       ],
       onDetail: () => goTeam('direct'),
     },
@@ -216,18 +221,7 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       metrics: [
         createAmountMetric('NSC', all?.nsc, all?.nscSum, 'text-primary'),
         createAmountMetric('CASE', all?.netCase, all?.netCaseSum, 'text-primary-2'),
-        {
-          kind: 'value' as const,
-          label: '成员',
-          value: formatNumber(all?.memberCount),
-          tone: 'text-foreground',
-        },
-        {
-          kind: 'value' as const,
-          label: '合资格',
-          value: formatNumber(all?.qualifiedCount),
-          tone: 'text-success',
-        },
+        createMemberMetric(all?.qualifiedCount, all?.memberCount),
       ],
       onDetail: () => goTeam('all'),
     },
@@ -263,17 +257,17 @@ const performanceCards = computed<PerformanceCard[]>(() => {
             <view class="text-xs text-muted-foreground">
               数据月份
             </view>
-            <view class="mt-1 text-sm font-semibold text-foreground">
+            <view class="mt-1 text-sm font-medium text-foreground">
               {{ profile.periodLabel }}
             </view>
           </view>
         </view>
       </view>
 
-      <view class="card mt-4 p-4" @tap="goOrg">
+      <view v-if="showOrg" class="card mt-4 p-4" @tap="goOrg">
         <view class="flex items-start justify-between gap-3">
           <view class="min-w-0">
-            <view class="text-lg font-semibold text-foreground">
+            <view class="text-base font-medium text-foreground">
               组织架构
             </view>
             <view class="mt-1 text-sm text-muted-foreground">
@@ -297,9 +291,9 @@ const performanceCards = computed<PerformanceCard[]>(() => {
           :key="card.key"
           class="card p-4"
         >
-          <view class="flex items-start justify-between gap-3">
+          <view class="flex items-center justify-between gap-3 mb-2">
             <view class="min-w-0">
-              <view class="text-lg font-semibold text-foreground">
+              <view class="text-base font-medium text-foreground">
                 {{ card.title }}
               </view>
             </view>
@@ -312,45 +306,22 @@ const performanceCards = computed<PerformanceCard[]>(() => {
             </view>
           </view>
 
-          <view class="mt-4 grid grid-cols-2 gap-3">
-            <view
-              v-for="item in card.metrics"
-              :key="item.label"
-              class="card bg-muted shadow-none p-2.5"
-              @tap="openMetricPopup(card, item)"
-            >
-              <view class="text-xs text-muted-foreground">
-                {{ item.label }}
-              </view>
-              <template v-if="item.kind === 'amount'">
-                <view class="mt-2">
-                  <view
-                    class="font-semibold"
-                    :class="[item.tone, item.isCompactValue ? 'text-lg' : 'text-xl']"
-                  >
-                    {{ item.monthValue }}
-                  </view>
-                  <view class="mt-1 text-sm text-muted-foreground">
-                    {{ item.totalValue }}
-                  </view>
-                </view>
-              </template>
-              <view v-else class="mt-2 text-xl font-semibold" :class="item.tone">
-                {{ item.value }}
-              </view>
-            </view>
-          </view>
+          <MetricRows
+            class="mt-3"
+            :rows="card.metrics"
+            @row-tap="openMetricPopup(card, $event)"
+          />
         </view>
       </view>
     </template>
 
-      <MetricChartPopup
-        :agent-code="routeAgentCode"
-        :visible="Boolean(selectedMetric)"
-        :title="chartPopupTitle"
-        :year="chartYear"
-        :metric="selectedMetric"
-        @visible-change="handleMetricPopupVisibleChange"
+    <MetricChartPopup
+      :agent-code="routeAgentCode"
+      :visible="Boolean(selectedMetric)"
+      :title="chartPopupTitle"
+      :year="chartYear"
+      :metric="selectedMetric"
+      @visible-change="handleMetricPopupVisibleChange"
     />
 
     <t-toast id="t-toast" />

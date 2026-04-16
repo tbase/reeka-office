@@ -45,7 +45,7 @@ export function ImportAgentsDialog() {
       }
 
       toast.success(
-        `导入完成：共 ${result.importedCount} 人，新增 ${result.createdCount} 人，更新 ${result.updatedCount} 人`,
+        `导入完成：共 ${result.importedCount} 人，新增 ${result.createdCount} 人，更新 ${result.updatedCount} 人，软删除 ${result.deletedCount} 人`,
       );
       formRef.current.reset();
       setSelectedFileName("");

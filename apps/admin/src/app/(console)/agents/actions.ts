@@ -1,6 +1,10 @@
 "use server"
 
-import { ImportAgentsCommand, type ImportedAgentInput } from "@reeka-office/domain-agent"
+import {
+  ImportAgentsCommand,
+  getDesignationValue,
+  type ImportedAgentInput,
+} from "@reeka-office/domain-agent"
 import { CreateBindingTokenCommand } from "@reeka-office/domain-identity"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -17,6 +21,7 @@ type ImportAgentsActionResult =
     importedCount: number
     createdCount: number
     updatedCount: number
+    deletedCount: number
   }
   | {
       error: string
@@ -115,6 +120,25 @@ function normalizeInt(value: unknown): number | null {
   return Number(text)
 }
 
+function normalizeDesignation(value: unknown): number | null {
+  const designation = normalizeInt(value)
+  if (designation !== null) {
+    return designation
+  }
+
+  const text = normalizeText(value)
+  if (!text) {
+    return null
+  }
+
+  const designationValue = getDesignationValue(text)
+  if (designationValue === null) {
+    throw new Error(`代理人职级无效: ${text}`)
+  }
+
+  return designationValue
+}
+
 function pickFirstText(
   source: Record<string, unknown>,
   keys: readonly string[],
@@ -138,7 +162,7 @@ function parseAgentRecord(value: unknown): ImportedAgentInput | null {
     "agent_code",
   ])
   const name = pickFirstText(value, [
-    "name",
+    "pinyin",
   ])
 
   if (!agentCode || !name) {
@@ -149,7 +173,7 @@ function parseAgentRecord(value: unknown): ImportedAgentInput | null {
     value.join_date
   )
 
-  const designation = normalizeInt(value.designation)
+  const designation = normalizeDesignation(value.designation ?? value.designation_name)
 
   return {
     agentCode,

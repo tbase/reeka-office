@@ -28,6 +28,18 @@ type SalesMonthDiffSummary = {
   removed: number
 }
 
+function getSalesMonthDiffRowOrder(row: SalesMonthDiffRow) {
+  if (row.changeType === "modified") {
+    return 0
+  }
+
+  if (row.changeType === "removed") {
+    return 1
+  }
+
+  return 2
+}
+
 function hasSameSerializedSalesMonthRow(
   previousRow: SerializedSalesMonthRow,
   nextRow: SerializedSalesMonthRow,
@@ -112,6 +124,16 @@ function buildSalesMonthDiff(previousRows: SalesMonthRow[], nextRows: SalesMonth
       })
     }
   }
+
+  rows.sort((left, right) => {
+    const orderDiff = getSalesMonthDiffRowOrder(left) - getSalesMonthDiffRowOrder(right)
+
+    if (orderDiff !== 0) {
+      return orderDiff
+    }
+
+    return left.row.agent_code.localeCompare(right.row.agent_code)
+  })
 
   return {
     rows,

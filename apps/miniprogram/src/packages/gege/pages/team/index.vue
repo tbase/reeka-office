@@ -3,6 +3,7 @@ import { computed, onLoad, ref } from 'wevu'
 
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import MetricRows from '../../components/metric-rows/index.vue'
 import { buildPageUrl, parseRouteAgentCode } from '../../lib/agent-code'
 import {
   formatMetricValue,
@@ -33,6 +34,7 @@ interface PeriodOption extends Period {
 }
 
 interface AmountMetric {
+  kind: 'amount'
   label: 'NSC' | 'CASE'
   monthValue: string
   totalValue: string
@@ -120,14 +122,10 @@ const teamSummary = computed<TeamSummary>(() => stats.value?.summary ?? emptySum
 
 const summaryItems = computed(() => [
   {
-    label: '成员数',
-    value: formatNumber(teamSummary.value.memberCount),
-    tone: 'text-foreground',
-  },
-  {
-    label: '合资格人数',
-    value: formatNumber(teamSummary.value.qualifiedCount),
-    tone: 'text-success',
+    kind: 'member' as const,
+    label: '成员' as const,
+    qualifiedValue: formatNumber(teamSummary.value.qualifiedCount),
+    totalValue: formatNumber(teamSummary.value.memberCount),
   },
 ])
 
@@ -200,6 +198,7 @@ function createAmountMetric(
   tone: string,
 ): AmountMetric {
   return {
+    kind: 'amount' as const,
     label,
     monthValue: formatMetricValue(monthValue),
     totalValue: formatMetricValue(totalValue),
@@ -372,12 +371,12 @@ function goMemberDetail(agentCode: string) {
                 class="card p-3.5"
                 @tap="goMemberDetail(member.agentCode)"
               >
-                <view class="flex items-start justify-between gap-3">
+                <view class="flex items-start justify-between gap-2">
                   <view class="min-w-0">
-                    <view class="text-sm font-semibold text-foreground">
+                    <view class="text-sm font-medium text-foreground">
                       {{ member.name }}
                     </view>
-                    <view class="mt-0.5 text-xs text-muted-foreground">
+                    <view class="text-xs text-muted-foreground">
                       {{ member.agentCode }}
                     </view>
                   </view>
@@ -395,23 +394,7 @@ function goMemberDetail(agentCode: string) {
                   </view>
                 </view>
 
-                <view class="mt-3 grid grid-cols-2 gap-2.5">
-                  <view
-                    v-for="metric in member.metrics"
-                    :key="metric.label"
-                    class="card bg-muted p-2.5 shadow-none"
-                  >
-                    <view class="text-xs text-muted-foreground">
-                      {{ metric.label }}
-                    </view>
-                    <view class="mt-0.5 text-lg font-semibold" :class="metric.tone">
-                      {{ metric.monthValue }}
-                    </view>
-                    <view class="mt-0.5 text-xs text-muted-foreground">
-                      {{ metric.totalValue }}
-                    </view>
-                  </view>
-                </view>
+                <MetricRows class="mt-2.5" :rows="member.metrics" />
               </view>
 
               <view

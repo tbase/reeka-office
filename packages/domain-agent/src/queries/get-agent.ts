@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { agents } from '../db/schema'
@@ -36,7 +36,10 @@ export class GetAgentQuery {
         unit: agents.unit,
       })
       .from(agents)
-      .where(eq(agents.id, this.input.agentId))
+      .where(and(
+        eq(agents.id, this.input.agentId),
+        isNull(agents.deletedAt),
+      ))
       .limit(1)
 
     const row = rows[0]
