@@ -32,7 +32,7 @@ pnpm --filter pru-extension build
 ## 使用方式
 
 1. 先在同一个 Chrome Profile 中登录：
-   - `https://salesforce.prudential.com.hk/sap/login`
+   - `https://salesforce.prudential.com.hk/sap/home/`
    - `https://aes.prudential.com.hk/aes/AESServlet?type=iPC`
 2. 点击扩展图标，扩展会打开一个独立页面
 3. 在设置区填写 `agentCode`

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onLoad, ref } from 'wevu'
 
+import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
 import {
   buildPageUrl,
   parseRouteAgentCode,
 } from '../../lib/agent-code'
 import {
-  formatDesignation,
   formatMetricValue,
   formatNumber,
   formatPeriod,
@@ -51,7 +51,7 @@ const pageError = computed(() => routeError.value ?? error.value?.message ?? nul
 const profile = computed(() => ({
   name: dashboard.value?.agent.name ?? '咯咯咯',
   agentCode: dashboard.value?.agent.agentCode ?? '',
-  designationName: formatDesignation(dashboard.value?.agent.designationName),
+  designationName: dashboard.value?.agent.designationName ?? null,
   periodLabel: formatPeriod(dashboard.value?.period),
   qualifiedLabel: formatQualified(dashboard.value?.self.isQualified ?? false),
 }))
@@ -128,6 +128,14 @@ function goTeam(scope: 'direct' | 'all') {
   wx.navigateTo({
     url: buildPageUrl('/packages/gege/pages/team/index', {
       scope,
+      agentCode: routeAgentCode.value,
+    }),
+  })
+}
+
+function goOrg() {
+  wx.navigateTo({
+    url: buildPageUrl('/packages/gege/pages/org/index', {
       agentCode: routeAgentCode.value,
     }),
   })
@@ -244,9 +252,7 @@ const performanceCards = computed<PerformanceCard[]>(() => {
               {{ profile.agentCode }}
             </view>
             <view class="mt-3 flex flex-wrap gap-2">
-              <view class="pill pill-primary">
-                {{ profile.designationName }}
-              </view>
+              <DesignationBadge :designation-name="profile.designationName" />
               <view class="pill pill-success">
                 {{ profile.qualifiedLabel }}
               </view>
@@ -260,6 +266,23 @@ const performanceCards = computed<PerformanceCard[]>(() => {
             <view class="mt-1 text-sm font-semibold text-foreground">
               {{ profile.periodLabel }}
             </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="card mt-4 p-4" @tap="goOrg">
+        <view class="flex items-start justify-between gap-3">
+          <view class="min-w-0">
+            <view class="text-lg font-semibold text-foreground">
+              组织架构
+            </view>
+            <view class="mt-1 text-sm text-muted-foreground">
+              查看当前代理人旗下成员树状结构
+            </view>
+          </view>
+
+          <view class="pill pill-primary">
+            进入
           </view>
         </view>
       </view>

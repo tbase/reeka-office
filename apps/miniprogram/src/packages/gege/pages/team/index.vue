@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onLoad, ref } from 'wevu'
 
+import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
 import { buildPageUrl, parseRouteAgentCode } from '../../lib/agent-code'
 import {
-  formatDesignation,
   formatMetricValue,
   formatNumber,
   formatPeriod,
@@ -383,9 +383,7 @@ function goMemberDetail(agentCode: string) {
                   </view>
 
                   <view class="flex shrink-0 items-center gap-2">
-                    <view class="pill pill-muted">
-                      {{ formatDesignation(member.designationName) }}
-                    </view>
+                    <DesignationBadge :designation-name="member.designationName" />
                     <view
                       class="pill"
                       :class="member.isQualified

@@ -76,10 +76,6 @@ export function formatGap(value: number | null | undefined): string {
   return `Gap ${formatMetricValue(value)}`
 }
 
-export function formatDesignation(value: string | null | undefined): string {
-  return value?.trim() || '未设职级'
-}
-
 export function formatRate(value: number | null | undefined): string {
   return `${formatNumber(value)}%`
 }

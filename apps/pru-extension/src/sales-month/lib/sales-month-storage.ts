@@ -13,6 +13,11 @@ type SalesMonthParts = {
   monthPart: string
 }
 
+type SalesMonthFileOption = {
+  path: string
+  label: string
+}
+
 function parseSalesMonthInput(month: string): SalesMonthParts {
   const match = month.match(/^(\d{4})-(\d{2})$/)
 
@@ -39,6 +44,18 @@ function buildSalesMonthRelativePath(month: string, now = new Date()) {
   const { year, monthPart } = parseSalesMonthInput(month)
 
   return `sales-month/${year}/${monthPart}-${buildFetchHour(now)}.csv`
+}
+
+function formatSalesMonthFileLabel(path: string) {
+  const match = path.match(/^sales-month\/(\d{4})\/(\d{2})-(\d{4})(\d{2})(\d{2})(\d{2})\.csv$/)
+
+  if (!match) {
+    return path.split("/").at(-1) ?? path
+  }
+
+  const [, , , year, month, day, hour] = match
+
+  return `${year}-${month}-${day} ${hour}:00`
 }
 
 async function findLatestSalesMonthFilePath(
@@ -79,6 +96,17 @@ async function salesMonthFileExists(relativePath: string) {
 
 async function writeSalesMonthFile(relativePath: string, content: string) {
   await writeWorkdirFile(relativePath, content)
+}
+
+async function loadSalesMonthFile(relativePath: string): Promise<CachedWorkdirFile> {
+  const handle = await getWorkdirHandle()
+  const salesMonthDirectory = await getDirectoryIfExists(handle, "sales-month")
+
+  if (!salesMonthDirectory) {
+    throw new Error("未找到月汇总目录")
+  }
+
+  return readWorkdirFile(salesMonthDirectory, relativePath)
 }
 
 async function loadLatestSalesMonthCacheFile(): Promise<CachedWorkdirFile | null> {
@@ -143,10 +171,73 @@ async function loadSalesMonthCacheFileForMonth(month: string): Promise<CachedWor
   return readWorkdirFile(salesMonthDirectory, previousPath)
 }
 
+async function loadLatestSalesMonthFileForExactMonth(month: string): Promise<CachedWorkdirFile | null> {
+  const handle = await getWorkdirHandle()
+  const salesMonthDirectory = await getDirectoryIfExists(handle, "sales-month")
+
+  if (!salesMonthDirectory) {
+    return null
+  }
+
+  const currentMonth = parseSalesMonthInput(month)
+  const currentPath = await findLatestSalesMonthFilePath(
+    salesMonthDirectory,
+    currentMonth.year,
+    currentMonth.monthPart,
+  )
+
+  if (!currentPath) {
+    return null
+  }
+
+  return readWorkdirFile(salesMonthDirectory, currentPath)
+}
+
+async function listSalesMonthFilesForMonth(month: string): Promise<SalesMonthFileOption[]> {
+  const handle = await getWorkdirHandle()
+  const salesMonthDirectory = await getDirectoryIfExists(handle, "sales-month")
+
+  if (!salesMonthDirectory) {
+    return []
+  }
+
+  const currentMonth = parseSalesMonthInput(month)
+  const yearDirectory = await getDirectoryIfExists(salesMonthDirectory, currentMonth.year)
+
+  if (!yearDirectory) {
+    return []
+  }
+
+  const paths: string[] = []
+
+  for await (const [fileName, fileHandle] of yearDirectory.entries()) {
+    if (fileHandle.kind !== "file" || !fileName.endsWith(".csv")) {
+      continue
+    }
+
+    if (!fileName.startsWith(`${currentMonth.monthPart}-`)) {
+      continue
+    }
+
+    paths.push(`sales-month/${currentMonth.year}/${fileName}`)
+  }
+
+  return paths
+    .sort((left, right) => right.localeCompare(left))
+    .map((path) => ({
+      path,
+      label: formatSalesMonthFileLabel(path),
+    }))
+}
+
 export {
   buildSalesMonthRelativePath,
   loadLatestSalesMonthCacheFile,
+  loadLatestSalesMonthFileForExactMonth,
+  loadSalesMonthFile,
   loadSalesMonthCacheFileForMonth,
+  listSalesMonthFilesForMonth,
   salesMonthFileExists,
   writeSalesMonthFile,
 }
+export type { SalesMonthFileOption }

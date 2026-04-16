@@ -1,5 +1,6 @@
 export const AES_URL = "https://aes.prudential.com.hk/"
 export const SALESFORCE_URL = "https://salesforce.prudential.com.hk/"
+export const SALESFORCE_HOME_URL = "https://salesforce.prudential.com.hk/sap/home/"
 export const AES_ENDPOINT = "https://aes.prudential.com.hk/aes/AESServlet?type=iPC&module=agent"
 export const REQUEST_INTERVAL_MS = 800
 export const AGENT_CODE_PATTERN = /^0\d{7}$/

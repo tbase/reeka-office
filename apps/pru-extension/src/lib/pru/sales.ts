@@ -48,10 +48,28 @@ type ExtraSalesMetrics = Pick<
   | "renewal_rate_team"
 >
 
-type ExtraSalesDecision = {
-  type: "reuse-full" | "reuse-sum-only" | "refresh"
-  metrics: ExtraSalesMetrics
-}
+type ExtraSalesDecision =
+  | {
+      type: "reuse-full" | "reuse-sum-only"
+      metrics: ExtraSalesMetrics
+    }
+  | {
+      type: "refresh-force" | "refresh-if-missing"
+    }
+
+type ExtraSalesRefreshDecision = Extract<ExtraSalesDecision, { type: "refresh-force" | "refresh-if-missing" }>["type"]
+
+type ExtraSalesPlanEntry =
+  | {
+      type: "resolved"
+      metrics: ExtraSalesMetrics
+    }
+  | {
+      type: "fetch"
+    }
+  | {
+      type: "skip-unavailable"
+    }
 
 type ParsedHpSale = Pick<SalesMonthRow, "month" | "nsc_hp" | "net_afyp_hp">
 type ParsedHSale = Pick<SalesMonthRow, "month" | "net_afyp_h" | "net_case_h">
@@ -427,10 +445,15 @@ function resolveExtraSalesMetrics(
   sale: SalesData,
   cached: SalesMonthRow | undefined,
 ): ExtraSalesDecision {
-  if (!cached || !hasSameExtraSalesSnapshot(sale, cached)) {
+  if (!cached) {
     return {
-      type: "refresh",
-      metrics: emptyExtraSalesMetrics(),
+      type: "refresh-if-missing",
+    }
+  }
+
+  if (!hasSameExtraSalesSnapshot(sale, cached)) {
+    return {
+      type: "refresh-force",
     }
   }
 
@@ -455,8 +478,7 @@ function resolveExtraSalesMetrics(
   }
 
   return {
-    type: "refresh",
-    metrics: emptyExtraSalesMetrics(),
+    type: "refresh-force",
   }
 }
 
@@ -488,9 +510,9 @@ function logExtraSalesDecisions(salesDecisions: SalesDecisionEntry[]) {
   )
 
   console.info(
-    "[sales-month] extra-sales refresh targets",
+    "[sales-month] extra-sales forced refresh targets",
     salesDecisions
-      .filter(({ decision }) => decision.type === "refresh")
+      .filter(({ decision }) => decision.type === "refresh-force")
       .map(({ sale, cached }) => ({
         agent_code: sale.agent.agent_code,
         sale_month: sale.month,
@@ -499,6 +521,71 @@ function logExtraSalesDecisions(salesDecisions: SalesDecisionEntry[]) {
         sale_nsc_sum: sale.nsc_sum,
       })),
   )
+
+  console.info(
+    "[sales-month] extra-sales refresh-if-missing targets",
+    salesDecisions
+      .filter(({ decision }) => decision.type === "refresh-if-missing")
+      .map(({ sale, cached }) => ({
+        agent_code: sale.agent.agent_code,
+        sale_month: sale.month,
+        cached_month: cached?.month ?? "",
+        cached_nsc_sum: cached?.nsc_sum ?? null,
+        sale_nsc_sum: sale.nsc_sum,
+      })),
+  )
+}
+
+function collectExtraSalesRefreshDecisions(salesDecisions: SalesDecisionEntry[]) {
+  const refreshDecisions = new Map<string, ExtraSalesRefreshDecision>()
+
+  salesDecisions.forEach(({ sale, decision }) => {
+    if (decision.type !== "refresh-force" && decision.type !== "refresh-if-missing") {
+      return
+    }
+
+    if (
+      decision.type === "refresh-force" ||
+      !refreshDecisions.has(sale.agent.agent_code)
+    ) {
+      refreshDecisions.set(sale.agent.agent_code, decision.type)
+    }
+  })
+
+  return refreshDecisions
+}
+
+async function buildExtraSalesPlan(salesDecisions: SalesDecisionEntry[], month: string) {
+  const targetMonth = formatMonthSlash(month)
+  const refreshDecisions = collectExtraSalesRefreshDecisions(salesDecisions)
+  const plan = new Map<string, ExtraSalesPlanEntry>()
+
+  for (const [agentCode, decisionType] of refreshDecisions) {
+    if (decisionType === "refresh-if-missing") {
+      try {
+        const cachedExtraSalesMetrics = await loadExtraSalesMetricsForMonth(agentCode, targetMonth)
+
+        if (cachedExtraSalesMetrics) {
+          plan.set(agentCode, {
+            type: "resolved",
+            metrics: cachedExtraSalesMetrics,
+          })
+          continue
+        }
+      } catch (error) {
+        console.warn("[sales-month] extra-sales cache read failed", {
+          agent_code: agentCode,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+
+    plan.set(agentCode, {
+      type: isSalesExtraFetchable(targetMonth) ? "fetch" : "skip-unavailable",
+    })
+  }
+
+  return plan
 }
 
 function toSalesMonthRow(sale: SalesData, extraSalesMetrics: ExtraSalesMetrics): SalesMonthRow {
@@ -576,60 +663,52 @@ async function materializeSalesRows(
     refreshed: 0,
     skippedUnavailable: 0,
   }
-  const extraSalesRequestCache = new Map<string, ExtraSalesMetrics>()
-  let completedExtraSalesRefreshCount = 0
-  const targetMonth = formatMonthSlash(month)
+  const extraSalesPlan = await buildExtraSalesPlan(salesDecisions, month)
+  const totalExtraSalesRefreshCount = [...extraSalesPlan.values()].filter(
+    (entry) => entry.type === "fetch",
+  ).length
 
   for (const { sale, decision } of salesDecisions) {
+    const agentCode = sale.agent.agent_code
     let extraSalesMetrics: ExtraSalesMetrics | null =
-      decision.type === "refresh" ? null : decision.metrics
+      "metrics" in decision ? decision.metrics : null
 
     if (decision.type === "reuse-full") {
       cache.reusedFull += 1
     } else if (decision.type === "reuse-sum-only") {
       cache.reusedSumOnly += 1
-    } else if (extraSalesRequestCache.has(sale.agent.agent_code)) {
-      extraSalesMetrics = extraSalesRequestCache.get(sale.agent.agent_code)!
     } else {
-      try {
-        const cachedExtraSalesMetrics = await loadExtraSalesMetricsForMonth(
-          sale.agent.agent_code,
-          targetMonth,
-        )
+      const extraSalesPlanEntry = extraSalesPlan.get(agentCode)
 
-        if (cachedExtraSalesMetrics) {
-          extraSalesMetrics = cachedExtraSalesMetrics
-        }
-      } catch (error) {
-        console.warn("[sales-month] extra-sales cache read failed", {
-          agent_code: sale.agent.agent_code,
-          error: error instanceof Error ? error.message : String(error),
-        })
-      }
-
-      if (!extraSalesMetrics) {
-        if (!isSalesExtraFetchable(targetMonth)) {
-          onProgress?.(`extra 超出两年窗口，跳过请求: ${sale.agent.agent_code}`)
+      if (extraSalesPlanEntry?.type === "resolved") {
+        extraSalesMetrics = extraSalesPlanEntry.metrics
+      } else if (!extraSalesMetrics) {
+        if (extraSalesPlanEntry?.type === "skip-unavailable") {
+          onProgress?.(`extra 超出两年窗口，跳过请求: ${agentCode}`)
           console.info("[sales-month] extra-sales skipped unavailable", {
-            agent_code: sale.agent.agent_code,
-            month: targetMonth,
+            agent_code: agentCode,
+            month,
           })
           extraSalesMetrics = emptyExtraSalesMetrics()
           cache.skippedUnavailable += 1
         } else {
-          onProgress?.(`补拉额外信息 ${completedExtraSalesRefreshCount + 1}: ${sale.agent.agent_code}`)
+          onProgress?.(
+            `补拉额外信息 ${cache.refreshed + 1}/${totalExtraSalesRefreshCount}: ${agentCode}`,
+          )
 
-          const historyRows = await fetchExtraSalesHistory(sale.agent.agent_code, month)
-          const mergedHistoryRows = await saveMergedSalesExtraRows(sale.agent.agent_code, historyRows)
+          const historyRows = await fetchExtraSalesHistory(agentCode, month)
+          const mergedHistoryRows = await saveMergedSalesExtraRows(agentCode, historyRows)
 
           extraSalesMetrics = getExtraSalesMetricsForMonth(mergedHistoryRows, month)
-          completedExtraSalesRefreshCount += 1
           cache.refreshed += 1
           await sleep(REQUEST_INTERVAL_MS)
         }
       }
 
-      extraSalesRequestCache.set(sale.agent.agent_code, extraSalesMetrics)
+      extraSalesPlan.set(agentCode, {
+        type: "resolved",
+        metrics: extraSalesMetrics ?? emptyExtraSalesMetrics(),
+      })
     }
 
     rows.push(toSalesMonthRow(sale, extraSalesMetrics ?? emptyExtraSalesMetrics()))

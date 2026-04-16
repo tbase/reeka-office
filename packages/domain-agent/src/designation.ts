@@ -8,8 +8,6 @@ export const DESIGNATION_NAMES = [
   'SRM',
   'RD',
   'SRD',
-  'BSM',
-  'SBSM',
 ] as const
 
 export type DesignationName = (typeof DESIGNATION_NAMES)[number]

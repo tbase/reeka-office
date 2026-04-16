@@ -22,7 +22,7 @@ function ResultPanel({
   stage: string
   error: string
   rowCount: number
-  fetchAction: () => void | Promise<void>
+  fetchAction?: (() => void | Promise<void>) | undefined
   controls?: ReactNode
   previewMeta?: ReactNode
   children: ReactNode
@@ -44,12 +44,14 @@ function ResultPanel({
       <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           {controls ?? <div />}
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={fetchAction} disabled={busy}>
-              {busy ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              开始抓取
-            </Button>
-          </div>
+          {fetchAction ? (
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={fetchAction} disabled={busy}>
+                {busy ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                开始抓取
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         {stage ? (

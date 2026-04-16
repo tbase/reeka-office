@@ -10,6 +10,7 @@ type Dashboard = RpcOutput<'gege/getDashboard'>
 type MetricChart = RpcOutput<'gege/getMetricChart'>
 type MyPerformanceHistory = RpcOutput<'gege/getMyPerformanceHistory'>
 type MyPerformanceMeta = RpcOutput<'gege/getMyPerformanceMeta'>
+type OrgTree = RpcOutput<'gege/getOrgTree'>
 type TeamStats = RpcOutput<'gege/getTeamStats'>
 type TeamMembersPage = RpcOutput<'gege/listTeamMembers'>
 type TeamMember = TeamMembersPage['members'][number]
@@ -50,6 +51,13 @@ export interface MetricChartStore {
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
   refetch: () => Promise<MetricChart | null>
+}
+
+export interface OrgTreeStore {
+  tree: Ref<OrgTree | null>
+  isLoading: Ref<boolean>
+  error: Ref<RpcError | null>
+  refetch: () => Promise<OrgTree | null>
 }
 
 export interface TeamStore {
@@ -176,6 +184,30 @@ export function useMetricChartStore(
 
   return {
     chart: data as Ref<MetricChart | null>,
+    isLoading: loading,
+    error: error as Ref<RpcError | null>,
+    refetch,
+  }
+}
+
+export function useOrgTreeStore(
+  agentCode: Ref<string | null>,
+  enabled: Ref<boolean>,
+): OrgTreeStore {
+  const { data, loading, error, refetch } = useQuery({
+    queryKey: () => {
+      if (!enabled.value) {
+        return undefined
+      }
+
+      return ['gege/getOrgTree', buildAgentCodeInput(agentCode.value)]
+    },
+    refetchOnShow: true,
+    showLoading: '加载组织架构中...',
+  })
+
+  return {
+    tree: data as Ref<OrgTree | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,

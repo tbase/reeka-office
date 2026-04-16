@@ -8,6 +8,7 @@ import {
   getMetricChart,
   getMyPerformanceHistory,
   getMyPerformanceMeta,
+  getOrgTree,
   getTeamStats,
   listTeamMembers,
 } from "./rpc/gege";
@@ -46,6 +47,7 @@ const gegeRegistry = rpc.registry({
   getMetricChart,
   getMyPerformanceHistory,
   getMyPerformanceMeta,
+  getOrgTree,
   getTeamStats,
   listTeamMembers,
 });

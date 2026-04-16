@@ -157,4 +157,11 @@ function serializeSalesMonthRow(row: SalesMonthRow) {
   }
 }
 
-export { SALES_TABLE_COLUMNS, serializeSalesMonthRow }
+type SerializedSalesMonthRow = ReturnType<typeof serializeSalesMonthRow>
+
+function sortSalesMonthRows(rows: SalesMonthRow[]) {
+  return [...rows].sort((left, right) => left.agent_code.localeCompare(right.agent_code))
+}
+
+export { SALES_TABLE_COLUMNS, serializeSalesMonthRow, sortSalesMonthRows }
+export type { SerializedSalesMonthRow }
