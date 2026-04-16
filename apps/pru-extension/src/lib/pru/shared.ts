@@ -78,7 +78,7 @@ function getCombinedCookieHeader(cookies: chrome.cookies.Cookie[]) {
 }
 
 function getLoginHint() {
-  return `请先登录 Salesforce: ${SALESFORCE_HOME_URL}，并确认当前 Chrome Profile 下已登录 AES`
+  return `请先完成 Salesforce 登录：${SALESFORCE_HOME_URL}，并确认当前 Chrome Profile 下已登录 AES 后再重试`
 }
 
 export async function fetchAesHtml(

@@ -1,10 +1,45 @@
-import { type ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 import { LoaderCircle, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { SALESFORCE_HOME_URL } from "@/lib/pru/contract"
+
+const URL_PATTERN = /(https?:\/\/[^\s，。,]+)/g
+
+function renderLink(url: string, index: number) {
+  const label = url === SALESFORCE_HOME_URL ? "点击登录 Salesforce" : url
+
+  return (
+    <a
+      key={`${url}-${index}`}
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="font-medium text-blue-700 underline underline-offset-2 hover:text-blue-800"
+    >
+      {label}
+    </a>
+  )
+}
+
+function renderTextWithLinks(text: string) {
+  const parts = text.split(URL_PATTERN)
+
+  return parts.map((part, index) => {
+    if (!part) {
+      return null
+    }
+
+    if (part.startsWith("http://") || part.startsWith("https://")) {
+      return renderLink(part, index)
+    }
+
+    return <Fragment key={`${part}-${index}`}>{part}</Fragment>
+  })
+}
 
 function ResultPanel({
   title,
@@ -64,7 +99,7 @@ function ResultPanel({
         {error ? (
           <Alert className="border-red-200 bg-red-50/90">
             <AlertTitle>执行失败</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{renderTextWithLinks(error)}</AlertDescription>
           </Alert>
         ) : null}
 
