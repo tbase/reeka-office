@@ -69,11 +69,7 @@ export function formatMonth(month: number): string {
 }
 
 export function formatQualified(value: boolean): string {
-  return value ? '已合资格' : '未合资格'
-}
-
-export function formatGap(value: number | null | undefined): string {
-  return `Gap ${formatMetricValue(value)}`
+  return value ? '✓' : '✗'
 }
 
 export function formatRate(value: number | null | undefined): string {

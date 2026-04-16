@@ -3,7 +3,6 @@ export interface MetricAmountRow {
   label: 'NSC' | 'CASE'
   monthValue: string
   totalValue: string
-  tone: string
 }
 
 export interface MetricMemberRow {
@@ -13,4 +12,13 @@ export interface MetricMemberRow {
   totalValue: string
 }
 
-export type MetricRow = MetricAmountRow | MetricMemberRow
+export interface MetricQualificationRow {
+  kind: 'qualification'
+  label: '合资格'
+  isQualified: boolean
+  qualifiedGap: string | null
+  isQualifiedNextMonth: boolean
+  qualifiedGapNextMonth: string | null
+}
+
+export type MetricRow = MetricAmountRow | MetricMemberRow | MetricQualificationRow

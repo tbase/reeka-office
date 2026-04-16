@@ -4,14 +4,13 @@ import type { RpcOutput } from '@/lib/rpc'
 import { computed, onLoad, ref } from 'wevu'
 
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import {
+  createAmountMetric,
+  createQualificationMetric,
+} from '../../components/metric-rows/helper'
 import MetricRows from '../../components/metric-rows/index.vue'
 import { parseRouteAgentCode } from '../../lib/agent-code'
-import {
-  formatGap,
-  formatMetricValue,
-  formatMonth,
-  formatQualified,
-} from '../../lib/format'
+import { formatMonth } from '../../lib/format'
 import {
   useMyPerformanceHistoryStore,
   useMyPerformanceMetaStore,
@@ -21,27 +20,9 @@ import MonthDetailPopup from './month-detail-popup.vue'
 definePageJson({
   navigationBarTitleText: '我的业绩',
   backgroundColor: '#f6f7fb',
-  usingComponents: {
-    't-dropdown-item': 'tdesign-miniprogram/dropdown-item/dropdown-item',
-    't-dropdown-menu': 'tdesign-miniprogram/dropdown-menu/dropdown-menu',
-    't-empty': 'tdesign-miniprogram/empty/empty',
-  },
 })
 
 type PersonalHistoryItem = RpcOutput<'gege/getMyPerformanceHistory'>['history'][number]
-
-interface AmountMetric {
-  kind: 'amount'
-  label: 'NSC' | 'CASE'
-  monthValue: string
-  totalValue: string
-  tone: string
-}
-
-interface QualificationDisplay {
-  value: string
-  pillClass: string
-}
 
 interface YearOption {
   label: string
@@ -163,69 +144,18 @@ const latestPeriod = computed(() => historyResult.value?.latestPeriod ?? null)
 const monthCards = computed(() => {
   return visibleHistory.value.map(item => ({
     item,
-    qualification: createQualificationDisplay(
-      item.isQualified,
-      item.qualifiedGap,
-    ),
-    nextQualification: isLatestHistoryItem(item)
-      ? createQualificationDisplay(
-          item.isQualifiedNextMonth,
-          item.qualifiedGapNextMonth,
-        )
-      : null,
     metrics: [
-      createAmountMetric('NSC', item.nsc, item.nscSum, 'text-primary'),
-      createAmountMetric('CASE', item.netCase, item.netCaseSum, 'text-primary-2'),
+      createAmountMetric('NSC', item.nsc, item.nscSum),
+      createAmountMetric('CASE', item.netCase, item.netCaseSum),
+      createQualificationMetric(
+        item.isQualified,
+        item.qualifiedGap,
+        item.isQualifiedNextMonth,
+        item.qualifiedGapNextMonth,
+      ),
     ],
   }))
 })
-
-function createAmountMetric(
-  label: 'NSC' | 'CASE',
-  monthValue: number | null | undefined,
-  totalValue: number | null | undefined,
-  tone: string,
-): AmountMetric {
-  return {
-    kind: 'amount' as const,
-    label,
-    monthValue: formatMetricValue(monthValue),
-    totalValue: formatMetricValue(totalValue),
-    tone,
-  }
-}
-
-function createQualificationDisplay(
-  qualified: boolean | null | undefined,
-  gap: number | null | undefined,
-): QualificationDisplay {
-  if (qualified === true) {
-    return {
-      value: formatQualified(true),
-      pillClass: 'pill-success',
-    }
-  }
-
-  if (qualified === false) {
-    return {
-      value: formatGap(gap),
-      pillClass: 'pill-warning',
-    }
-  }
-
-  return {
-    value: '待更新',
-    pillClass: 'pill-muted',
-  }
-}
-
-function formatNextQualificationValue(display: QualificationDisplay): string {
-  if (display.value === '待更新') {
-    return '下月待更新'
-  }
-
-  return `下月${display.value}`
-}
 
 function chooseYear(year: number) {
   if (selectedYear.value === year) {
@@ -353,29 +283,16 @@ function handleRetryHistory() {
         <view
           v-for="card in monthCards"
           :key="`${card.item.year}-${card.item.month}`"
-          class="card p-3.5"
+          class="card p-4"
           @tap="openMonthDetail(card.item)"
         >
-          <view class="flex items-center justify-between gap-3">
+          <view class="flex items-center justify-between gap-3 mb-2">
             <view class="text-base font-semibold text-foreground">
               {{ formatMonth(card.item.month) }}
             </view>
-            <view class="flex flex-wrap justify-end gap-2">
-              <view class="pill" :class="card.qualification.pillClass">
-                {{ card.qualification.value }}
-              </view>
-
-              <view
-                v-if="card.nextQualification"
-                class="pill"
-                :class="card.nextQualification.pillClass"
-              >
-                {{ formatNextQualificationValue(card.nextQualification) }}
-              </view>
-            </view>
           </view>
 
-          <MetricRows class="mt-2.5" :rows="card.metrics" />
+          <MetricRows :rows="card.metrics" />
         </view>
       </view>
     </view>

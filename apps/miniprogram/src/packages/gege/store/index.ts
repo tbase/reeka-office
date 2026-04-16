@@ -1,10 +1,10 @@
 import type { Ref } from 'wevu'
 
 import type { RpcError, RpcOutput } from '@/lib/rpc'
+import { computed, onShow, ref, shallowRef, watch } from 'wevu'
 import { useQuery } from '@/hooks/useQuery'
 import { useToast } from '@/hooks/useToast'
 import { rpc } from '@/lib/rpc'
-import { computed, onShow, ref, shallowRef, watch } from 'wevu'
 
 type Dashboard = RpcOutput<'gege/getDashboard'>
 type MetricChart = RpcOutput<'gege/getMetricChart'>

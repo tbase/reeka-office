@@ -5,7 +5,6 @@ import { computed } from 'wevu'
 
 import HalfScreenPopup from '@/components/half-screen-popup/index.vue'
 import {
-  formatGap,
   formatMetricValue,
   formatMonth,
   formatQualified,
@@ -42,7 +41,7 @@ const qualificationRows = computed(() => {
       label: '本月资格',
       value: props.item.isQualified
         ? formatQualified(true)
-        : formatGap(props.item.qualifiedGap),
+        : formatMetricValue(props.item.qualifiedGap),
       tone: props.item.isQualified ? 'text-success' : 'text-warning-foreground',
     },
   ]
@@ -52,7 +51,7 @@ const qualificationRows = computed(() => {
       label: '下月资格',
       value: props.item.isQualifiedNextMonth
         ? formatQualified(true)
-        : formatGap(props.item.qualifiedGapNextMonth),
+        : formatMetricValue(props.item.qualifiedGapNextMonth),
       tone: props.item.isQualifiedNextMonth ? 'text-success' : 'text-warning-foreground',
     })
   }

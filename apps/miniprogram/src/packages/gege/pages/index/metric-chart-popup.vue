@@ -12,8 +12,8 @@ const props = defineProps<{
   year: number | null
   metric: {
     scope: 'self' | 'direct' | 'all'
-    metricName: 'nsc' | 'netCase'
     label: 'NSC' | 'CASE'
+    metricName: 'nsc' | 'netCase'
   } | null
 }>()
 

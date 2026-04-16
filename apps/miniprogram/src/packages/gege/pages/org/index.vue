@@ -165,16 +165,16 @@ function createIndentStyle(depth: number) {
     <template v-else-if="tree && rootNode && showOrg">
       <view class="shrink-0 px-4 pt-4">
         <view class="card bg-hero p-4">
-            <view class="min-w-0">
-              <view class="flex flex-wrap items-center gap-2">
-                <view class="text-xl font-semibold text-foreground">
-                  {{ rootNode.name }}
-                </view>
-                <DesignationBadge :designation-name="rootNode.designationName" />
+          <view class="min-w-0">
+            <view class="flex flex-wrap items-center gap-2">
+              <view class="text-xl font-semibold text-foreground">
+                {{ rootNode.name }}
               </view>
-              <view class="mt-1 text-sm text-muted-foreground">
-                {{ rootNode.agentCode }}
-              </view>
+              <DesignationBadge :designation-name="rootNode.designationName" />
+            </view>
+            <view class="mt-1 text-sm text-muted-foreground">
+              {{ rootNode.agentCode }}
+            </view>
           </view>
 
           <view class="mt-4 grid grid-cols-2 gap-3">
@@ -224,7 +224,7 @@ function createIndentStyle(depth: number) {
                     ? 'border-primary bg-accent text-primary'
                     : 'border-success bg-success-soft text-success'"
                 >
-                  <view v-if="node.hasChildren" class="block leading-none pb-0.5">
+                  <view v-if="node.hasChildren" class="block leading-none">
                     {{ node.isExpanded ? '-' : '+' }}
                   </view>
                   <view v-else class="block leading-none">

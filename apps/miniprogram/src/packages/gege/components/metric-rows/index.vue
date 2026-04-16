@@ -15,16 +15,15 @@ function handleRowTap(row: MetricRow) {
 </script>
 
 <template>
-  <view class="overflow-hidden rounded-lg bg-muted">
+  <view class="overflow-hidden rounded-lg bg-card">
     <view
       v-for="row in props.rows"
       :key="row.label"
-      class="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0"
+      class="flex items-center justify-between gap-3 border-b border-border py-2 last:border-b-0"
       @tap="handleRowTap(row)"
     >
       <view
-        class="w-14 shrink-0 text-sm font-medium"
-        :class="row.kind === 'amount' ? row.tone : 'text-foreground'"
+        class="w-14 shrink-0 text-xs text-muted-foreground"
       >
         {{ row.label }}
       </view>
@@ -36,8 +35,7 @@ function handleRowTap(row: MetricRow) {
               当月
             </view>
             <view
-              class="break-all text-sm font-medium leading-tight"
-              :class="row.tone"
+              class="break-all text-sm leading-tight"
             >
               {{ row.monthValue }}
             </view>
@@ -46,12 +44,31 @@ function handleRowTap(row: MetricRow) {
             <view class="text-[10px] text-muted-foreground">
               累计
             </view>
-            <view class="break-all text-sm font-medium leading-tight text-foreground">
+            <view class="break-all text-sm leading-tight text-foreground">
               {{ row.totalValue }}
             </view>
           </view>
         </view>
       </template>
+
+      <view v-else-if="row.kind === 'qualification'" class="grid min-w-0 flex-1 grid-cols-2 gap-3 text-right">
+        <view class="min-w-0">
+          <view class="text-[10px] text-muted-foreground">
+            当月
+          </view>
+          <view class="break-all text-sm leading-tight" :class="row.isQualified ? 'text-success' : 'text-warning'">
+            {{ row.isQualified ? '✓' : row.qualifiedGap }}
+          </view>
+        </view>
+        <view class="min-w-0">
+          <view class="text-[10px] text-muted-foreground">
+            下月
+          </view>
+          <view class="break-all text-sm leading-tight" :class="row.isQualifiedNextMonth ? 'text-success' : 'text-warning'">
+            {{ row.isQualifiedNextMonth ? '✓' : row.qualifiedGapNextMonth }}
+          </view>
+        </view>
+      </view>
 
       <view v-else class="grid min-w-0 flex-1 grid-cols-2 gap-3 text-right">
         <view class="min-w-0">

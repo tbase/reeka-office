@@ -10,6 +10,7 @@ export interface PerformanceMetrics {
   netCase: number
   netCaseSum: number
   isQualified: boolean
+  qualifiedGap: number | null
   netAfyp: number
   netAfypSum: number
   netAfycSum: number
@@ -22,15 +23,14 @@ export interface PerformanceMetrics {
   netCaseH: number
   netCaseHSum: number
   renewalRateTeam: number
+  isQualifiedNextMonth: boolean | null
+  qualifiedGapNextMonth: number | null
 }
 
 export interface PerformanceHistoryItem extends PerformanceMetrics {
   year: number
   month: number
   hasData: boolean
-  isQualifiedNextMonth: boolean | null
-  qualifiedGap: number | null
-  qualifiedGapNextMonth: number | null
 }
 
 export interface CurrentPerformanceMetricItem extends PerformanceMetrics {
@@ -51,6 +51,7 @@ type PerformanceMetricRow = {
   netCase: number
   netCaseSum: number
   isQualified: number
+  qualifiedGap: number | null
   netAfyp: number
   netAfypSum: number
   netAfycSum: number
@@ -63,13 +64,11 @@ type PerformanceMetricRow = {
   netCaseH: number
   netCaseHSum: number
   renewalRateTeam: number
-}
-
-type PerformanceHistoryRow = Omit<PerformanceMetricRow, 'agentCode'> & {
   isQualifiedNextMonth: boolean | null
-  qualifiedGap: number | null
   qualifiedGapNextMonth: number | null
 }
+
+type PerformanceHistoryRow = Omit<PerformanceMetricRow, 'agentCode'>
 
 export function createEmptyPerformanceMetrics(): PerformanceMetrics {
   return {
@@ -78,6 +77,7 @@ export function createEmptyPerformanceMetrics(): PerformanceMetrics {
     netCase: 0,
     netCaseSum: 0,
     isQualified: false,
+    qualifiedGap: null,
     netAfyp: 0,
     netAfypSum: 0,
     netAfycSum: 0,
@@ -90,6 +90,8 @@ export function createEmptyPerformanceMetrics(): PerformanceMetrics {
     netCaseH: 0,
     netCaseHSum: 0,
     renewalRateTeam: 0,
+    isQualifiedNextMonth: null,
+    qualifiedGapNextMonth: null,
   }
 }
 
@@ -114,6 +116,7 @@ function mapPerformanceMetrics(
     netCase: row.netCase,
     netCaseSum: row.netCaseSum,
     isQualified: toQualifiedFlag(row.isQualified),
+    qualifiedGap: row.qualifiedGap,
     netAfyp: row.netAfyp,
     netAfypSum: row.netAfypSum,
     netAfycSum: row.netAfycSum,
@@ -126,6 +129,10 @@ function mapPerformanceMetrics(
     netCaseH: row.netCaseH,
     netCaseHSum: row.netCaseHSum,
     renewalRateTeam: row.renewalRateTeam,
+    isQualifiedNextMonth: row.isQualifiedNextMonth == null
+      ? null
+      : toQualifiedFlag(row.isQualifiedNextMonth),
+    qualifiedGapNextMonth: row.qualifiedGapNextMonth,
   }
 }
 
@@ -139,11 +146,6 @@ function mapPerformanceHistoryItem(
     month,
     ...(mapPerformanceMetrics(row)),
     hasData: Boolean(row),
-    isQualifiedNextMonth: row
-      ? (row.isQualifiedNextMonth == null ? null : toQualifiedFlag(row.isQualifiedNextMonth))
-      : null,
-    qualifiedGap: row?.qualifiedGap ?? null,
-    qualifiedGapNextMonth: row?.qualifiedGapNextMonth ?? null,
   }
 }
 
@@ -196,6 +198,7 @@ export async function listCurrentPerformanceMetrics(
       netCase: apm.netCase,
       netCaseSum: apm.netCaseSum,
       isQualified: apm.isQualified,
+      qualifiedGap: apm.qualifiedGap,
       netAfyp: apm.netAfyp,
       netAfypSum: apm.netAfypSum,
       netAfycSum: apm.netAfycSum,
@@ -208,6 +211,8 @@ export async function listCurrentPerformanceMetrics(
       netCaseH: apm.netCaseH,
       netCaseHSum: apm.netCaseHSum,
       renewalRateTeam: apm.renewalRateTeam,
+      isQualifiedNextMonth: apm.isQualifiedNextMonth,
+      qualifiedGapNextMonth: apm.qualifiedGapNextMonth,
     })
     .from(apm)
     .where(and(
@@ -235,6 +240,7 @@ export async function listAgentPerformanceHistory(
       netCase: apm.netCase,
       netCaseSum: apm.netCaseSum,
       isQualified: apm.isQualified,
+      qualifiedGap: apm.qualifiedGap,
       netAfyp: apm.netAfyp,
       netAfypSum: apm.netAfypSum,
       netAfycSum: apm.netAfycSum,
@@ -248,7 +254,6 @@ export async function listAgentPerformanceHistory(
       netCaseHSum: apm.netCaseHSum,
       renewalRateTeam: apm.renewalRateTeam,
       isQualifiedNextMonth: apm.isQualifiedNextMonth,
-      qualifiedGap: apm.qualifiedGap,
       qualifiedGapNextMonth: apm.qualifiedGapNextMonth,
     })
     .from(apm)

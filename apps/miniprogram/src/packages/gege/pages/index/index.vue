@@ -4,20 +4,19 @@ import type { MetricRow } from '../../components/metric-rows/types'
 import { computed, onLoad, ref } from 'wevu'
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import {
+  createAmountMetric,
+  createMemberMetric,
+  createQualificationMetric,
+} from '../../components/metric-rows/helper'
 import MetricRows from '../../components/metric-rows/index.vue'
 import {
   buildPageUrl,
   parseRouteAgentCode,
 } from '../../lib/agent-code'
 import { showOrg as getShowOrg } from '../../lib/designation'
-import {
-  formatMetricValue,
-  formatNumber,
-  formatPeriod,
-  formatQualified,
-} from '../../lib/format'
+import { formatPeriod } from '../../lib/format'
 import { useDashboardStore } from '../../store'
-import MetricChartPopup from './metric-chart-popup.vue'
 
 definePageJson({
   navigationBarTitleText: '咯咯咯',
@@ -57,75 +56,20 @@ const profile = computed(() => ({
   agentCode: dashboard.value?.agent.agentCode ?? '',
   designationName: dashboard.value?.agent.designationName ?? null,
   periodLabel: formatPeriod(dashboard.value?.period),
-  qualifiedLabel: formatQualified(dashboard.value?.self.isQualified ?? false),
+  qualified: dashboard.value?.self.isQualified ?? null,
+  qualifiedGap: dashboard.value?.self.qualifiedGap ?? null,
 }))
 
 const hasPerformance = computed(() => Boolean(dashboard.value?.period))
 
-type MetricName = 'nsc' | 'netCase'
 type MetricScope = 'self' | 'direct' | 'all'
-
-interface AmountMetric {
-  kind: 'amount'
-  label: 'NSC' | 'CASE'
-  metricName: MetricName
-  monthValue: string
-  totalValue: string
-  tone: string
-}
-
-interface ValueMetric {
-  kind: 'member'
-  label: '成员'
-  qualifiedValue: string
-  totalValue: string
-}
 
 interface PerformanceCard {
   key: MetricScope
   title: string
   scope: MetricScope
-  metrics: Array<AmountMetric | ValueMetric>
+  metrics: Array<MetricRow>
   onDetail: () => void
-}
-
-interface SelectedMetric {
-  cardTitle: string
-  scope: MetricScope
-  metricName: MetricName
-  label: 'NSC' | 'CASE'
-}
-
-const selectedMetric = ref<SelectedMetric | null>(null)
-
-function createAmountMetric(
-  label: 'NSC' | 'CASE',
-  monthValue: number | null | undefined,
-  totalValue: number | null | undefined,
-  tone: string,
-): AmountMetric {
-  const metricName: MetricName = label === 'NSC' ? 'nsc' : 'netCase'
-
-  return {
-    kind: 'amount' as const,
-    label,
-    metricName,
-    monthValue: formatMetricValue(monthValue),
-    totalValue: formatMetricValue(totalValue),
-    tone,
-  }
-}
-
-function createMemberMetric(
-  qualifiedCount: number | null | undefined,
-  memberCount: number | null | undefined,
-): ValueMetric {
-  return {
-    kind: 'member' as const,
-    label: '成员',
-    qualifiedValue: formatNumber(qualifiedCount),
-    totalValue: formatNumber(memberCount),
-  }
 }
 
 function goPersonal() {
@@ -153,40 +97,6 @@ function goOrg() {
   })
 }
 
-function openMetricPopup(card: PerformanceCard, item: MetricRow) {
-  if (!isDashboardAmountMetric(item)) {
-    return
-  }
-
-  selectedMetric.value = {
-    cardTitle: card.title,
-    scope: card.scope,
-    metricName: item.metricName,
-    label: item.label,
-  }
-}
-
-function isDashboardAmountMetric(item: MetricRow): item is AmountMetric {
-  return item.kind === 'amount' && 'metricName' in item
-}
-
-function handleMetricPopupVisibleChange(visible: boolean) {
-  if (visible) {
-    return
-  }
-
-  selectedMetric.value = null
-}
-
-const chartYear = computed(() => dashboard.value?.period?.year ?? null)
-const chartPopupTitle = computed(() => {
-  if (!selectedMetric.value) {
-    return ''
-  }
-
-  return `${selectedMetric.value.cardTitle} · ${selectedMetric.value.label}`
-})
-
 const performanceCards = computed<PerformanceCard[]>(() => {
   const self = dashboard.value?.self
   const direct = dashboard.value?.team.direct
@@ -198,8 +108,14 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       title: '我的业绩',
       scope: 'self',
       metrics: [
-        createAmountMetric('NSC', self?.nsc, self?.nscSum, 'text-primary'),
-        createAmountMetric('CASE', self?.netCase, self?.netCaseSum, 'text-primary-2'),
+        createAmountMetric('NSC', self?.nsc, self?.nscSum),
+        createAmountMetric('CASE', self?.netCase, self?.netCaseSum),
+        createQualificationMetric(
+          self?.isQualified,
+          self?.qualifiedGap,
+          self?.isQualifiedNextMonth,
+          self?.qualifiedGapNextMonth,
+        ),
       ],
       onDetail: goPersonal,
     },
@@ -208,8 +124,8 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       title: '直属团队',
       scope: 'direct',
       metrics: [
-        createAmountMetric('NSC', direct?.nsc, direct?.nscSum, 'text-primary'),
-        createAmountMetric('CASE', direct?.netCase, direct?.netCaseSum, 'text-primary-2'),
+        createAmountMetric('NSC', direct?.nsc, direct?.nscSum),
+        createAmountMetric('CASE', direct?.netCase, direct?.netCaseSum),
         createMemberMetric(direct?.qualifiedCount, direct?.memberCount),
       ],
       onDetail: () => goTeam('direct'),
@@ -219,8 +135,8 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       title: '全团队',
       scope: 'all',
       metrics: [
-        createAmountMetric('NSC', all?.nsc, all?.nscSum, 'text-primary'),
-        createAmountMetric('CASE', all?.netCase, all?.netCaseSum, 'text-primary-2'),
+        createAmountMetric('NSC', all?.nsc, all?.nscSum),
+        createAmountMetric('CASE', all?.netCase, all?.netCaseSum),
         createMemberMetric(all?.qualifiedCount, all?.memberCount),
       ],
       onDetail: () => goTeam('all'),
@@ -247,9 +163,6 @@ const performanceCards = computed<PerformanceCard[]>(() => {
             </view>
             <view class="mt-3 flex flex-wrap gap-2">
               <DesignationBadge :designation-name="profile.designationName" />
-              <view class="pill pill-success">
-                {{ profile.qualifiedLabel }}
-              </view>
             </view>
           </view>
 
@@ -309,21 +222,10 @@ const performanceCards = computed<PerformanceCard[]>(() => {
           <MetricRows
             class="mt-3"
             :rows="card.metrics"
-            @row-tap="openMetricPopup(card, $event)"
           />
         </view>
       </view>
     </template>
-
-    <MetricChartPopup
-      :agent-code="routeAgentCode"
-      :visible="Boolean(selectedMetric)"
-      :title="chartPopupTitle"
-      :year="chartYear"
-      :metric="selectedMetric"
-      @visible-change="handleMetricPopupVisibleChange"
-    />
-
     <t-toast id="t-toast" />
   </view>
 </template>

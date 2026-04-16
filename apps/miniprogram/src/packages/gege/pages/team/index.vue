@@ -1,16 +1,18 @@
 <script setup lang="ts">
+import type { MetricRow } from '../../components/metric-rows/types'
+
 import { computed, onLoad, ref } from 'wevu'
 
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import {
+  createAmountMetric,
+  createMemberMetric,
+  createQualificationMetric,
+} from '../../components/metric-rows/helper'
 import MetricRows from '../../components/metric-rows/index.vue'
 import { buildPageUrl, parseRouteAgentCode } from '../../lib/agent-code'
-import {
-  formatMetricValue,
-  formatNumber,
-  formatPeriod,
-  formatQualified,
-} from '../../lib/format'
+import { formatPeriod } from '../../lib/format'
 import { useTeamStore } from '../../store'
 import TeamStatsPopup from './team-stats-popup.vue'
 
@@ -31,14 +33,6 @@ interface Period {
 
 interface PeriodOption extends Period {
   label: string
-}
-
-interface AmountMetric {
-  kind: 'amount'
-  label: 'NSC' | 'CASE'
-  monthValue: string
-  totalValue: string
-  tone: string
 }
 
 interface TeamSummary {
@@ -121,12 +115,7 @@ const viewContextLabel = computed(() => {
 const teamSummary = computed<TeamSummary>(() => stats.value?.summary ?? emptySummary)
 
 const summaryItems = computed(() => [
-  {
-    kind: 'member' as const,
-    label: '成员' as const,
-    qualifiedValue: formatNumber(teamSummary.value.qualifiedCount),
-    totalValue: formatNumber(teamSummary.value.memberCount),
-  },
+  createMemberMetric(teamSummary.value.qualifiedCount, teamSummary.value.memberCount),
 ])
 
 const latestPeriod = computed<Period | null>(() => stats.value?.latestPeriod ?? stats.value?.period ?? null)
@@ -167,8 +156,8 @@ const currentPeriodOptionIndex = computed(() => {
 })
 
 const summaryMetrics = computed(() => [
-  createAmountMetric('NSC', teamSummary.value.nsc, teamSummary.value.nscSum, 'text-primary'),
-  createAmountMetric('CASE', teamSummary.value.netCase, teamSummary.value.netCaseSum, 'text-primary-2'),
+  createAmountMetric('NSC', teamSummary.value.nsc, teamSummary.value.nscSum),
+  createAmountMetric('CASE', teamSummary.value.netCase, teamSummary.value.netCaseSum),
 ])
 const showMembersLoading = computed(() => isLoading.value && members.value.length === 0)
 const showMembersError = computed(() => {
@@ -182,29 +171,24 @@ const membersErrorDescription = computed(() => {
 })
 
 const memberCards = computed(() => {
-  return members.value.map(member => ({
-    ...member,
-    metrics: [
-      createAmountMetric('NSC', member.nsc, member.nscSum, 'text-primary'),
-      createAmountMetric('CASE', member.netCase, member.netCaseSum, 'text-primary-2'),
-    ],
-  }))
-})
+  return members.value.map((member) => {
+    const metrics: MetricRow[] = [
+      createAmountMetric('NSC', member.nsc, member.nscSum),
+      createAmountMetric('CASE', member.netCase, member.netCaseSum),
+      createQualificationMetric(
+        member.isQualified,
+        member.qualifiedGap,
+        member.isQualifiedNextMonth,
+        member.qualifiedGapNextMonth,
+      ),
+    ]
 
-function createAmountMetric(
-  label: 'NSC' | 'CASE',
-  monthValue: number | null | undefined,
-  totalValue: number | null | undefined,
-  tone: string,
-): AmountMetric {
-  return {
-    kind: 'amount' as const,
-    label,
-    monthValue: formatMetricValue(monthValue),
-    totalValue: formatMetricValue(totalValue),
-    tone,
-  }
-}
+    return {
+      ...member,
+      metrics,
+    }
+  })
+})
 
 function toPeriodIndex(period: Period): number {
   return period.year * 12 + period.month - 1
@@ -383,14 +367,6 @@ function goMemberDetail(agentCode: string) {
 
                   <view class="flex shrink-0 items-center gap-2">
                     <DesignationBadge :designation-name="member.designationName" />
-                    <view
-                      class="pill"
-                      :class="member.isQualified
-                        ? 'pill-success'
-                        : 'pill-warning'"
-                    >
-                      {{ formatQualified(member.isQualified) }}
-                    </view>
                   </view>
                 </view>
 

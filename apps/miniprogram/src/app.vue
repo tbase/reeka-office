@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type { RpcError } from '@/lib/rpc'
 import { onLaunch, onShow } from 'wevu'
 import { hydrateTenantCatalog } from '@/lib/center-api'
-import { RpcErrorCode, setRpcErrorHandler, type RpcError } from '@/lib/rpc'
+import { RpcErrorCode, setRpcErrorHandler } from '@/lib/rpc'
 
 import '@/styles/theme-light.less'
 

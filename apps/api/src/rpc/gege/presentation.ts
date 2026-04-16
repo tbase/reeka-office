@@ -22,6 +22,9 @@ export interface PresentedTeamMember extends TeamMemberBaseItem {
   nsc: number;
   netCase: number;
   isQualified: boolean;
+  qualifiedGap: number | null;
+  isQualifiedNextMonth: boolean | null;
+  qualifiedGapNextMonth: number | null;
   nscSum: number;
   netCaseSum: number;
 }
@@ -56,6 +59,7 @@ export function createMetricsMap(items: CurrentPerformanceMetricItem[]): Map<str
         netCase: item.netCase,
         netCaseSum: item.netCaseSum,
         isQualified: item.isQualified,
+        qualifiedGap: item.qualifiedGap,
         netAfyp: item.netAfyp,
         netAfypSum: item.netAfypSum,
         netAfycSum: item.netAfycSum,
@@ -68,6 +72,8 @@ export function createMetricsMap(items: CurrentPerformanceMetricItem[]): Map<str
         netCaseH: item.netCaseH,
         netCaseHSum: item.netCaseHSum,
         renewalRateTeam: item.renewalRateTeam,
+        isQualifiedNextMonth: item.isQualifiedNextMonth,
+        qualifiedGapNextMonth: item.qualifiedGapNextMonth,
       },
     ]),
   );
@@ -95,6 +101,9 @@ export function presentTeamMembers(
         nsc: metrics.nsc,
         netCase: metrics.netCase,
         isQualified: metrics.isQualified,
+        qualifiedGap: metrics.qualifiedGap,
+        isQualifiedNextMonth: metrics.isQualifiedNextMonth,
+        qualifiedGapNextMonth: metrics.qualifiedGapNextMonth,
         nscSum: metrics.nscSum,
         netCaseSum: metrics.netCaseSum,
       };
