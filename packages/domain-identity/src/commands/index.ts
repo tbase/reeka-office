@@ -13,3 +13,13 @@ export {
   type UpdateUserAvatarInput,
   type UpdateUserAvatarResult,
 } from './update-user-avatar'
+export {
+  UpdateUserNicknameCommand,
+  type UpdateUserNicknameInput,
+  type UpdateUserNicknameResult,
+} from './update-user-nickname'
+export {
+  UnbindUserTenantCommand,
+  type UnbindUserTenantInput,
+  type UnbindUserTenantResult,
+} from './unbind-user-tenant'

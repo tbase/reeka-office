@@ -31,6 +31,11 @@ interface BindByTokenResponse {
   tenants: TenantSummary[]
 }
 
+interface UnbindTenantResponse {
+  tenantCode: string
+  tenants: TenantSummary[]
+}
+
 function createCenterApiError(
   message: string,
   statusCode?: number,
@@ -141,6 +146,20 @@ export async function bindByToken(token: string): Promise<BindByTokenResponse> {
 
   syncCachedTenants(response.tenants)
   setActiveTenantCode(response.tenantCode)
+
+  return response
+}
+
+export async function unbindTenant(tenantCode: string): Promise<UnbindTenantResponse> {
+  const response = await requestCenterApi<UnbindTenantResponse>('identity/unbindTenant', {
+    tenantCode,
+  })
+
+  const activeTenantCode = getActiveTenantCode()
+  syncCachedTenants(response.tenants)
+  if (activeTenantCode === response.tenantCode) {
+    setActiveTenantCode(null)
+  }
 
   return response
 }

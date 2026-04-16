@@ -27,9 +27,10 @@ export interface ImportAgentsResult {
   deletedCount: number
 }
 
-interface AgentLeaderRow {
+interface AgentHierarchySourceRow {
   agentCode: string
   leaderCode: string | null
+  designation: number | null
 }
 
 interface AgentHierarchyRow {
@@ -149,52 +150,42 @@ function normalizeAgent(agent: ImportedAgentInput): ImportedAgentInput {
   }
 }
 
-function buildAgentHierarchyRows(rows: AgentLeaderRow[]): AgentHierarchyRow[] {
-  const parentByCode = new Map(rows.map((row) => [row.agentCode, row.leaderCode]))
-  const cache = new Map<string, AgentHierarchyRow[]>()
-  const visiting = new Set<string>()
+function buildAgentHierarchyRows(rows: AgentHierarchySourceRow[]): AgentHierarchyRow[] {
+  const agentByCode = new Map(rows.map((row) => [row.agentCode, row]))
+  const hierarchyRows: AgentHierarchyRow[] = []
 
-  const visit = (agentCode: string): AgentHierarchyRow[] => {
-    const cached = cache.get(agentCode)
-    if (cached) {
-      return cached
-    }
+  for (const agent of rows) {
+    let currentAgent = agent
+    let hierarchy = 1
+    const visiting = new Set([agent.agentCode])
 
-    if (visiting.has(agentCode)) {
-      throw new Error(`代理人层级存在循环: ${[...visiting, agentCode].join(' -> ')}`)
-    }
+    while (currentAgent.leaderCode) {
+      const leader = agentByCode.get(currentAgent.leaderCode)
 
-    visiting.add(agentCode)
-
-    const directLeaderCode = parentByCode.get(agentCode) ?? null
-    let hierarchies: AgentHierarchyRow[] = []
-
-    if (directLeaderCode) {
-      if (!parentByCode.has(directLeaderCode)) {
-        throw new Error(`直属上级不存在: ${directLeaderCode}`)
+      if (!leader) {
+        throw new Error(`直属上级不存在: ${currentAgent.leaderCode}`)
       }
 
-      hierarchies = [
-        {
-          agentCode,
-          leaderCode: directLeaderCode,
-          hierarchy: 1,
-        },
-        ...visit(directLeaderCode).map((item) => ({
-          agentCode,
-          leaderCode: item.leaderCode,
-          hierarchy: item.hierarchy + 1,
-        })),
-      ]
+      if (visiting.has(leader.agentCode)) {
+        throw new Error(`代理人层级存在循环: ${[...visiting, leader.agentCode].join(' -> ')}`)
+      }
+
+      hierarchyRows.push({
+        agentCode: agent.agentCode,
+        leaderCode: currentAgent.leaderCode,
+        hierarchy,
+      })
+
+      visiting.add(leader.agentCode)
+      currentAgent = leader
+
+      if ((currentAgent.designation ?? 0) > 2) {
+        hierarchy += 1
+      }
     }
-
-    visiting.delete(agentCode)
-    cache.set(agentCode, hierarchies)
-
-    return hierarchies
   }
 
-  return rows.flatMap((row) => visit(row.agentCode))
+  return hierarchyRows
 }
 
 export class ImportAgentsCommand {
@@ -387,6 +378,7 @@ export class ImportAgentsCommand {
         .select({
           agentCode: agents.agentCode,
           leaderCode: agents.leaderCode,
+          designation: agents.designation,
         })
         .from(agents)
         .where(isNull(agents.deletedAt))

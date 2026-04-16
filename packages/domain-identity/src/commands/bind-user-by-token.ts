@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, or } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { bindingTokens, tenants, userTenantBindings, users } from '../db/schema'
@@ -117,11 +117,61 @@ export class BindUserByTokenCommand {
         throw new Error('当前租户已绑定代理人')
       }
 
-      await tx.insert(userTenantBindings).values({
-        userId,
-        tenantCode: bindingToken.tenantCode,
-        agentId: bindingToken.agentId,
-      })
+      const inactiveBlockingRows = await tx
+        .select({
+          id: userTenantBindings.id,
+          userId: userTenantBindings.userId,
+          tenantCode: userTenantBindings.tenantCode,
+          agentId: userTenantBindings.agentId,
+          unboundAt: userTenantBindings.unboundAt,
+        })
+        .from(userTenantBindings)
+        .where(or(
+          and(
+            eq(userTenantBindings.tenantCode, bindingToken.tenantCode),
+            eq(userTenantBindings.agentId, bindingToken.agentId),
+          ),
+          and(
+            eq(userTenantBindings.userId, userId),
+            eq(userTenantBindings.tenantCode, bindingToken.tenantCode),
+          ),
+        ))
+
+      const inactiveRows = inactiveBlockingRows.filter(row => row.unboundAt)
+      const reusableRow = inactiveRows.find(row =>
+        row.userId === userId
+        && row.tenantCode === bindingToken.tenantCode,
+      ) ?? inactiveRows[0] ?? null
+
+      for (const row of inactiveRows) {
+        if (row.id === reusableRow?.id) {
+          continue
+        }
+
+        await tx
+          .delete(userTenantBindings)
+          .where(eq(userTenantBindings.id, row.id))
+      }
+
+      if (reusableRow) {
+        await tx
+          .update(userTenantBindings)
+          .set({
+            userId,
+            tenantCode: bindingToken.tenantCode,
+            agentId: bindingToken.agentId,
+            boundAt: new Date(),
+            unboundAt: null,
+          })
+          .where(eq(userTenantBindings.id, reusableRow.id))
+      }
+      else {
+        await tx.insert(userTenantBindings).values({
+          userId,
+          tenantCode: bindingToken.tenantCode,
+          agentId: bindingToken.agentId,
+        })
+      }
 
       await tx
         .update(bindingTokens)

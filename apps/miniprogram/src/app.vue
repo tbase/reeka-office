@@ -36,6 +36,7 @@ defineAppJson({
     'pages/resource/detail/index',
     'pages/training/index',
     'pages/mine/index',
+    'pages/mine/settings/index',
     'pages/unauthorized/index',
   ],
   subPackages: [

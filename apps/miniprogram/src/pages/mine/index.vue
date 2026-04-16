@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { computed, onShow, ref } from 'wevu'
+import { computed, onShow } from 'wevu'
 
-import AvatarPicker from '@/components/avatar-picker/index.vue'
-import { useMutation } from '@/hooks/useMutation'
-import { useToast } from '@/hooks/useToast'
-import { uploadFile } from '@/lib/upload-file'
 import { usePointSummaryStore } from '@/stores/points'
 import { useUserStore } from '@/stores/user'
 
@@ -15,10 +11,6 @@ definePageJson({
 
 const { user, refetch: refetchUser } = useUserStore()
 const { summary } = usePointSummaryStore()
-const requestingAvatar = ref(false)
-const { hideLoading, showLoading, showToast } = useToast()
-
-const { mutate: updateAvatar, loading: avatarUpdating } = useMutation('identity/updateAvatar')
 
 const member = computed(() => {
   return {
@@ -29,45 +21,15 @@ const member = computed(() => {
   }
 })
 
-async function syncAvatar(avatar: string) {
-  const cloudPath = await uploadFile(avatar, `agent/${member.value.agentCode}`)
-  const result = await updateAvatar({ avatar: cloudPath })
-  if (!result) {
-    showToast('头像更新失败', 'error')
-    return
-  }
-
-  await refetchUser()
-}
-
-async function onChooseAvatar(event: { avatarUrl?: string }) {
-  if (requestingAvatar.value || avatarUpdating.value) {
-    return
-  }
-
-  const avatarUrl = event.avatarUrl
-  if (!avatarUrl) {
-    showToast('未获取到头像', 'warning')
-    return
-  }
-
-  requestingAvatar.value = true
-  showLoading('更新头像中...')
-  try {
-    await syncAvatar(avatarUrl)
-  }
-  catch {
-    showToast('头像更新失败', 'error')
-  }
-  finally {
-    requestingAvatar.value = false
-    hideLoading()
-  }
-}
-
 onShow(() => {
   void refetchUser()
 })
+
+function goAgentSettings() {
+  wx.navigateTo({
+    url: '/pages/mine/settings/index',
+  })
+}
 
 function goMyPoints() {
   wx.navigateTo({
@@ -84,14 +46,22 @@ function goGege() {
 
 <template>
   <view class="min-h-screen">
-    <view class="px-4 py-6 bg-white mb-4">
+    <view class="mb-4 bg-white px-4 py-6" @tap="goAgentSettings">
       <view class="flex items-start gap-3">
-        <AvatarPicker
-          class="shrink-0"
+        <image
+          v-if="member.avatar"
+          class="block shrink-0 rounded-full bg-muted"
+          style="width: 96rpx; height: 96rpx;"
+          mode="aspectFill"
           :src="member.avatar"
-          :disabled="requestingAvatar || avatarUpdating"
-          @choose="onChooseAvatar"
         />
+        <view
+          v-else
+          class="flex shrink-0 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground"
+          style="width: 96rpx; height: 96rpx;"
+        >
+          头像
+        </view>
 
         <view class="flex min-h-[96rpx] min-w-0 flex-1 flex-col justify-center">
           <view class="block font-semibold tracking-wide">
@@ -100,6 +70,10 @@ function goGege() {
           <view v-if="member.agentCode" class="block text-sm">
             {{ member.agentCode }}
           </view>
+        </view>
+
+        <view class="flex min-h-[96rpx] shrink-0 items-center text-muted-foreground">
+          <t-icon name="chevron-right" size="40rpx" />
         </view>
       </view>
     </view>

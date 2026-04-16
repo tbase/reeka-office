@@ -12,7 +12,7 @@ import {
   getTeamStats,
   listTeamMembers,
 } from "./rpc/gege";
-import { getCurrentUser, updateAvatar } from "./rpc/identity";
+import { getCurrentUser, updateAvatar, updateNickname } from "./rpc/identity";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
 
 type PrefixKeys<P extends string, T> = {
@@ -40,6 +40,7 @@ const cmsRegistry = rpc.registry({
 const identityRegistry = rpc.registry({
   getCurrentUser,
   updateAvatar,
+  updateNickname,
 });
 
 const gegeRegistry = rpc.registry({
