@@ -2,9 +2,16 @@ import { ListAgentsQuery, getDesignationName } from "@reeka-office/domain-agent"
 import { InfoIcon, UsersIcon } from "lucide-react";
 
 import { Empty } from "@/components/ui/empty";
+import {
+  StickyTable,
+  StickyTableBodyCell,
+  StickyTableHeaderCell,
+} from "@/components/ui/sticky-table";
 
 import { GenerateBindingTokenDialog } from "./generate-binding-token-dialog";
 import type { AgentSort } from "./search-params";
+
+const agentCodeColumnClass = "w-[160px] min-w-[160px] max-w-[160px]";
 
 interface AgentListProps {
   agency: string | null;
@@ -65,81 +72,107 @@ export async function AgentList({ agency, sort }: AgentListProps) {
   return (
     <div className="space-y-3">
       <div className="overflow-hidden rounded-md border">
-        <div className="max-h-[calc(100vh-16.5rem)] overflow-auto">
-          <table className="min-w-[1200px] w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-2.5 text-left font-medium">
-                  代理人编码
-                </th>
-                <th className="px-4 py-2.5 text-left font-medium">姓名</th>
-                <th className="px-4 py-2.5 text-left font-medium">加入时间</th>
-                <th className="px-4 py-2.5 text-left font-medium">职级</th>
-                <th className="px-4 py-2.5 text-left font-medium">直属上级</th>
-                <th className="px-4 py-2.5 text-left font-medium">财务包</th>
-                <th className="px-4 py-2.5 text-left font-medium">组织架构</th>
-                <th className="px-4 py-2.5 text-left font-medium">绑定码</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agents.map((agent) => {
-                const organization = formatOrganization([
-                  agent.agency,
-                  agent.division,
-                ]);
-                const fullOrganization = formatOrganization([
-                  agent.agency,
-                  agent.division,
-                  agent.branch,
-                  agent.unit,
-                ]);
+        <StickyTable
+          className="rounded-none border-0"
+          viewportClassName="max-h-[calc(100vh-14rem)]"
+          tableClassName="min-w-[1200px]"
+        >
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <StickyTableHeaderCell
+                stickyLeft
+                className={`${agentCodeColumnClass} text-left`}
+              >
+                代理人编码
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                姓名
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                加入时间
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                职级
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                直属上级
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                财务包
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                组织架构
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                绑定码
+              </StickyTableHeaderCell>
+            </tr>
+          </thead>
+          <tbody>
+            {agents.map((agent) => {
+              const organization = formatOrganization([
+                agent.agency,
+                agent.division,
+              ]);
+              const fullOrganization = formatOrganization([
+                agent.agency,
+                agent.division,
+                agent.branch,
+                agent.unit,
+              ]);
 
-                return (
-                  <tr
-                    key={agent.id}
-                    className="border-b transition-colors last:border-b-0 hover:bg-muted/30"
+              return (
+                <tr
+                  key={agent.id}
+                  className="group border-b transition-colors last:border-b-0 hover:bg-muted/30"
+                >
+                  <StickyTableBodyCell
+                    stickyLeft
+                    className={`${agentCodeColumnClass} bg-background font-mono font-medium group-hover:bg-muted/30`}
                   >
-                    <td className="px-4 py-3 font-mono font-medium">
-                      {agent.agentCode ?? "-"}
-                    </td>
-                    <td className="px-4 py-3">{agent.name}</td>
-                    <td className="px-4 py-3">{formatMonth(agent.joinDate)}</td>
-                    <td className="px-4 py-3">{getDesignationName(agent.designation) ?? "-"}</td>
-                    <td className="px-4 py-3 font-mono">
-                      {agent.leaderCode ?? "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {agent.finacingScheme?.length
-                        ? agent.finacingScheme.join(", ")
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <span>{organization}</span>
-                        {fullOrganization !== "-" ? (
-                          <span
-                            title={fullOrganization}
-                            aria-label={`完整组织架构：${fullOrganization}`}
-                            className="text-muted-foreground inline-flex cursor-help"
-                          >
-                            <InfoIcon className="size-3.5" />
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <GenerateBindingTokenDialog
-                        agentId={agent.id}
-                        agentCode={agent.agentCode}
-                        agentName={agent.name}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    {agent.agentCode ?? "-"}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>{agent.name}</StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    {formatMonth(agent.joinDate)}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    {getDesignationName(agent.designation) ?? "-"}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell className="font-mono">
+                    {agent.leaderCode ?? "-"}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    {agent.finacingScheme?.length
+                      ? agent.finacingScheme.join(", ")
+                      : "-"}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    <div className="flex items-center gap-1.5">
+                      <span>{organization}</span>
+                      {fullOrganization !== "-" ? (
+                        <span
+                          title={fullOrganization}
+                          aria-label={`完整组织架构：${fullOrganization}`}
+                          className="text-muted-foreground inline-flex cursor-help"
+                        >
+                          <InfoIcon className="size-3.5" />
+                        </span>
+                      ) : null}
+                    </div>
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    <GenerateBindingTokenDialog
+                      agentId={agent.id}
+                      agentCode={agent.agentCode}
+                      agentName={agent.name}
+                    />
+                  </StickyTableBodyCell>
+                </tr>
+              );
+            })}
+          </tbody>
+        </StickyTable>
 
         <div className="bg-muted/20 text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 border-t px-4 py-3 text-xs">
           <span className="text-foreground font-medium">

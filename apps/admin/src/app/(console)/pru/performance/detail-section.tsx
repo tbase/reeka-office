@@ -8,6 +8,7 @@ import { Empty } from "@/components/ui/empty"
 import { ApmTable } from "./apm-table"
 import { ImportApmDialog } from "./import-apm-dialog"
 import { PerformancePeriodFilter } from "./period-filter"
+import { RecalculateQualificationButton } from "./recalculate-qualification-button"
 import { resolveActivePeriod } from "./search-params"
 
 interface PerformanceDetailSectionProps {
@@ -32,7 +33,10 @@ export function PerformanceDetailSection({
             </>
           ) : null}
         </div>
-        <ImportApmDialog />
+        <div className="flex items-center gap-2">
+          <RecalculateQualificationButton />
+          <ImportApmDialog />
+        </div>
       </div>
 
       {activePeriod ? (

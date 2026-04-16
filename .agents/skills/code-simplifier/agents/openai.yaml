@@ -1,0 +1,7 @@
+interface:
+  display_name: "Code Simplifier"
+  short_description: "Run a sub-agent to simplify recent code changes"
+  default_prompt: "Use $code-simplifier to run a sub-agent simplification pass on the recently modified code."
+
+policy:
+  allow_implicit_invocation: false

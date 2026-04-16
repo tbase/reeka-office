@@ -2,7 +2,9 @@
 
 import {
   BatchUpsertApmCommand,
+  RecalculateApmQualificationCommand,
   type BatchUpsertApmItem,
+  type RecalculateApmQualificationResult,
 } from "@reeka-office/domain-performance"
 import { revalidatePath } from "next/cache"
 
@@ -52,6 +54,18 @@ type ImportApmActionResult =
   | {
       error: string
     }
+
+type RecalculateApmQualificationActionResult =
+  | ({
+      success: true
+    } & RecalculateApmQualificationResult)
+  | {
+      error: string
+    }
+
+function getActionErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
 
 function normalizeHeader(value: string): string {
   return value
@@ -292,7 +306,26 @@ export async function importApmAction(
     }
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "导入业绩数据失败",
+      error: getActionErrorMessage(error, "导入业绩数据失败"),
+    }
+  }
+}
+
+export async function recalculateApmQualificationAction(): Promise<RecalculateApmQualificationActionResult> {
+  try {
+    await getRequiredAdminContext()
+
+    const result = await new RecalculateApmQualificationCommand().execute()
+
+    revalidatePath("/pru/performance")
+
+    return {
+      success: true,
+      ...result,
+    }
+  } catch (error) {
+    return {
+      error: getActionErrorMessage(error, "重新计算合资格失败"),
     }
   }
 }

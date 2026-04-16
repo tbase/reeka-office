@@ -26,7 +26,7 @@ function StickyTable({
     >
       <div
         className={cn(
-          "max-h-[calc(100vh-12.5rem)] max-w-full overflow-auto",
+          "max-w-full overflow-auto",
           viewportClassName,
         )}
       >

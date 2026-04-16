@@ -30,13 +30,66 @@ type Column = {
   key: string;
   label: string;
   className?: string;
-  getValue: (row: ApmListItem) => number;
-  render: (row: ApmListItem) => string;
+  getValue?: (row: ApmListItem) => number;
+  render: (row: ApmListItem) => React.ReactNode;
+  renderSummary?: (rows: ApmListItem[]) => React.ReactNode;
   renderSummaryValue?: (value: number) => string;
 };
 
 function sumRows(rows: ApmListItem[], getValue: (row: ApmListItem) => number) {
   return rows.reduce((total, row) => total + getValue(row), 0);
+}
+
+function formatGap(value: number | null) {
+  return value == null ? "-" : formatMoney(value);
+}
+
+function renderGap(value: number | null) {
+  return (
+    <span className={value != null && value < 0 ? "text-destructive" : undefined}>
+      {formatGap(value)}
+    </span>
+  );
+}
+
+function formatQualificationSummary(
+  rows: ApmListItem[],
+  getGap: (row: ApmListItem) => number | null,
+) {
+  let qualified = 0;
+  let unqualified = 0;
+
+  for (const row of rows) {
+    const gap = getGap(row);
+    if (gap == null) {
+      continue;
+    }
+
+    if (gap >= 0) {
+      qualified += 1;
+    } else {
+      unqualified += 1;
+    }
+  }
+
+  return (
+    <>
+      <span className="text-success">{qualified}</span> vs{" "}
+      <span className="text-destructive">{unqualified}</span>
+    </>
+  );
+}
+
+function renderColumnSummary(column: Column, rows: ApmListItem[]) {
+  if (column.renderSummary) {
+    return column.renderSummary(rows);
+  }
+
+  if (column.renderSummaryValue && column.getValue) {
+    return column.renderSummaryValue(sumRows(rows, column.getValue));
+  }
+
+  return "-";
 }
 
 const columns: Column[] = [
@@ -175,6 +228,20 @@ const columns: Column[] = [
     getValue: (row) => row.renewalRateTeam,
     render: (row) => formatRate(row.renewalRateTeam),
   },
+  {
+    key: "qualifiedGap",
+    label: "当月合资格差距",
+    className: "text-right",
+    render: (row) => renderGap(row.qualifiedGap),
+    renderSummary: (rows) => formatQualificationSummary(rows, (row) => row.qualifiedGap),
+  },
+  {
+    key: "qualifiedGapNextMonth",
+    label: "下月合资格差距",
+    className: "text-right",
+    render: (row) => renderGap(row.qualifiedGapNextMonth),
+    renderSummary: (rows) => formatQualificationSummary(rows, (row) => row.qualifiedGapNextMonth),
+  },
 ];
 
 export async function ApmTable({ period, className }: APMTableProps) {
@@ -188,7 +255,7 @@ export async function ApmTable({ period, className }: APMTableProps) {
           className,
         )}
       >
-        <div className="flex min-h-[calc(100vh-16.5rem)] flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="flex min-h-[calc(100vh-17rem)] flex-col items-center justify-center gap-3 px-6 text-center">
           <BarChart3Icon className="size-9 opacity-60" />
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">
@@ -206,7 +273,7 @@ export async function ApmTable({ period, className }: APMTableProps) {
   const totalCount = rows.length;
 
   return (
-    <StickyTable className={className}>
+    <StickyTable className={className} viewportClassName="max-h-[calc(100vh-13rem)]">
       <thead>
         <tr className="border-b text-xs">
           <StickyTableHeaderCell
@@ -274,9 +341,7 @@ export async function ApmTable({ period, className }: APMTableProps) {
               key={column.key}
               className={cn("px-3 py-2 tabular-nums", column.className)}
             >
-              {column.renderSummaryValue
-                ? column.renderSummaryValue(sumRows(rows, column.getValue))
-                : "-"}
+              {renderColumnSummary(column, rows)}
             </StickyTableFooterCell>
           ))}
         </tr>

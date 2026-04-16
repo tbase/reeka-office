@@ -37,6 +37,8 @@ export interface ApmListItem {
   netCaseH: number
   netCaseHSum: number
   renewalRateTeam: number
+  qualifiedGap: number | null
+  qualifiedGapNextMonth: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -80,6 +82,8 @@ export class ListApmQuery {
         netCaseH: apm.netCaseH,
         netCaseHSum: apm.netCaseHSum,
         renewalRateTeam: apm.renewalRateTeam,
+        qualifiedGap: apm.qualifiedGap,
+        qualifiedGapNextMonth: apm.qualifiedGapNextMonth,
         createdAt: apm.createdAt,
         updatedAt: apm.updatedAt,
       })
