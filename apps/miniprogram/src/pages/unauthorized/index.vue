@@ -86,8 +86,8 @@ async function handleBind() {
   }
 }
 
-function handleTokenChange(event: WechatMiniprogram.CustomEvent<{ value?: string }>) {
-  token.value = event.detail.value ?? ''
+function handleTokenChange(event: { value?: string }) {
+  token.value = event.value ?? ''
 }
 
 function handleUseTenant(tenantCode: string) {
