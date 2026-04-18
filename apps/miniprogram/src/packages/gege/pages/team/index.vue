@@ -239,7 +239,7 @@ const summaryMetrics = computed(() => [
   createAmountMetric('CASE', teamSummary.value.netCase, teamSummary.value.netCaseSum),
 ])
 const sortOptions = computed(() => {
-  return TEAM_SORT_OPTIONS.map((option) => ({
+  return TEAM_SORT_OPTIONS.map(option => ({
     ...option,
     isActive: option.field === activeSortField.value,
     displayLabel: option.field === activeSortField.value
