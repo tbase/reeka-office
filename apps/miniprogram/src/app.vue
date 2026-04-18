@@ -49,6 +49,7 @@ defineAppJson({
         'pages/org/index',
         'pages/personal/index',
         'pages/team/index',
+        'pages/promotion/index',
       ],
     },
     {

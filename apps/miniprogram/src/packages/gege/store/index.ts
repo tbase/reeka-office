@@ -1,5 +1,6 @@
 export * from './dashboard'
 export * from './org'
 export * from './personal'
+export * from './promotion'
 export * from './search'
 export * from './team'

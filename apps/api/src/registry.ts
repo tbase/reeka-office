@@ -9,10 +9,12 @@ import {
   getMyPerformanceHistory,
   getMyPerformanceMeta,
   getOrgTree,
+  getPromotion,
   searchAgents,
   getTeamMeta,
   getTeamStats,
   listTeamMembers,
+  updateLastPromotionDate,
 } from "./rpc/gege";
 import { getCurrentUser, updateAvatar, updateNickname } from "./rpc/identity";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
@@ -51,10 +53,12 @@ const gegeRegistry = rpc.registry({
   getMyPerformanceHistory,
   getMyPerformanceMeta,
   getOrgTree,
+  getPromotion,
   searchAgents,
   getTeamMeta,
   getTeamStats,
   listTeamMembers,
+  updateLastPromotionDate,
 });
 
 const pointsRegistry = rpc.registry({

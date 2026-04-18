@@ -98,6 +98,14 @@ function goOrg() {
   })
 }
 
+function goPromotion() {
+  wx.navigateTo({
+    url: buildPageUrl('/packages/gege/pages/promotion/index', {
+      agentCode: routeAgentCode.value,
+    }),
+  })
+}
+
 function goSearch() {
   wx.navigateTo({
     url: buildPageUrl('/packages/gege/pages/search/index', {
@@ -190,8 +198,11 @@ const performanceCards = computed<PerformanceCard[]>(() => {
             <view v-if="profile.agentCode" class="mt-1 text-sm text-muted-foreground">
               {{ profile.agentCode }}
             </view>
-            <view class="mt-3 flex flex-wrap gap-2">
+            <view class="mt-3 flex flex-wrap items-center gap-2">
               <DesignationBadge :designation-name="profile.designationName" />
+              <view class="hero-inline-link" @tap="goPromotion">
+                查看晋级信息
+              </view>
             </view>
           </view>
 
@@ -287,5 +298,11 @@ const performanceCards = computed<PerformanceCard[]>(() => {
   color: var(--muted-foreground);
   font-size: 32rpx;
   line-height: 48rpx;
+}
+
+.hero-inline-link {
+  color: var(--primary);
+  font-size: 24rpx;
+  line-height: 1.4;
 }
 </style>

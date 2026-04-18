@@ -4,6 +4,12 @@ export {
   type GetAgentByCodeInput,
   type GetAgentByCodeResult,
 } from './get-agent-by-code'
+export {
+  GetAgentPromotionProfileQuery,
+  type AgentPromotionProfile,
+  type GetAgentPromotionProfileInput,
+  type GetAgentPromotionProfileResult,
+} from './get-agent-promotion-profile'
 export { GetAgentQuery, type GetAgentInput, type GetAgentResult } from './get-agent'
 export {
   GetTeamMemberRelationQuery,

@@ -27,3 +27,14 @@ export {
   listCurrentPerformanceMetrics,
   listMonthlyMetricValues,
 } from './performance-shared'
+export {
+  GetAgentPromotionSnapshotQuery,
+  type GetAgentPromotionSnapshotInput,
+} from './get-agent-promotion-snapshot'
+export {
+  type AgentPromotionSnapshot,
+  type PromotionMetric,
+  type PromotionMetricFormat,
+  type PromotionMetricKey,
+  type PromotionStatus,
+} from './promotion-shared'

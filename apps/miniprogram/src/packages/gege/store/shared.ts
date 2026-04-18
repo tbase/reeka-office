@@ -6,6 +6,7 @@ export type MetricChart = RpcOutput<'gege/getMetricChart'>
 export type MyPerformanceHistory = RpcOutput<'gege/getMyPerformanceHistory'>
 export type MyPerformanceMeta = RpcOutput<'gege/getMyPerformanceMeta'>
 export type OrgTree = RpcOutput<'gege/getOrgTree'>
+export type Promotion = RpcOutput<'gege/getPromotion'>
 export type TeamMeta = RpcOutput<'gege/getTeamMeta'>
 export type TeamStats = RpcOutput<'gege/getTeamStats'>
 export type TeamMembersPage = RpcOutput<'gege/listTeamMembers'>
