@@ -1,6 +1,7 @@
 import {
   GetAgentByCodeQuery,
   getDesignationName,
+  getDesignationValue,
   ListTeamMemberBaseQuery,
   type AgentProfile,
   type TeamMemberBaseItem,
@@ -46,21 +47,17 @@ function isDesignationAboveUm(designationName: string | null): boolean {
   return designationName != null && !["LA", "FC", "UM"].includes(designationName);
 }
 
-function sortTeamMembersByDesignationDesc(
-  members: TeamMemberBaseItem[],
-): TeamMemberBaseItem[] {
-  return [...members].sort((left, right) => {
-    const leftDesignation = left.designation ?? -1;
-    const rightDesignation = right.designation ?? -1;
+function sortOrgTreeNodes(nodes: OrgTreeNode[]): void {
+  nodes.sort((left, right) => {
+    const leftDesignation = getDesignationValue(left.designationName) ?? -1;
+    const rightDesignation = getDesignationValue(right.designationName) ?? -1;
 
     if (leftDesignation !== rightDesignation) {
       return rightDesignation - leftDesignation;
     }
 
-    const byName = left.name.localeCompare(right.name);
-
-    if (byName !== 0) {
-      return byName;
+    if (left.totalMemberCount !== right.totalMemberCount) {
+      return right.totalMemberCount - left.totalMemberCount;
     }
 
     return left.agentCode.localeCompare(right.agentCode);
@@ -87,9 +84,7 @@ function buildOrgTree(
   }
 
   function attachChildren(node: OrgTreeNode): void {
-    const children = sortTeamMembersByDesignationDesc(
-      childrenByLeaderCode.get(node.agentCode) ?? [],
-    );
+    const children = childrenByLeaderCode.get(node.agentCode) ?? [];
 
     node.children = children.map((member) => {
       const childNode = createOrgTreeNode(member, member.hierarchy);
@@ -128,6 +123,8 @@ function buildOrgTree(
     node.directLineCount = node.children.reduce((count, childNode) => {
       return count + getDirectLineContribution(childNode);
     }, 0);
+
+    sortOrgTreeNodes(node.children);
 
     return node.totalMemberCount;
   }
