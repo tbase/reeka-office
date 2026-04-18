@@ -1,13 +1,14 @@
 "use server"
 
 import {
+  getDesignationValue,
   ImportAgentsCommand,
   ListAgentsQuery,
-  getDesignationValue,
   type ImportedAgentInput,
 } from "@reeka-office/domain-agent"
 import {
   CreateBindingTokenCommand,
+  ListActiveBindingTokensQuery,
   ListActiveTenantAgentBindingsQuery,
 } from "@reeka-office/domain-identity"
 import { revalidatePath } from "next/cache"
@@ -18,7 +19,6 @@ import { getFormDataValues } from "@/lib/form-data"
 import { adminActionClient } from "@/lib/safe-action"
 
 const importAgentFieldNames = ["file"] as const
-const rmDesignationValue = getDesignationValue("RM") ?? 5
 const defaultBindingTokenExpiresInHours = 24 * 7
 
 type ImportAgentsActionResult =
@@ -344,78 +344,93 @@ export async function importAgentsAction(
   }
 }
 
-const createBindingTokenSchema = z.object({
-  agentId: z.number().int().positive(),
+const createScopedBindingTokensSchema = z.object({
+  mode: z.enum(["division", "designation"]),
+  division: z.string().trim().optional(),
+  designations: z.array(z.number().int().min(0)).default([]),
   expiresInHours: z.number().int().min(1).max(24 * 30).default(defaultBindingTokenExpiresInHours),
+}).superRefine((value, ctx) => {
+  if (value.mode === "division" && !value.division) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["division"],
+      message: "请选择 division",
+    })
+  }
+
+  if (value.mode === "designation" && value.designations.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["designations"],
+      message: "请至少选择一个职级",
+    })
+  }
 })
 
-export const createBindingTokenAction = adminActionClient
-  .inputSchema(createBindingTokenSchema)
+export const createScopedBindingTokensAction = adminActionClient
+  .inputSchema(createScopedBindingTokensSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { tenantCode } = ctx.admin
-    const expiresInHours = parsedInput.expiresInHours
-    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
+    const designations = [...new Set(parsedInput.designations)].sort((left, right) => left - right)
+    const division = parsedInput.mode === "division"
+      ? parsedInput.division?.trim() ?? ""
+      : null
 
-    const result = await new CreateBindingTokenCommand({
-      tenantCode,
-      agentId: parsedInput.agentId,
-      expiresAt,
-    }).execute()
-
-    revalidatePath("/agents")
-
-    return {
-      token: result.token,
-      expiresAt: result.expiresAt.toISOString(),
-    }
-  })
-
-const createDivisionBindingTokensSchema = z.object({
-  triggerAgentId: z.number().int().positive(),
-  expiresInHours: z.number().int().min(1).max(24 * 30).default(defaultBindingTokenExpiresInHours),
-})
-
-export const createDivisionBindingTokensAction = adminActionClient
-  .inputSchema(createDivisionBindingTokensSchema)
-  .action(async ({ parsedInput, ctx }) => {
-    const { tenantCode } = ctx.admin
-    const triggerAgents = await new ListAgentsQuery({
-      agentId: parsedInput.triggerAgentId,
-      limit: 1,
-    }).query()
-    const triggerAgent = triggerAgents[0]
-
-    if (!triggerAgent) {
-      throw new Error("代理人不存在")
-    }
-
-    const division = triggerAgent.division?.trim()
-    if (!division) {
-      throw new Error("该代理人未配置 division，无法批量生成绑定码")
-    }
-
-    if (triggerAgent.designation == null || triggerAgent.designation < rmDesignationValue) {
-      throw new Error("仅 RM 及以上代理人支持按 division 批量生成绑定码")
-    }
-
-    const divisionAgents = await new ListAgentsQuery({
+    const agents = await new ListAgentsQuery({
       division,
       sort: "designation_desc",
     }).query()
-    const activeBindings = await new ListActiveTenantAgentBindingsQuery({
-      tenantCode,
-      agentIds: divisionAgents.map((agent) => agent.id),
-    }).query()
+    const scopedAgents = agents.filter((agent) => {
+      if (agent.designation == null) {
+        return false
+      }
+
+      if (parsedInput.mode === "division") {
+        return true
+      }
+
+      return designations.includes(agent.designation)
+    })
+
+    const [activeBindings, activeTokens] = await Promise.all([
+      new ListActiveTenantAgentBindingsQuery({
+        tenantCode,
+        agentIds: scopedAgents.map((agent) => agent.id),
+      }).query(),
+      new ListActiveBindingTokensQuery({
+        tenantCode,
+        agentIds: scopedAgents.map((agent) => agent.id),
+      }).query(),
+    ])
+
     const activeBindingByAgentId = new Map(
       activeBindings.map((binding) => [binding.agentId, binding]),
     )
+    const activeTokenByAgentId = new Map<number, (typeof activeTokens)[number]>()
 
-    const eligibleAgents = divisionAgents.filter((agent) => !activeBindingByAgentId.has(agent.id))
+    for (const token of activeTokens) {
+      const current = activeTokenByAgentId.get(token.agentId)
+
+      if (!current || token.expiresAt.getTime() > current.expiresAt.getTime()) {
+        activeTokenByAgentId.set(token.agentId, token)
+      }
+    }
+    const skippedExistingTokenCount = scopedAgents.filter((agent) =>
+      !activeBindingByAgentId.has(agent.id)
+      && activeTokenByAgentId.has(agent.id),
+    ).length
+
+    const eligibleAgents = scopedAgents.filter((agent) =>
+      !activeBindingByAgentId.has(agent.id)
+      && !activeTokenByAgentId.has(agent.id),
+    )
     const expiresAt = new Date(Date.now() + parsedInput.expiresInHours * 60 * 60 * 1000)
     const generated: Array<{
       agentId: number
       name: string
       agentCode: string | null
+      division: string | null
+      designation: number | null
       token: string
       expiresAt: string
     }> = []
@@ -431,17 +446,48 @@ export const createDivisionBindingTokensAction = adminActionClient
         agentId: agent.id,
         name: agent.name,
         agentCode: agent.agentCode,
+        division: agent.division,
+        designation: agent.designation,
         token: result.token,
         expiresAt: result.expiresAt.toISOString(),
       })
     }
 
+    const tokens = scopedAgents
+      .filter((agent) => !activeBindingByAgentId.has(agent.id))
+      .map((agent) => {
+        const generatedToken = generated.find((item) => item.agentId === agent.id)
+        if (generatedToken) {
+          return generatedToken
+        }
+
+        const existingToken = activeTokenByAgentId.get(agent.id)
+        if (!existingToken) {
+          return null
+        }
+
+        return {
+          agentId: agent.id,
+          name: agent.name,
+          agentCode: agent.agentCode,
+          division: agent.division,
+          designation: agent.designation,
+          token: existingToken.token,
+          expiresAt: existingToken.expiresAt.toISOString(),
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => item != null)
+
     revalidatePath("/agents")
 
     return {
+      mode: parsedInput.mode,
       division,
-      generated,
-      skippedCount: divisionAgents.length - eligibleAgents.length,
-      totalCount: divisionAgents.length,
+      designations,
+      generatedCount: generated.length,
+      tokens,
+      totalCount: scopedAgents.length,
+      skippedActivatedCount: activeBindingByAgentId.size,
+      skippedExistingTokenCount,
     }
   })

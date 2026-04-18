@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { ListAgentAgenciesQuery } from "@reeka-office/domain-agent";
+import { ListAgentAgenciesQuery, ListAgentsQuery } from "@reeka-office/domain-agent";
 import { Suspense } from "react";
 
 import { Empty } from "@/components/ui/empty";
@@ -8,6 +8,7 @@ import { getRequiredAdminContext } from "@/lib/admin-context";
 
 import { AgentFilters } from "./agent-filters";
 import { AgentList } from "./agent-list";
+import { GenerateBindingTokensDialog } from "./generate-binding-tokens-dialog";
 import { ImportAgentsDialog } from "./import-agents-dialog";
 import { parseAgencyFilter, parseAgentSort } from "./search-params";
 
@@ -26,6 +27,14 @@ export default async function AgentsPage({
     requestedAgency && agencies.includes(requestedAgency)
       ? requestedAgency
       : null;
+  const agents = await new ListAgentsQuery({
+    sort: "designation_desc",
+  }).query();
+  const divisions = [...new Set(
+    agents
+      .map((agent) => agent.division?.trim() ?? "")
+      .filter((division) => division.length > 0),
+  )].sort((left, right) => left.localeCompare(right, "zh-CN"));
   const sort = parseAgentSort(
     typeof params.sort === "string" ? params.sort : undefined,
   );
@@ -39,7 +48,10 @@ export default async function AgentsPage({
               代理人管理
             </h1>
           </div>
-          <ImportAgentsDialog />
+          <div className="flex flex-wrap items-center gap-2">
+            <GenerateBindingTokensDialog divisions={divisions} />
+            <ImportAgentsDialog />
+          </div>
         </div>
 
         <AgentFilters

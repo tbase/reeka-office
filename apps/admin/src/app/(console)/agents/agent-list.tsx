@@ -1,7 +1,6 @@
 import {
   ListAgentsQuery,
   getDesignationName,
-  getDesignationValue,
 } from "@reeka-office/domain-agent";
 import { ListActiveTenantAgentBindingsQuery } from "@reeka-office/domain-identity";
 import { InfoIcon, UsersIcon } from "lucide-react";
@@ -14,11 +13,9 @@ import {
 } from "@/components/ui/sticky-table";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { DivisionBindingTokenDialog } from "./division-binding-token-dialog";
 import type { AgentSort } from "./search-params";
 
 const agentCodeColumnClass = "w-[160px] min-w-[160px] max-w-[160px]";
-const rmDesignationValue = getDesignationValue("RM") ?? 5;
 
 interface AgentListProps {
   agency: string | null;
@@ -131,9 +128,6 @@ export async function AgentList({ agency, sort }: AgentListProps) {
               <StickyTableHeaderCell className="text-left">
                 激活时间
               </StickyTableHeaderCell>
-              <StickyTableHeaderCell className="text-left">
-                绑定码
-              </StickyTableHeaderCell>
             </tr>
           </thead>
           <tbody>
@@ -151,11 +145,6 @@ export async function AgentList({ agency, sort }: AgentListProps) {
               const activationTime = formatDateTime(
                 activationTimeByAgentId.get(agent.id) ?? null,
               );
-              const division = agent.division?.trim() ?? "";
-              const canBatchGenerate =
-                division.length > 0
-                && agent.designation != null
-                && agent.designation >= rmDesignationValue;
 
               return (
                 <tr
@@ -199,17 +188,6 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                   </StickyTableBodyCell>
                   <StickyTableBodyCell>
                     {activationTime ?? ""}
-                  </StickyTableBodyCell>
-                  <StickyTableBodyCell>
-                    {canBatchGenerate ? (
-                      <DivisionBindingTokenDialog
-                        triggerAgentId={agent.id}
-                        triggerAgentName={agent.name}
-                        division={division}
-                      />
-                    ) : (
-                      ""
-                    )}
                   </StickyTableBodyCell>
                 </tr>
               );

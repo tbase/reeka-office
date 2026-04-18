@@ -1,4 +1,10 @@
 export {
+  ListActiveBindingTokensQuery,
+  type ActiveBindingToken,
+  type ListActiveBindingTokensInput,
+  type ListActiveBindingTokensResult,
+} from './list-active-binding-tokens'
+export {
   ListActiveTenantAgentBindingsQuery,
   type ActiveTenantAgentBinding,
   type ListActiveTenantAgentBindingsInput,
