@@ -46,6 +46,27 @@ function isDesignationAboveUm(designationName: string | null): boolean {
   return designationName != null && !["LA", "FC", "UM"].includes(designationName);
 }
 
+function sortTeamMembersByDesignationDesc(
+  members: TeamMemberBaseItem[],
+): TeamMemberBaseItem[] {
+  return [...members].sort((left, right) => {
+    const leftDesignation = left.designation ?? -1;
+    const rightDesignation = right.designation ?? -1;
+
+    if (leftDesignation !== rightDesignation) {
+      return rightDesignation - leftDesignation;
+    }
+
+    const byName = left.name.localeCompare(right.name);
+
+    if (byName !== 0) {
+      return byName;
+    }
+
+    return left.agentCode.localeCompare(right.agentCode);
+  });
+}
+
 function buildOrgTree(
   rootAgent: AgentProfile,
   members: TeamMemberBaseItem[],
@@ -66,7 +87,9 @@ function buildOrgTree(
   }
 
   function attachChildren(node: OrgTreeNode): void {
-    const children = childrenByLeaderCode.get(node.agentCode) ?? [];
+    const children = sortTeamMembersByDesignationDesc(
+      childrenByLeaderCode.get(node.agentCode) ?? [],
+    );
 
     node.children = children.map((member) => {
       const childNode = createOrgTreeNode(member, member.hierarchy);

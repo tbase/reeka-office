@@ -6,7 +6,7 @@
   "description": "海纳家办小程序",
   "keywords": [],
   "scripts": {
-    "dev": "wv dev",
+    "dev": "VITE_TENANT_LOCAL_API=http://localhost:3001 wv dev",
     "dev:open": "wv dev -o",
     "build": "wv build",
     "lint": "eslint .",
