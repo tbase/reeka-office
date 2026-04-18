@@ -4,7 +4,10 @@ import type { RpcOutput } from '@/lib/rpc'
 import { computed, onLoad, ref, watch } from 'wevu'
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
-import { parseRouteAgentCode } from '../../lib/agent-code'
+import {
+  buildPageUrl,
+  parseRouteAgentCode,
+} from '../../lib/agent-code'
 import { showOrg as getShowOrg } from '../../lib/designation'
 import { formatNumber } from '../../lib/format'
 import { useOrgTreeStore } from '../../store'
@@ -27,9 +30,14 @@ interface VisibleOrgNode {
   hasChildren: boolean
   isExpanded: boolean
   depth: number
-  childCount: number
+  directReportCount: number
+  directLineCount: number
+  totalMemberCount: number
+  showCount: boolean
+  showSingleCount: boolean
 }
 
+const UM_AND_BELOW_DESIGNATION_NAMES = new Set(['LA', 'FC', 'UM'])
 const routeReady = ref(false)
 const routeAgentCode = ref<string | null>(null)
 const routeError = ref<string | null>(null)
@@ -78,12 +86,16 @@ const rootNode = computed(() => tree.value?.root ?? null)
 const showOrg = computed(() => getShowOrg(rootNode.value?.designationName))
 const summaryItems = computed(() => [
   {
-    label: '成员数',
-    value: formatNumber(tree.value?.totalMembers),
+    label: '直接直属',
+    value: formatNumber(rootNode.value?.directReportCount),
   },
   {
     label: '直属成员',
-    value: formatNumber(rootNode.value?.children.length),
+    value: formatNumber(rootNode.value?.directLineCount),
+  },
+  {
+    label: '全部成员',
+    value: formatNumber(tree.value?.totalMembers),
   },
 ])
 const showEmpty = computed(() => {
@@ -93,7 +105,7 @@ const showEmpty = computed(() => {
     return false
   }
 
-  return root.children.length === 0 && !isLoading.value
+  return root.totalMemberCount === 0 && !isLoading.value
 })
 
 const visibleNodes = computed<VisibleOrgNode[]>(() => {
@@ -109,6 +121,9 @@ const visibleNodes = computed<VisibleOrgNode[]>(() => {
     const children = node.children ?? []
     const hasChildren = children.length > 0
     const isExpanded = Boolean(expandedNodes.value[node.agentCode])
+    const normalizedDesignationName = node.designationName?.trim().toUpperCase() ?? null
+    const showSingleCount = !normalizedDesignationName
+      || UM_AND_BELOW_DESIGNATION_NAMES.has(normalizedDesignationName)
 
     items.push({
       agentCode: node.agentCode,
@@ -117,7 +132,11 @@ const visibleNodes = computed<VisibleOrgNode[]>(() => {
       hasChildren,
       isExpanded,
       depth,
-      childCount: children.length,
+      directReportCount: node.directReportCount,
+      directLineCount: node.directLineCount,
+      totalMemberCount: node.totalMemberCount,
+      showCount: node.totalMemberCount > 0,
+      showSingleCount,
     })
 
     if (!hasChildren || !isExpanded) {
@@ -152,6 +171,14 @@ function createIndentStyle(depth: number) {
 
   return `padding-left: ${safeDepth * 32}rpx;`
 }
+
+function goAgentDashboard(agentCode: string) {
+  wx.navigateTo({
+    url: buildPageUrl('/packages/gege/pages/index/index', {
+      agentCode,
+    }),
+  })
+}
 </script>
 
 <template>
@@ -177,7 +204,7 @@ function createIndentStyle(depth: number) {
             </view>
           </view>
 
-          <view class="mt-4 grid grid-cols-2 gap-3">
+          <view class="mt-4 grid grid-cols-3 gap-3">
             <view
               v-for="item in summaryItems"
               :key="item.label"
@@ -210,19 +237,19 @@ function createIndentStyle(depth: number) {
             <view
               v-for="node in visibleNodes"
               :key="node.agentCode"
-              hover-class="bg-muted"
-              class="rounded-lg px-2 py-2 transition-colors"
-              @tap="toggleNode(node.agentCode, node.hasChildren)"
+              class="rounded-lg px-2 py-2"
             >
               <view
                 class="flex items-start gap-3"
                 :style="createIndentStyle(node.depth)"
               >
                 <view
+                  hover-class="opacity-80"
                   class="mt-2 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[18rpx] font-bold leading-none"
                   :class="node.hasChildren
                     ? 'border-primary bg-accent text-primary'
                     : 'border-success bg-success-soft text-success'"
+                  @tap.stop="toggleNode(node.agentCode, node.hasChildren)"
                 >
                   <view v-if="node.hasChildren" class="block leading-none">
                     {{ node.isExpanded ? '-' : '+' }}
@@ -233,8 +260,10 @@ function createIndentStyle(depth: number) {
                 </view>
 
                 <view
+                  hover-class="bg-muted"
                   class="card min-w-0 flex-1 border border-border bg-card px-3 py-3 shadow-none"
                   :class="node.depth > 0 ? 'border-l-[6rpx] border-l-primary/35' : 'border-l-[6rpx] border-l-primary'"
+                  @tap="goAgentDashboard(node.agentCode)"
                 >
                   <view class="flex items-start justify-between gap-3">
                     <view class="min-w-0">
@@ -250,10 +279,15 @@ function createIndentStyle(depth: number) {
                     </view>
 
                     <view
-                      v-if="node.hasChildren"
+                      v-if="node.showCount"
                       class="pill pill-muted shrink-0"
                     >
-                      {{ node.childCount }} 人
+                      <template v-if="node.showSingleCount">
+                        {{ formatNumber(node.totalMemberCount) }}
+                      </template>
+                      <template v-else>
+                        {{ formatNumber(node.directReportCount) }}/{{ formatNumber(node.directLineCount) }}/{{ formatNumber(node.totalMemberCount) }}
+                      </template>
                     </view>
                   </view>
                 </view>

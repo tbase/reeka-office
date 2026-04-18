@@ -14,6 +14,9 @@ export interface OrgTreeNode {
   name: string;
   designationName: string | null;
   hierarchy: number;
+  directReportCount: number;
+  directLineCount: number;
+  totalMemberCount: number;
   children: OrgTreeNode[];
 }
 
@@ -32,8 +35,15 @@ function createOrgTreeNode(
     name: agent.name,
     designationName: getDesignationName(agent.designation),
     hierarchy,
+    directReportCount: 0,
+    directLineCount: 0,
+    totalMemberCount: 0,
     children: [],
   };
+}
+
+function isDesignationAboveUm(designationName: string | null): boolean {
+  return designationName != null && !["LA", "FC", "UM"].includes(designationName);
 }
 
 function buildOrgTree(
@@ -75,7 +85,32 @@ function buildOrgTree(
     }, node.hierarchy);
   }
 
+  function getDirectLineContribution(node: OrgTreeNode): number {
+    if (isDesignationAboveUm(node.designationName)) {
+      return 1;
+    }
+
+    return 1 + node.children.reduce((count, childNode) => {
+      return count + getDirectLineContribution(childNode);
+    }, 0);
+  }
+
+  function populateCounts(node: OrgTreeNode): number {
+    node.directReportCount = node.children.length;
+
+    node.totalMemberCount = node.children.reduce((count, childNode) => {
+      return count + 1 + populateCounts(childNode);
+    }, 0);
+
+    node.directLineCount = node.children.reduce((count, childNode) => {
+      return count + getDirectLineContribution(childNode);
+    }, 0);
+
+    return node.totalMemberCount;
+  }
+
   attachChildren(root);
+  populateCounts(root);
 
   return {
     root,
