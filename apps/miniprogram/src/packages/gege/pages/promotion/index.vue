@@ -144,8 +144,9 @@ function formatSignedPromotionValue(value: number, format: PromotionMetricFormat
   return formattedValue
 }
 
+const MONTH_VALUE_REGEXP = /^(\d{4})-(\d{2})-\d{2}$/
 function toMonthValue(value: string | null | undefined): string | null {
-  const matched = value?.match(/^(\d{4})-(\d{2})-\d{2}$/)
+  const matched = value?.match(MONTH_VALUE_REGEXP)
 
   if (!matched) {
     return null
@@ -165,7 +166,7 @@ function formatLastPromotionMonth(value: string | null | undefined): string {
   return `${year} 年 ${month} 月`
 }
 
-type PickerDateEvent = {
+interface PickerDateEvent {
   detail?: {
     value?: string
   }
