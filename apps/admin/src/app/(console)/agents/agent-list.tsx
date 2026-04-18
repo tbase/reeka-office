@@ -1,4 +1,9 @@
-import { ListAgentsQuery, getDesignationName } from "@reeka-office/domain-agent";
+import {
+  ListAgentsQuery,
+  getDesignationName,
+  getDesignationValue,
+} from "@reeka-office/domain-agent";
+import { ListActiveTenantAgentBindingsQuery } from "@reeka-office/domain-identity";
 import { InfoIcon, UsersIcon } from "lucide-react";
 
 import { Empty } from "@/components/ui/empty";
@@ -7,11 +12,13 @@ import {
   StickyTableBodyCell,
   StickyTableHeaderCell,
 } from "@/components/ui/sticky-table";
+import { getRequiredAdminContext } from "@/lib/admin-context";
 
-import { GenerateBindingTokenDialog } from "./generate-binding-token-dialog";
+import { DivisionBindingTokenDialog } from "./division-binding-token-dialog";
 import type { AgentSort } from "./search-params";
 
 const agentCodeColumnClass = "w-[160px] min-w-[160px] max-w-[160px]";
+const rmDesignationValue = getDesignationValue("RM") ?? 5;
 
 interface AgentListProps {
   agency: string | null;
@@ -30,11 +37,29 @@ function formatOrganization(parts: Array<string | null>) {
   return parts.filter((item) => !!item).join(" / ") || "-";
 }
 
+function formatDateTime(value: Date | string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return new Date(value).toLocaleString("zh-CN", {
+    hour12: false,
+  });
+}
+
 export async function AgentList({ agency, sort }: AgentListProps) {
+  const { tenantCode } = await getRequiredAdminContext();
   const agents = await new ListAgentsQuery({
     agency,
     sort,
   }).query();
+  const activeBindings = await new ListActiveTenantAgentBindingsQuery({
+    tenantCode,
+    agentIds: agents.map((agent) => agent.id),
+  }).query();
+  const activationTimeByAgentId = new Map(
+    activeBindings.map((binding) => [binding.agentId, binding.boundAt]),
+  );
   const designationStats = Array.from(
     agents
       .reduce((stats, agent) => {
@@ -75,7 +100,7 @@ export async function AgentList({ agency, sort }: AgentListProps) {
         <StickyTable
           className="rounded-none border-0"
           viewportClassName="max-h-[calc(100vh-14rem)]"
-          tableClassName="min-w-[1200px]"
+          tableClassName="w-full min-w-[1200px]"
         >
           <thead>
             <tr className="border-b bg-muted/50">
@@ -104,6 +129,9 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                 组织架构
               </StickyTableHeaderCell>
               <StickyTableHeaderCell className="text-left">
+                激活时间
+              </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
                 绑定码
               </StickyTableHeaderCell>
             </tr>
@@ -120,6 +148,14 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                 agent.branch,
                 agent.unit,
               ]);
+              const activationTime = formatDateTime(
+                activationTimeByAgentId.get(agent.id) ?? null,
+              );
+              const division = agent.division?.trim() ?? "";
+              const canBatchGenerate =
+                division.length > 0
+                && agent.designation != null
+                && agent.designation >= rmDesignationValue;
 
               return (
                 <tr
@@ -162,11 +198,18 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                     </div>
                   </StickyTableBodyCell>
                   <StickyTableBodyCell>
-                    <GenerateBindingTokenDialog
-                      agentId={agent.id}
-                      agentCode={agent.agentCode}
-                      agentName={agent.name}
-                    />
+                    {activationTime ?? ""}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    {canBatchGenerate ? (
+                      <DivisionBindingTokenDialog
+                        triggerAgentId={agent.id}
+                        triggerAgentName={agent.name}
+                        division={division}
+                      />
+                    ) : (
+                      ""
+                    )}
                   </StickyTableBodyCell>
                 </tr>
               );

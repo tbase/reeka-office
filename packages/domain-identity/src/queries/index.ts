@@ -1,4 +1,10 @@
 export {
+  ListActiveTenantAgentBindingsQuery,
+  type ActiveTenantAgentBinding,
+  type ListActiveTenantAgentBindingsInput,
+  type ListActiveTenantAgentBindingsResult,
+} from './list-active-tenant-agent-bindings'
+export {
   ListUserTenantsQuery,
   type ListUserTenantsInput,
   type ListUserTenantsResult,

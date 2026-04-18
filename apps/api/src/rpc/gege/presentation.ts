@@ -190,7 +190,10 @@ export function sortPresentedTeamMembers(
   });
 }
 
-export function summarizeTeamMembers(members: PresentedTeamMember[]): TeamSummary {
+export function summarizeTeamMembers(
+  members: PresentedTeamMember[],
+  self: PerformanceMetrics,
+): TeamSummary {
   return members.reduce<TeamSummary>((summary, member) => ({
     memberCount: summary.memberCount + 1,
     nsc: summary.nsc + member.nsc,
@@ -199,12 +202,12 @@ export function summarizeTeamMembers(members: PresentedTeamMember[]): TeamSummar
     netCaseSum: summary.netCaseSum + member.netCaseSum,
     qualifiedCount: summary.qualifiedCount + (member.isQualified ? 1 : 0),
   }), {
-    memberCount: 0,
-    nsc: 0,
-    nscSum: 0,
-    netCase: 0,
-    netCaseSum: 0,
-    qualifiedCount: 0,
+    memberCount: 1,
+    nsc: self.nsc,
+    nscSum: self.nscSum,
+    netCase: self.netCase,
+    netCaseSum: self.netCaseSum,
+    qualifiedCount: self.isQualified ? 1 : 0,
   });
 }
 

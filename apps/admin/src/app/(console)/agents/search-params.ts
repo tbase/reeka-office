@@ -7,7 +7,7 @@ export const VALID_AGENT_SORTS = [
 
 export type AgentSort = (typeof VALID_AGENT_SORTS)[number]
 
-export const DEFAULT_AGENT_SORT: AgentSort = "join_date_desc"
+export const DEFAULT_AGENT_SORT: AgentSort = "designation_desc"
 
 export function parseAgentSort(value: string | undefined): AgentSort {
   if (VALID_AGENT_SORTS.includes(value as AgentSort)) {

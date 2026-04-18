@@ -14,6 +14,7 @@ export type ListAgentSort = (typeof LIST_AGENT_SORTS)[number]
 
 export interface ListAgentsInput {
   agency?: string | null
+  division?: string | null
   sort?: ListAgentSort
   agentId?: number
   keyword?: string | null
@@ -34,10 +35,15 @@ export class ListAgentsQuery {
   async query(): Promise<ListAgentsResult> {
     const conditions = [isNull(agents.deletedAt)]
     const agency = this.input.agency?.trim()
+    const division = this.input.division?.trim()
     const keyword = this.input.keyword?.trim()
 
     if (agency) {
       conditions.push(eq(agents.agency, agency))
+    }
+
+    if (division) {
+      conditions.push(eq(agents.division, division))
     }
 
     if (this.input.agentId) {

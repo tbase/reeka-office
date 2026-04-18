@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 
 import { createBindingTokenAction } from "./actions";
 
+const defaultBindingTokenExpiresInHours = 24 * 7;
+
 interface GenerateBindingTokenDialogProps {
   agentId: number;
   agentCode: string | null;
@@ -53,7 +55,7 @@ export function GenerateBindingTokenDialog({
     setExpiresAt("");
     execute({
       agentId,
-      expiresInHours: 24,
+      expiresInHours: defaultBindingTokenExpiresInHours,
     });
   };
 

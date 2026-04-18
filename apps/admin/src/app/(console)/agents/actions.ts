@@ -2,10 +2,14 @@
 
 import {
   ImportAgentsCommand,
+  ListAgentsQuery,
   getDesignationValue,
   type ImportedAgentInput,
 } from "@reeka-office/domain-agent"
-import { CreateBindingTokenCommand } from "@reeka-office/domain-identity"
+import {
+  CreateBindingTokenCommand,
+  ListActiveTenantAgentBindingsQuery,
+} from "@reeka-office/domain-identity"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -14,6 +18,8 @@ import { getFormDataValues } from "@/lib/form-data"
 import { adminActionClient } from "@/lib/safe-action"
 
 const importAgentFieldNames = ["file"] as const
+const rmDesignationValue = getDesignationValue("RM") ?? 5
+const defaultBindingTokenExpiresInHours = 24 * 7
 
 type ImportAgentsActionResult =
   | {
@@ -340,7 +346,7 @@ export async function importAgentsAction(
 
 const createBindingTokenSchema = z.object({
   agentId: z.number().int().positive(),
-  expiresInHours: z.number().int().min(1).max(24 * 30).default(24),
+  expiresInHours: z.number().int().min(1).max(24 * 30).default(defaultBindingTokenExpiresInHours),
 })
 
 export const createBindingTokenAction = adminActionClient
@@ -361,5 +367,81 @@ export const createBindingTokenAction = adminActionClient
     return {
       token: result.token,
       expiresAt: result.expiresAt.toISOString(),
+    }
+  })
+
+const createDivisionBindingTokensSchema = z.object({
+  triggerAgentId: z.number().int().positive(),
+  expiresInHours: z.number().int().min(1).max(24 * 30).default(defaultBindingTokenExpiresInHours),
+})
+
+export const createDivisionBindingTokensAction = adminActionClient
+  .inputSchema(createDivisionBindingTokensSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { tenantCode } = ctx.admin
+    const triggerAgents = await new ListAgentsQuery({
+      agentId: parsedInput.triggerAgentId,
+      limit: 1,
+    }).query()
+    const triggerAgent = triggerAgents[0]
+
+    if (!triggerAgent) {
+      throw new Error("代理人不存在")
+    }
+
+    const division = triggerAgent.division?.trim()
+    if (!division) {
+      throw new Error("该代理人未配置 division，无法批量生成绑定码")
+    }
+
+    if (triggerAgent.designation == null || triggerAgent.designation < rmDesignationValue) {
+      throw new Error("仅 RM 及以上代理人支持按 division 批量生成绑定码")
+    }
+
+    const divisionAgents = await new ListAgentsQuery({
+      division,
+      sort: "designation_desc",
+    }).query()
+    const activeBindings = await new ListActiveTenantAgentBindingsQuery({
+      tenantCode,
+      agentIds: divisionAgents.map((agent) => agent.id),
+    }).query()
+    const activeBindingByAgentId = new Map(
+      activeBindings.map((binding) => [binding.agentId, binding]),
+    )
+
+    const eligibleAgents = divisionAgents.filter((agent) => !activeBindingByAgentId.has(agent.id))
+    const expiresAt = new Date(Date.now() + parsedInput.expiresInHours * 60 * 60 * 1000)
+    const generated: Array<{
+      agentId: number
+      name: string
+      agentCode: string | null
+      token: string
+      expiresAt: string
+    }> = []
+
+    for (const agent of eligibleAgents) {
+      const result = await new CreateBindingTokenCommand({
+        tenantCode,
+        agentId: agent.id,
+        expiresAt,
+      }).execute()
+
+      generated.push({
+        agentId: agent.id,
+        name: agent.name,
+        agentCode: agent.agentCode,
+        token: result.token,
+        expiresAt: result.expiresAt.toISOString(),
+      })
+    }
+
+    revalidatePath("/agents")
+
+    return {
+      division,
+      generated,
+      skippedCount: divisionAgents.length - eligibleAgents.length,
+      totalCount: divisionAgents.length,
     }
   })

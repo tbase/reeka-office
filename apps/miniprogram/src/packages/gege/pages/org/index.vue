@@ -105,7 +105,7 @@ const showEmpty = computed(() => {
     return false
   }
 
-  return root.totalMemberCount === 0 && !isLoading.value
+  return root.children.length === 0 && !isLoading.value
 })
 
 const visibleNodes = computed<VisibleOrgNode[]>(() => {

@@ -116,11 +116,11 @@ function buildOrgTree(
   function populateCounts(node: OrgTreeNode): number {
     node.directReportCount = node.children.length;
 
-    node.totalMemberCount = node.children.reduce((count, childNode) => {
-      return count + 1 + populateCounts(childNode);
+    node.totalMemberCount = 1 + node.children.reduce((count, childNode) => {
+      return count + populateCounts(childNode);
     }, 0);
 
-    node.directLineCount = node.children.reduce((count, childNode) => {
+    node.directLineCount = 1 + node.children.reduce((count, childNode) => {
       return count + getDirectLineContribution(childNode);
     }, 0);
 
@@ -134,7 +134,7 @@ function buildOrgTree(
 
   return {
     root,
-    totalMembers: members.length,
+    totalMembers: members.length + 1,
     maxDepth: getMaxDepth(root),
   };
 }

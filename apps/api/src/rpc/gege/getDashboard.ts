@@ -61,6 +61,7 @@ export const getDashboard = rpc.define({
       ],
     });
     const metricsMap = createMetricsMap(metricResult.items);
+    const self = getMetrics(metricsMap, effectiveAgentCode);
     const presentedDirectMembers = presentTeamMembers(directMembers, metricsMap);
     const presentedDivisionMembers = presentTeamMembers(divisionMembers, metricsMap);
     const presentedAllMembers = presentTeamMembers(allMembers, metricsMap);
@@ -68,13 +69,13 @@ export const getDashboard = rpc.define({
     return {
       period: metricResult.period,
       agent: presentAgentProfile(agent),
-      self: getMetrics(metricsMap, effectiveAgentCode),
+      self,
       team: {
-        direct: summarizeTeamMembers(presentedDirectMembers),
+        direct: summarizeTeamMembers(presentedDirectMembers, self),
         division: teamMeta.availableScopes.some((option) => option.scope === "division")
-          ? summarizeTeamMembers(presentedDivisionMembers)
+          ? summarizeTeamMembers(presentedDivisionMembers, self)
           : null,
-        all: summarizeTeamMembers(presentedAllMembers),
+        all: summarizeTeamMembers(presentedAllMembers, self),
       },
     };
   }),

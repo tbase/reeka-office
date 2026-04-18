@@ -4,6 +4,7 @@ import { mustAgent, rpc } from "../../context";
 import { getCurrentPerformanceMetrics, type CurrentPerformanceResult } from "./current-performance";
 import {
   createMetricsMap,
+  getMetrics,
   presentTeamMembers,
   summarizeTeamMembers,
   type TeamSummary,
@@ -34,17 +35,21 @@ export const getTeamStats = rpc.define({
         }
       : undefined;
     const metricResult = await getCurrentPerformanceMetrics({
-      agentCodes: members.map((member) => member.agentCode),
+      agentCodes: [
+        agentCode,
+        ...members.map((member) => member.agentCode),
+      ],
       period: requestedPeriod,
     });
     const metricsMap = createMetricsMap(metricResult.items);
+    const self = getMetrics(metricsMap, agentCode);
     const presentedMembers = presentTeamMembers(members, metricsMap);
 
     return {
       latestPeriod: metricResult.latestPeriod,
       period: metricResult.period,
       scope,
-      summary: summarizeTeamMembers(presentedMembers),
+      summary: summarizeTeamMembers(presentedMembers, self),
     };
   }),
 });
