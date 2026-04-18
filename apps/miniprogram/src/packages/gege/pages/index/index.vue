@@ -50,6 +50,7 @@ usePullDownRefresh(async () => {
 
 const pageError = computed(() => routeError.value ?? error.value?.message ?? null)
 const showOrg = computed(() => getShowOrg(dashboard.value?.agent.designationName))
+const showSearchEntry = computed(() => !routeAgentCode.value)
 
 const profile = computed(() => ({
   name: dashboard.value?.agent.name ?? '咯咯咯',
@@ -205,7 +206,7 @@ const performanceCards = computed<PerformanceCard[]>(() => {
         </view>
       </view>
 
-      <view class="mt-4" @tap="goSearch">
+      <view v-if="showSearchEntry" class="mt-4" @tap="goSearch">
         <view class="agent-search-entry">
           <t-icon name="search" size="48rpx" class="agent-search-entry__icon" />
           <view class="agent-search-entry__placeholder">
