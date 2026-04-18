@@ -8,6 +8,10 @@ import {
   type CurrentPerformanceMetricItem,
   type PerformanceMetrics,
 } from "@reeka-office/domain-performance";
+import type {
+  GegeSortDirection,
+  GegeTeamMemberSortField,
+} from "./shared";
 
 export type RelationLabel = "直属" | "非直属";
 
@@ -35,6 +39,11 @@ export interface TeamSummary {
   netCase: number;
   netCaseSum: number;
   qualifiedCount: number;
+}
+
+export interface TeamMemberSort {
+  field: GegeTeamMemberSortField;
+  direction: GegeSortDirection;
 }
 
 export function getRelationLabel(hierarchy: number): RelationLabel {
@@ -89,39 +98,96 @@ export function presentTeamMembers(
   members: TeamMemberBaseItem[],
   metricsMap: Map<string, PerformanceMetrics>,
 ): PresentedTeamMember[] {
-  return members
-    .map((member) => {
-      const metrics = getMetrics(metricsMap, member.agentCode);
+  return members.map((member) => {
+    const metrics = getMetrics(metricsMap, member.agentCode);
 
-      return {
-        ...member,
-        designationName: getDesignationName(member.designation),
-        relationLabel: getRelationLabel(member.hierarchy),
-        nsc: metrics.nsc,
-        netCase: metrics.netCase,
-        isQualified: metrics.isQualified,
-        qualifiedGap: metrics.qualifiedGap,
-        isQualifiedNextMonth: metrics.isQualifiedNextMonth,
-        qualifiedGapNextMonth: metrics.qualifiedGapNextMonth,
-        nscSum: metrics.nscSum,
-        netCaseSum: metrics.netCaseSum,
-      };
-    })
-    .sort((left, right) => {
-      if (Number(left.isQualified) !== Number(right.isQualified)) {
-        return Number(left.isQualified) - Number(right.isQualified);
-      }
+    return {
+      ...member,
+      designationName: getDesignationName(member.designation),
+      relationLabel: getRelationLabel(member.hierarchy),
+      nsc: metrics.nsc,
+      netCase: metrics.netCase,
+      isQualified: metrics.isQualified,
+      qualifiedGap: metrics.qualifiedGap,
+      isQualifiedNextMonth: metrics.isQualifiedNextMonth,
+      qualifiedGapNextMonth: metrics.qualifiedGapNextMonth,
+      nscSum: metrics.nscSum,
+      netCaseSum: metrics.netCaseSum,
+    };
+  });
+}
 
-      if (left.nsc !== right.nsc) {
-        return right.nsc - left.nsc;
-      }
+function compareByDirection(
+  left: number,
+  right: number,
+  direction: GegeSortDirection,
+): number {
+  return direction === "asc"
+    ? left - right
+    : right - left;
+}
 
-      if (left.netCase !== right.netCase) {
-        return right.netCase - left.netCase;
-      }
+function compareNullableNumber(
+  left: number | null,
+  right: number | null,
+  direction: GegeSortDirection,
+): number {
+  if (left == null && right == null) {
+    return 0;
+  }
 
-      return left.agentCode.localeCompare(right.agentCode);
-    });
+  if (left == null) {
+    return 1;
+  }
+
+  if (right == null) {
+    return -1;
+  }
+
+  return compareByDirection(left, right, direction);
+}
+
+export function sortPresentedTeamMembersByDefault(
+  members: PresentedTeamMember[],
+): PresentedTeamMember[] {
+  return [...members].sort((left, right) => {
+    if (Number(left.isQualified) !== Number(right.isQualified)) {
+      return Number(left.isQualified) - Number(right.isQualified);
+    }
+
+    if (left.nsc !== right.nsc) {
+      return right.nsc - left.nsc;
+    }
+
+    if (left.netCase !== right.netCase) {
+      return right.netCase - left.netCase;
+    }
+
+    return left.agentCode.localeCompare(right.agentCode);
+  });
+}
+
+export function sortPresentedTeamMembers(
+  members: PresentedTeamMember[],
+  sort: TeamMemberSort,
+): PresentedTeamMember[] {
+  return [...members].sort((left, right) => {
+    const primaryComparison = sort.field === "designation"
+      ? compareNullableNumber(left.designation, right.designation, sort.direction)
+      : sort.field === "nsc"
+        ? compareByDirection(left.nsc, right.nsc, sort.direction)
+        : sort.field === "nscSum"
+          ? compareByDirection(left.nscSum, right.nscSum, sort.direction)
+          : sort.field === "netCase"
+            ? compareByDirection(left.netCase, right.netCase, sort.direction)
+            : compareByDirection(left.netCaseSum, right.netCaseSum, sort.direction);
+
+    if (primaryComparison !== 0) {
+      return primaryComparison;
+    }
+
+    return left.agentCode.localeCompare(right.agentCode);
+  });
 }
 
 export function summarizeTeamMembers(members: PresentedTeamMember[]): TeamSummary {

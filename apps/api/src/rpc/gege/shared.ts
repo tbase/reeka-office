@@ -16,7 +16,17 @@ export const gegeYearInputSchema = gegeAgentCodeInputSchema.extend({
 export const gegeTeamScopeSchema = z.enum(["direct", "division", "all"]);
 export const gegeMetricScopeSchema = z.enum(["self", "direct", "all"]);
 export const gegeMetricNameSchema = z.enum(["nsc", "netCase"]);
+export const gegeTeamMemberSortFieldSchema = z.enum([
+  "designation",
+  "nsc",
+  "nscSum",
+  "netCase",
+  "netCaseSum",
+]);
+export const gegeSortDirectionSchema = z.enum(["asc", "desc"]);
 export type GegeTeamScope = z.infer<typeof gegeTeamScopeSchema>;
+export type GegeTeamMemberSortField = z.infer<typeof gegeTeamMemberSortFieldSchema>;
+export type GegeSortDirection = z.infer<typeof gegeSortDirectionSchema>;
 
 const gegeTeamFiltersInputSchema = gegeAgentCodeInputSchema.extend({
   scope: gegeTeamScopeSchema.optional(),
@@ -35,7 +45,15 @@ export const gegeTeamStatsInputSchema = gegeTeamFiltersInputSchema;
 export const gegeListTeamMembersInputSchema = gegeTeamFiltersInputSchema.extend({
   page: z.number().int().min(1).optional(),
   pageSize: z.number().int().min(1).max(100).optional(),
-});
+  sortField: gegeTeamMemberSortFieldSchema.optional(),
+  sortDirection: gegeSortDirectionSchema.optional(),
+}).refine(
+  input => (input.sortField == null) === (input.sortDirection == null),
+  {
+    message: "sortField 和 sortDirection 需要同时传入",
+    path: ["sortDirection"],
+  },
+);
 
 export const gegeSearchAgentsInputSchema = gegeAgentCodeInputSchema.extend({
   keyword: z.string(),

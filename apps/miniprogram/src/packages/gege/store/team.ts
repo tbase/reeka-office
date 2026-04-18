@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/useToast'
 import { rpc } from '@/lib/rpc'
 import type {
   TeamMember,
+  TeamMemberSortDirection,
+  TeamMemberSortField,
   TeamMeta,
   TeamScope,
   TeamStats,
@@ -67,6 +69,8 @@ export function useTeamStore(
   scope: Ref<TeamScope>,
   year: Ref<number | null>,
   month: Ref<number | null>,
+  sortField: Ref<TeamMemberSortField>,
+  sortDirection: Ref<TeamMemberSortDirection>,
 ): TeamStore {
   const statsQuery = useQuery({
     queryKey: () => {
@@ -104,6 +108,8 @@ export function useTeamStore(
     return {
       ...buildAgentCodeInput(agentCode.value),
       scope: scope.value,
+      sortField: sortField.value,
+      sortDirection: sortDirection.value,
       ...(year.value != null && month.value != null
         ? {
             year: year.value,
@@ -175,7 +181,15 @@ export function useTeamStore(
   }
 
   watch(
-    () => [agentCode.value, enabled.value, scope.value, year.value, month.value],
+    () => [
+      agentCode.value,
+      enabled.value,
+      scope.value,
+      year.value,
+      month.value,
+      sortField.value,
+      sortDirection.value,
+    ],
     () => {
       latestMembersRequestId += 1
       hideMembersLoading()

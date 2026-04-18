@@ -5,6 +5,8 @@ import { getCurrentPerformanceMetrics } from "./current-performance";
 import {
   createMetricsMap,
   presentTeamMembers,
+  sortPresentedTeamMembers,
+  sortPresentedTeamMembersByDefault,
   type PresentedTeamMember,
 } from "./presentation";
 import { gegeListTeamMembersInputSchema, resolveAccessibleAgentCode } from "./shared";
@@ -43,15 +45,21 @@ export const listTeamMembers = rpc.define({
     });
     const metricsMap = createMetricsMap(metricResult.items);
     const presentedMembers = presentTeamMembers(members, metricsMap);
+    const sortedMembers = input.sortField != null && input.sortDirection != null
+      ? sortPresentedTeamMembers(presentedMembers, {
+          field: input.sortField,
+          direction: input.sortDirection,
+        })
+      : sortPresentedTeamMembersByDefault(presentedMembers);
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
 
     return {
       page,
       pageSize,
-      total: presentedMembers.length,
-      hasMore: end < presentedMembers.length,
-      members: presentedMembers.slice(start, end),
+      total: sortedMembers.length,
+      hasMore: end < sortedMembers.length,
+      members: sortedMembers.slice(start, end),
     };
   }),
 });

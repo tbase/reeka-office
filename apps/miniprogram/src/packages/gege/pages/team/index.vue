@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { Ref } from 'wevu'
 import type { MetricRow } from '../../components/metric-rows/types'
+import type {
+  TeamMemberSortDirection,
+  TeamMemberSortField,
+} from '../../store/shared'
 
 import { computed, onLoad, ref, watch } from 'wevu'
 
@@ -45,7 +49,36 @@ interface TeamSummary {
   netCaseSum: number
 }
 
+interface TeamSortOption {
+  field: TeamMemberSortField
+  label: string
+}
+
 const MAX_BACKTRACK_MONTHS = 36
+const DEFAULT_SORT_FIELD: TeamMemberSortField = 'nsc'
+const DEFAULT_SORT_DIRECTION: TeamMemberSortDirection = 'desc'
+const TEAM_SORT_OPTIONS: TeamSortOption[] = [
+  {
+    field: 'designation',
+    label: '职级',
+  },
+  {
+    field: 'nsc',
+    label: '当月 NSC',
+  },
+  {
+    field: 'nscSum',
+    label: '累计 NSC',
+  },
+  {
+    field: 'netCase',
+    label: '当月 CASE',
+  },
+  {
+    field: 'netCaseSum',
+    label: '累计 CASE',
+  },
+]
 const routeReady = ref(false)
 const routeAgentCode = ref<string | null>(null)
 const routeError = ref<string | null>(null)
@@ -54,6 +87,8 @@ const requestedScope = ref<TeamScope | null>(null)
 const selectedScope = ref<TeamScope | null>(null)
 const activeYear = ref<number | null>(null)
 const activeMonth = ref<number | null>(null)
+const activeSortField = ref<TeamMemberSortField>(DEFAULT_SORT_FIELD)
+const activeSortDirection = ref<TeamMemberSortDirection>(DEFAULT_SORT_DIRECTION)
 const isStatsPopupVisible = ref(false)
 const {
   meta,
@@ -82,6 +117,8 @@ const {
   activeScope as Ref<TeamScope>,
   activeYear,
   activeMonth,
+  activeSortField,
+  activeSortDirection,
 )
 const emptySummary: TeamSummary = {
   memberCount: 0,
@@ -201,6 +238,15 @@ const summaryMetrics = computed(() => [
   createAmountMetric('NSC', teamSummary.value.nsc, teamSummary.value.nscSum),
   createAmountMetric('CASE', teamSummary.value.netCase, teamSummary.value.netCaseSum),
 ])
+const sortOptions = computed(() => {
+  return TEAM_SORT_OPTIONS.map((option) => ({
+    ...option,
+    isActive: option.field === activeSortField.value,
+    displayLabel: option.field === activeSortField.value
+      ? `${option.label} ${activeSortDirection.value === 'desc' ? '↓' : '↑'}`
+      : option.label,
+  }))
+})
 const showMembersLoading = computed(() => isLoading.value && members.value.length === 0)
 const showMembersError = computed(() => {
   return Boolean(membersError.value) && members.value.length === 0 && !isLoading.value
@@ -249,6 +295,18 @@ function changeScope(scope: TeamScope) {
   }
 
   selectedScope.value = scope
+}
+
+function changeSort(sortField: TeamMemberSortField) {
+  if (activeSortField.value === sortField) {
+    activeSortDirection.value = activeSortDirection.value === 'desc'
+      ? 'asc'
+      : 'desc'
+    return
+  }
+
+  activeSortField.value = sortField
+  activeSortDirection.value = DEFAULT_SORT_DIRECTION
 }
 
 function openStatsPopup() {
@@ -355,15 +413,35 @@ function goMemberDetail(agentCode: string) {
             </view>
           </view>
         </view>
+
+        <scroll-view
+          scroll-x
+          show-scrollbar="false"
+          class="mt-3 w-full whitespace-nowrap"
+        >
+          <view class="inline-flex gap-2 pr-4">
+            <view
+              v-for="option in sortOptions"
+              :key="option.field"
+              class="pill shrink-0 whitespace-nowrap"
+              :class="option.isActive
+                ? 'pill-selected'
+                : 'pill-card'"
+              @tap="changeSort(option.field)"
+            >
+              {{ option.displayLabel }}
+            </view>
+          </view>
+        </scroll-view>
       </view>
 
       <scroll-view
         scroll-y
         lower-threshold="96"
-        class="min-h-0 flex-1"
+        class="mt-3 min-h-0 flex-1"
         @scrolltolower="handleMembersScrollToLower"
       >
-        <view class="px-4 pb-16 pt-4">
+        <view class="px-4 pb-16">
           <view v-if="pageError && !stats" class="card p-4">
             <t-empty icon="error-circle" :description="pageError || '团队统计加载失败'" />
           </view>
