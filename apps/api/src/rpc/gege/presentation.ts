@@ -1,7 +1,6 @@
 import type {
   AgentProfile,
   TeamMemberBaseItem,
-  TeamScope,
 } from "@reeka-office/domain-agent";
 import { getDesignationName } from "@reeka-office/domain-agent";
 import {
@@ -157,8 +156,4 @@ export function resolveYear(
   }
 
   return availableYears[0] ?? fallbackPeriod?.year ?? new Date().getFullYear();
-}
-
-export function normalizeScope(scope: TeamScope | undefined): TeamScope {
-  return scope ?? "direct";
 }

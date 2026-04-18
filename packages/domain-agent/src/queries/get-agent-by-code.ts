@@ -8,6 +8,7 @@ export interface AgentProfile {
   name: string
   designation: number | null
   leaderCode: string | null
+  division: string | null
 }
 
 export interface GetAgentByCodeInput {
@@ -32,6 +33,7 @@ export class GetAgentByCodeQuery {
         name: agents.name,
         designation: agents.designation,
         leaderCode: agents.leaderCode,
+        division: agents.division,
       })
       .from(agents)
       .where(and(
@@ -50,6 +52,7 @@ export class GetAgentByCodeQuery {
       name: row.name,
       designation: row.designation,
       leaderCode: row.leaderCode,
+      division: row.division,
     }
   }
 }

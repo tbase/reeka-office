@@ -1,7 +1,8 @@
 export {
-  GetLatestApmPeriodQuery,
+  ListApmPeriodsQuery,
   type ApmPeriod,
-} from './get-latest-apm-period'
+  type ListApmPeriodsInput,
+} from './list-apm-periods'
 export {
   ListApmQuery,
   type ApmListItem,
@@ -12,9 +13,6 @@ export {
   type ApmYearlyStatItem,
   type ListApmYearlyStatsInput,
 } from './list-apm-yearly-stats'
-export {
-  ListApmPeriodsQuery,
-} from './list-apm-periods'
 export {
   createEmptyPerformanceMetrics,
   type CurrentPerformanceMetricItem,

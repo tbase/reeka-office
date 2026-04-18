@@ -62,7 +62,7 @@ const profile = computed(() => ({
 
 const hasPerformance = computed(() => Boolean(dashboard.value?.period))
 
-type MetricScope = 'self' | 'direct' | 'all'
+type MetricScope = 'self' | 'direct' | 'division' | 'all'
 
 interface PerformanceCard {
   key: MetricScope
@@ -80,7 +80,7 @@ function goPersonal() {
   })
 }
 
-function goTeam(scope: 'direct' | 'all') {
+function goTeam(scope: 'direct' | 'division' | 'all') {
   wx.navigateTo({
     url: buildPageUrl('/packages/gege/pages/team/index', {
       scope,
@@ -97,10 +97,59 @@ function goOrg() {
   })
 }
 
+function goSearch() {
+  wx.navigateTo({
+    url: buildPageUrl('/packages/gege/pages/search/index', {
+      agentCode: routeAgentCode.value,
+    }),
+  })
+}
+
 const performanceCards = computed<PerformanceCard[]>(() => {
   const self = dashboard.value?.self
   const direct = dashboard.value?.team.direct
+  const division = dashboard.value?.team.division
   const all = dashboard.value?.team.all
+  const divisionCode = dashboard.value?.agent.division?.trim()
+  const teamCards: PerformanceCard[] = [
+    {
+      key: 'direct',
+      title: '直属团队',
+      scope: 'direct',
+      metrics: [
+        createAmountMetric('NSC', direct?.nsc, direct?.nscSum),
+        createAmountMetric('CASE', direct?.netCase, direct?.netCaseSum),
+        createMemberMetric(direct?.qualifiedCount, direct?.memberCount),
+      ],
+      onDetail: () => goTeam('direct'),
+    },
+  ]
+
+  if (division && divisionCode) {
+    teamCards.push({
+      key: 'division',
+      title: `${divisionCode} 团队`,
+      scope: 'division',
+      metrics: [
+        createAmountMetric('NSC', division.nsc, division.nscSum),
+        createAmountMetric('CASE', division.netCase, division.netCaseSum),
+        createMemberMetric(division.qualifiedCount, division.memberCount),
+      ],
+      onDetail: () => goTeam('division'),
+    })
+  }
+
+  teamCards.push({
+    key: 'all',
+    title: '全团队',
+    scope: 'all',
+    metrics: [
+      createAmountMetric('NSC', all?.nsc, all?.nscSum),
+      createAmountMetric('CASE', all?.netCase, all?.netCaseSum),
+      createMemberMetric(all?.qualifiedCount, all?.memberCount),
+    ],
+    onDetail: () => goTeam('all'),
+  })
 
   return [
     {
@@ -119,28 +168,7 @@ const performanceCards = computed<PerformanceCard[]>(() => {
       ],
       onDetail: goPersonal,
     },
-    {
-      key: 'direct',
-      title: '直属团队',
-      scope: 'direct',
-      metrics: [
-        createAmountMetric('NSC', direct?.nsc, direct?.nscSum),
-        createAmountMetric('CASE', direct?.netCase, direct?.netCaseSum),
-        createMemberMetric(direct?.qualifiedCount, direct?.memberCount),
-      ],
-      onDetail: () => goTeam('direct'),
-    },
-    {
-      key: 'all',
-      title: '全团队',
-      scope: 'all',
-      metrics: [
-        createAmountMetric('NSC', all?.nsc, all?.nscSum),
-        createAmountMetric('CASE', all?.netCase, all?.netCaseSum),
-        createMemberMetric(all?.qualifiedCount, all?.memberCount),
-      ],
-      onDetail: () => goTeam('all'),
-    },
+    ...teamCards,
   ]
 })
 </script>
@@ -173,6 +201,15 @@ const performanceCards = computed<PerformanceCard[]>(() => {
             <view class="mt-1 text-sm font-medium text-foreground">
               {{ profile.periodLabel }}
             </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="mt-4" @tap="goSearch">
+        <view class="agent-search-entry">
+          <t-icon name="search" size="48rpx" class="agent-search-entry__icon" />
+          <view class="agent-search-entry__placeholder">
+            搜索代理人姓名/编码
           </view>
         </view>
       </view>
@@ -229,3 +266,25 @@ const performanceCards = computed<PerformanceCard[]>(() => {
     <t-toast id="t-toast" />
   </view>
 </template>
+
+<style scoped lang="postcss">
+.agent-search-entry {
+  @apply flex items-center gap-3;
+
+  min-height: 80rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 999rpx;
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
+}
+
+.agent-search-entry__icon {
+  color: var(--muted-foreground);
+}
+
+.agent-search-entry__placeholder {
+  color: var(--muted-foreground);
+  font-size: 32rpx;
+  line-height: 48rpx;
+}
+</style>

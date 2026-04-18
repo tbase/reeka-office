@@ -45,6 +45,7 @@ defineAppJson({
       root: 'packages/gege',
       pages: [
         'pages/index/index',
+        'pages/search/index',
         'pages/org/index',
         'pages/personal/index',
         'pages/team/index',

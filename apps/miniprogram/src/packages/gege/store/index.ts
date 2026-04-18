@@ -1,7 +1,7 @@
 import type { Ref } from 'wevu'
 
 import type { RpcError, RpcOutput } from '@/lib/rpc'
-import { computed, onShow, ref, shallowRef, watch } from 'wevu'
+import { computed, onShow, onUnload, onUnmounted, ref, shallowRef, watch } from 'wevu'
 import { useQuery } from '@/hooks/useQuery'
 import { useToast } from '@/hooks/useToast'
 import { rpc } from '@/lib/rpc'
@@ -11,11 +11,17 @@ type MetricChart = RpcOutput<'gege/getMetricChart'>
 type MyPerformanceHistory = RpcOutput<'gege/getMyPerformanceHistory'>
 type MyPerformanceMeta = RpcOutput<'gege/getMyPerformanceMeta'>
 type OrgTree = RpcOutput<'gege/getOrgTree'>
+type TeamMeta = RpcOutput<'gege/getTeamMeta'>
 type TeamStats = RpcOutput<'gege/getTeamStats'>
 type TeamMembersPage = RpcOutput<'gege/listTeamMembers'>
+type SearchAgentsResult = RpcOutput<'gege/searchAgents'>
+type SearchAgent = SearchAgentsResult['agents'][number]
 type TeamMember = TeamMembersPage['members'][number]
+type TeamScope = 'direct' | 'division' | 'all'
 
 const DEFAULT_TEAM_PAGE_SIZE = 20
+const DEFAULT_AGENT_SEARCH_LIMIT = 20
+const DEFAULT_SEARCH_DEBOUNCE_MS = 300
 
 function buildAgentCodeInput(agentCode: string | null): { agentCode: string } | undefined {
   const code = agentCode?.trim()
@@ -60,6 +66,13 @@ export interface OrgTreeStore {
   refetch: () => Promise<OrgTree | null>
 }
 
+export interface TeamMetaStore {
+  meta: Ref<TeamMeta | null>
+  isLoading: Ref<boolean>
+  error: Ref<RpcError | null>
+  refetch: () => Promise<TeamMeta | null>
+}
+
 export interface TeamStore {
   stats: Ref<TeamStats | null>
   members: Ref<TeamMember[]>
@@ -72,6 +85,14 @@ export interface TeamStore {
   error: Ref<RpcError | null>
   refetch: () => Promise<void>
   loadMore: () => Promise<void>
+}
+
+export interface AgentSearchStore {
+  agents: Ref<SearchAgent[]>
+  isLoading: Ref<boolean>
+  error: Ref<RpcError | null>
+  searchNow: () => Promise<void>
+  reset: () => void
 }
 
 export function useDashboardStore(
@@ -214,10 +235,34 @@ export function useOrgTreeStore(
   }
 }
 
+export function useTeamMetaStore(
+  agentCode: Ref<string | null>,
+  enabled: Ref<boolean>,
+): TeamMetaStore {
+  const { data, loading, error, refetch } = useQuery({
+    queryKey: () => {
+      if (!enabled.value) {
+        return undefined
+      }
+
+      return ['gege/getTeamMeta', buildAgentCodeInput(agentCode.value)]
+    },
+    refetchOnShow: true,
+    showLoading: '加载团队信息中...',
+  })
+
+  return {
+    meta: data as Ref<TeamMeta | null>,
+    isLoading: loading,
+    error: error as Ref<RpcError | null>,
+    refetch,
+  }
+}
+
 export function useTeamStore(
   agentCode: Ref<string | null>,
   enabled: Ref<boolean>,
-  scope: Ref<'direct' | 'all'>,
+  scope: Ref<TeamScope>,
   year: Ref<number | null>,
   month: Ref<number | null>,
 ): TeamStore {
@@ -407,5 +452,100 @@ export function useTeamStore(
     error,
     refetch,
     loadMore,
+  }
+}
+
+export function useAgentSearchStore(
+  agentCode: Ref<string | null>,
+  keyword: Ref<string>,
+  enabled: Ref<boolean>,
+): AgentSearchStore {
+  const agents = ref<SearchAgent[]>([])
+  const isLoading = ref(false)
+  const error = shallowRef<RpcError | null>(null) as Ref<RpcError | null>
+
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  let latestRequestId = 0
+
+  function clearDebounceTimer() {
+    if (debounceTimer == null) {
+      return
+    }
+
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+
+  function reset() {
+    clearDebounceTimer()
+    latestRequestId += 1
+    isLoading.value = false
+    error.value = null
+    agents.value = []
+  }
+
+  async function search(options: { immediate?: boolean } = {}) {
+    const normalizedKeyword = keyword.value.trim()
+
+    clearDebounceTimer()
+
+    if (!enabled.value || normalizedKeyword.length < 2) {
+      reset()
+      return
+    }
+
+    const requestId = ++latestRequestId
+
+    if (!options.immediate) {
+      debounceTimer = setTimeout(() => {
+        void executeSearch(requestId, normalizedKeyword)
+      }, DEFAULT_SEARCH_DEBOUNCE_MS)
+      return
+    }
+
+    await executeSearch(requestId, normalizedKeyword)
+  }
+
+  async function executeSearch(requestId: number, normalizedKeyword: string) {
+    isLoading.value = true
+    error.value = null
+
+    const result = await rpc('gege/searchAgents', {
+      ...buildAgentCodeInput(agentCode.value),
+      keyword: normalizedKeyword,
+      limit: DEFAULT_AGENT_SEARCH_LIMIT,
+    })
+
+    if (requestId !== latestRequestId) {
+      return
+    }
+
+    isLoading.value = false
+
+    if (!result.success) {
+      error.value = result.error
+      return
+    }
+
+    agents.value = result.data.agents
+  }
+
+  watch(
+    () => [agentCode.value, keyword.value, enabled.value],
+    () => {
+      void search()
+    },
+    { immediate: true },
+  )
+
+  onUnload(reset)
+  onUnmounted(reset)
+
+  return {
+    agents,
+    isLoading,
+    error,
+    searchNow: () => search({ immediate: true }),
+    reset,
   }
 }

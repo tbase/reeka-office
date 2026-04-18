@@ -3,5 +3,7 @@ export { getMetricChart } from "./getMetricChart";
 export { getMyPerformanceHistory } from "./getMyPerformanceHistory";
 export { getMyPerformanceMeta } from "./getMyPerformanceMeta";
 export { getOrgTree } from "./getOrgTree";
+export { getTeamMeta } from "./getTeamMeta";
 export { getTeamStats } from "./getTeamStats";
 export { listTeamMembers } from "./listTeamMembers";
+export { searchAgents } from "./searchAgents";

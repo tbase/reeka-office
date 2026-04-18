@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type { Ref } from 'wevu'
 import type { MetricRow } from '../../components/metric-rows/types'
 
-import { computed, onLoad, ref } from 'wevu'
+import { computed, onLoad, ref, watch } from 'wevu'
 
 import DesignationBadge from '@/components/designation-badge/index.vue'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
@@ -13,7 +14,7 @@ import {
 import MetricRows from '../../components/metric-rows/index.vue'
 import { buildPageUrl, parseRouteAgentCode } from '../../lib/agent-code'
 import { formatPeriod } from '../../lib/format'
-import { useTeamStore } from '../../store'
+import { useTeamMetaStore, useTeamStore } from '../../store'
 import TeamStatsPopup from './team-stats-popup.vue'
 
 definePageJson({
@@ -24,7 +25,7 @@ definePageJson({
   },
 })
 
-type TeamScope = 'direct' | 'all'
+type TeamScope = 'direct' | 'division' | 'all'
 
 interface Period {
   year: number
@@ -49,10 +50,21 @@ const routeReady = ref(false)
 const routeAgentCode = ref<string | null>(null)
 const routeError = ref<string | null>(null)
 const canQueryTeam = computed(() => routeReady.value && !routeError.value)
-const activeScope = ref<'direct' | 'all'>('direct')
+const requestedScope = ref<TeamScope | null>(null)
+const selectedScope = ref<TeamScope | null>(null)
 const activeYear = ref<number | null>(null)
 const activeMonth = ref<number | null>(null)
 const isStatsPopupVisible = ref(false)
+const {
+  meta,
+  isLoading: isMetaLoading,
+  error: metaError,
+  refetch: refetchMeta,
+} = useTeamMetaStore(routeAgentCode, canQueryTeam)
+const availableScopes = computed(() => meta.value?.availableScopes ?? [])
+const defaultScope = computed<TeamScope>(() => meta.value?.defaultScope ?? 'direct')
+const canQueryTeamData = computed(() => canQueryTeam.value && !!meta.value)
+const activeScope = computed<TeamScope>(() => selectedScope.value ?? defaultScope.value)
 const {
   stats,
   members,
@@ -66,8 +78,8 @@ const {
   loadMore,
 } = useTeamStore(
   routeAgentCode,
-  canQueryTeam,
-  activeScope,
+  canQueryTeamData,
+  activeScope as Ref<TeamScope>,
   activeYear,
   activeMonth,
 )
@@ -90,8 +102,8 @@ onLoad((options) => {
     title: parsedAgentCode.agentCode ? '代理人团队' : '我的团队',
   })
 
-  if (options?.scope === 'all') {
-    activeScope.value = 'all'
+  if (options?.scope === 'division' || options?.scope === 'all') {
+    requestedScope.value = options.scope
   }
 
   routeReady.value = true
@@ -102,10 +114,39 @@ usePullDownRefresh(async () => {
     return
   }
 
-  await refetch()
+  await Promise.all([
+    refetchMeta(),
+    refetch(),
+  ])
 })
 
-const pageError = computed(() => routeError.value ?? statsError.value?.message ?? null)
+watch(
+  () => [requestedScope.value, availableScopes.value.map(option => option.scope).join(',')],
+  () => {
+    if (availableScopes.value.length === 0) {
+      return
+    }
+
+    const nextScope = requestedScope.value
+      && availableScopes.value.some(option => option.scope === requestedScope.value)
+      ? requestedScope.value
+      : defaultScope.value
+
+    if (selectedScope.value === nextScope) {
+      return
+    }
+
+    selectedScope.value = nextScope
+  },
+  { immediate: true },
+)
+
+const pageError = computed(() => {
+  return routeError.value
+    ?? metaError.value?.message
+    ?? statsError.value?.message
+    ?? null
+})
 const pageTitle = computed(() => routeAgentCode.value ? '代理人团队' : '我的团队')
 const viewContextLabel = computed(() => {
   return routeAgentCode.value
@@ -113,6 +154,7 @@ const viewContextLabel = computed(() => {
     : null
 })
 const teamSummary = computed<TeamSummary>(() => stats.value?.summary ?? emptySummary)
+const scopeTabs = computed(() => availableScopes.value)
 
 const summaryItems = computed(() => [
   createMemberMetric(teamSummary.value.qualifiedCount, teamSummary.value.memberCount),
@@ -202,11 +244,11 @@ function createPeriodFromIndex(index: number): Period {
 }
 
 function changeScope(scope: TeamScope) {
-  if (activeScope.value === scope) {
+  if (selectedScope.value === scope) {
     return
   }
 
-  activeScope.value = scope
+  selectedScope.value = scope
 }
 
 function openStatsPopup() {
@@ -254,13 +296,13 @@ function goMemberDetail(agentCode: string) {
 
 <template>
   <view class="h-screen flex flex-col bg-background">
-    <view v-if="pageError && !stats" class="px-4 pt-4">
+    <view v-if="pageError && !meta" class="px-4 pt-4">
       <view class="card p-4">
-        <t-empty icon="error-circle" :description="pageError || '团队统计加载失败'" />
+        <t-empty icon="error-circle" :description="pageError || '团队信息加载失败'" />
       </view>
     </view>
 
-    <template v-else-if="stats">
+    <template v-else-if="meta">
       <view class="shrink-0 px-4 pt-4">
         <view class="card bg-hero p-4">
           <view class="flex items-start justify-between gap-3">
@@ -275,22 +317,15 @@ function goMemberDetail(agentCode: string) {
 
             <view class="inline-flex rounded-full bg-card p-1">
               <view
+                v-for="tab in scopeTabs"
+                :key="tab.scope"
                 class="pill"
-                :class="activeScope === 'direct'
+                :class="activeScope === tab.scope
                   ? 'pill-primary'
                   : 'text-muted-foreground'"
-                @tap="changeScope('direct')"
+                @tap="changeScope(tab.scope)"
               >
-                直属
-              </view>
-              <view
-                class="pill"
-                :class="activeScope === 'all'
-                  ? 'pill-primary'
-                  : 'text-muted-foreground'"
-                @tap="changeScope('all')"
-              >
-                全团队
+                {{ tab.label }}
               </view>
             </view>
           </view>
@@ -329,6 +364,10 @@ function goMemberDetail(agentCode: string) {
         @scrolltolower="handleMembersScrollToLower"
       >
         <view class="px-4 pb-16 pt-4">
+          <view v-if="pageError && !stats" class="card p-4">
+            <t-empty icon="error-circle" :description="pageError || '团队统计加载失败'" />
+          </view>
+
           <view v-if="!hasPerformance && !isLoading" class="card p-4">
             <t-empty icon="view-list" description="暂无团队业绩数据" />
           </view>
@@ -407,6 +446,14 @@ function goMemberDetail(agentCode: string) {
         @visible-change="handleStatsPopupVisibleChange"
       />
     </template>
+
+    <view v-else-if="isMetaLoading" class="px-4 pt-4">
+      <view class="card p-4">
+        <view class="text-center text-sm text-muted-foreground">
+          加载团队信息中...
+        </view>
+      </view>
+    </view>
 
     <t-toast id="t-toast" />
   </view>

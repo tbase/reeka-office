@@ -1,9 +1,9 @@
-import { and, asc, eq, gt, isNull } from 'drizzle-orm'
+import { and, asc, eq, gt, isNull, ne } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { agentHierarchy, agents } from '../db/schema'
 
-export type TeamScope = 'direct' | 'all'
+export type TeamScope = 'direct' | 'division' | 'all'
 
 export interface TeamMemberBaseItem {
   agentCode: string
@@ -13,10 +13,20 @@ export interface TeamMemberBaseItem {
   hierarchy: number
 }
 
-export interface ListTeamMemberBaseInput {
+interface ListHierarchyTeamMemberBaseInput {
   leaderCode: string
-  scope: TeamScope
+  scope: 'direct' | 'all'
 }
+
+interface ListDivisionTeamMemberBaseInput {
+  agentCode: string
+  division: string
+  scope: 'division'
+}
+
+export type ListTeamMemberBaseInput =
+  | ListHierarchyTeamMemberBaseInput
+  | ListDivisionTeamMemberBaseInput
 
 export type ListTeamMemberBaseResult = TeamMemberBaseItem[]
 
@@ -30,6 +40,36 @@ export class ListTeamMemberBaseQuery {
   }
 
   async query(): Promise<ListTeamMemberBaseResult> {
+    if (this.input.scope === 'division') {
+      const rows = await this.db
+        .select({
+          agentCode: agents.agentCode,
+          name: agents.name,
+          designation: agents.designation,
+          leaderCode: agents.leaderCode,
+        })
+        .from(agents)
+        .where(and(
+          eq(agents.division, this.input.division),
+          isNull(agents.deletedAt),
+          ne(agents.agentCode, this.input.agentCode),
+        ))
+        .orderBy(
+          asc(agents.name),
+          asc(agents.agentCode),
+        )
+
+      return rows
+        .filter((row): row is typeof row & { agentCode: string } => !!row.agentCode)
+        .map((row) => ({
+          agentCode: row.agentCode,
+          name: row.name,
+          designation: row.designation,
+          leaderCode: row.leaderCode,
+          hierarchy: 2,
+        }))
+    }
+
     const rows = await this.db
       .select({
         agentCode: agentHierarchy.agentCode,

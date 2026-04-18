@@ -1,17 +1,17 @@
 import { ListTeamMemberBaseQuery } from "@reeka-office/domain-agent";
 import {
-  GetLatestApmPeriodQuery,
+  ListApmPeriodsQuery,
+  type ApmPeriod,
 } from "@reeka-office/domain-performance";
 import type { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
 import { getMonthlyMetricValues } from "./monthly-metric-values";
-import { normalizeScope } from "./presentation";
 import { gegeMetricChartInputSchema, resolveAccessibleAgentCode } from "./shared";
 
 export type GetMetricChartInput = z.infer<typeof gegeMetricChartInputSchema>;
 export interface GetMetricChartOutput {
-  period: Awaited<ReturnType<GetLatestApmPeriodQuery["query"]>>;
+  period: ApmPeriod | null;
   year: number;
   metricName: GetMetricChartInput["metricName"];
   scope: GetMetricChartInput["scope"];
@@ -29,11 +29,11 @@ export const getMetricChart = rpc.define({
       ? [targetAgentCode]
       : (await new ListTeamMemberBaseQuery({
           leaderCode: targetAgentCode,
-          scope: normalizeScope(input.scope),
+          scope: input.scope === "direct" ? "direct" : "all",
         }).query()).map((member) => member.agentCode);
 
     const [period, result] = await Promise.all([
-      new GetLatestApmPeriodQuery().query(),
+      new ListApmPeriodsQuery({ limit: 1 }).query().then(periods => periods[0] ?? null),
       getMonthlyMetricValues({
         agentCodes,
         year: input.year,

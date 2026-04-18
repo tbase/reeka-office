@@ -1,15 +1,14 @@
-import { ListTeamMemberBaseQuery } from "@reeka-office/domain-agent";
 import type { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
 import { getCurrentPerformanceMetrics } from "./current-performance";
 import {
   createMetricsMap,
-  normalizeScope,
   presentTeamMembers,
   type PresentedTeamMember,
 } from "./presentation";
 import { gegeListTeamMembersInputSchema, resolveAccessibleAgentCode } from "./shared";
+import { buildTeamMeta, getTeamAgent, listMembersByScope, normalizeTeamScope } from "./team-scope";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -26,14 +25,12 @@ export interface ListTeamMembersOutput {
 export const listTeamMembers = rpc.define({
   inputSchema: gegeListTeamMembersInputSchema,
   execute: mustAgent(async ({ context, input }): Promise<ListTeamMembersOutput> => {
-    const scope = normalizeScope(input.scope);
     const page = input.page ?? DEFAULT_PAGE;
     const pageSize = input.pageSize ?? DEFAULT_PAGE_SIZE;
     const agentCode = await resolveAccessibleAgentCode(context, input.agentCode);
-    const members = await new ListTeamMemberBaseQuery({
-      leaderCode: agentCode,
-      scope,
-    }).query();
+    const agent = await getTeamAgent(agentCode);
+    const scope = normalizeTeamScope(input.scope, buildTeamMeta(agent));
+    const members = await listMembersByScope(agent, scope);
     const requestedPeriod = input.year != null && input.month != null
       ? {
           year: input.year,

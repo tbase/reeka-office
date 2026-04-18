@@ -1,5 +1,4 @@
 import {
-  GetAgentByCodeQuery,
   ListTeamMemberBaseQuery,
   type AgentProfile,
 } from "@reeka-office/domain-agent";
@@ -18,6 +17,7 @@ import {
   type TeamSummary,
 } from "./presentation";
 import { gegeDashboardInputSchema, resolveAccessibleAgentCode } from "./shared";
+import { buildTeamMeta, getTeamAgent, listMembersByScope } from "./team-scope";
 
 export interface GetDashboardOutput {
   period: CurrentPerformanceResult["period"];
@@ -25,6 +25,7 @@ export interface GetDashboardOutput {
   self: PerformanceMetrics;
   team: {
     direct: TeamSummary;
+    division: TeamSummary | null;
     all: TeamSummary;
   };
 }
@@ -33,18 +34,16 @@ export const getDashboard = rpc.define({
   inputSchema: gegeDashboardInputSchema,
   execute: mustAgent(async ({ context, input }): Promise<GetDashboardOutput> => {
     const effectiveAgentCode = await resolveAccessibleAgentCode(context, input?.agentCode);
-
-    const agent = await new GetAgentByCodeQuery({ agentCode: effectiveAgentCode }).query();
-
-    if (!agent) {
-      throw new Error(`代理人不存在: ${effectiveAgentCode}`);
-    }
-
-    const [directMembers, allMembers] = await Promise.all([
+    const agent = await getTeamAgent(effectiveAgentCode);
+    const teamMeta = buildTeamMeta(agent);
+    const [directMembers, divisionMembers, allMembers] = await Promise.all([
       new ListTeamMemberBaseQuery({
         leaderCode: effectiveAgentCode,
         scope: "direct",
       }).query(),
+      teamMeta.availableScopes.some((option) => option.scope === "division")
+        ? listMembersByScope(agent, "division")
+        : Promise.resolve([]),
       new ListTeamMemberBaseQuery({
         leaderCode: effectiveAgentCode,
         scope: "all",
@@ -56,12 +55,14 @@ export const getDashboard = rpc.define({
         effectiveAgentCode,
         ...new Set([
           ...directMembers.map((member) => member.agentCode),
+          ...divisionMembers.map((member) => member.agentCode),
           ...allMembers.map((member) => member.agentCode),
         ]),
       ],
     });
     const metricsMap = createMetricsMap(metricResult.items);
     const presentedDirectMembers = presentTeamMembers(directMembers, metricsMap);
+    const presentedDivisionMembers = presentTeamMembers(divisionMembers, metricsMap);
     const presentedAllMembers = presentTeamMembers(allMembers, metricsMap);
 
     return {
@@ -70,6 +71,9 @@ export const getDashboard = rpc.define({
       self: getMetrics(metricsMap, effectiveAgentCode),
       team: {
         direct: summarizeTeamMembers(presentedDirectMembers),
+        division: teamMeta.availableScopes.some((option) => option.scope === "division")
+          ? summarizeTeamMembers(presentedDivisionMembers)
+          : null,
         all: summarizeTeamMembers(presentedAllMembers),
       },
     };

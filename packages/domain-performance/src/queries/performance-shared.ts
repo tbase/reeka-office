@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, sum } from 'drizzle-orm'
 
 import type { DB } from '../context'
 import { apm } from '../schema'
-import type { ApmPeriod } from './get-latest-apm-period'
+import type { ApmPeriod } from './list-apm-periods'
 
 export interface PerformanceMetrics {
   nsc: number

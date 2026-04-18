@@ -1,6 +1,6 @@
 import {
-  GetLatestApmPeriodQuery,
   getDb,
+  ListApmPeriodsQuery,
   listCurrentPerformanceMetrics,
   type ApmPeriod,
   type CurrentPerformanceMetricItem,
@@ -20,7 +20,7 @@ export interface CurrentPerformanceResult {
 export async function getCurrentPerformanceMetrics(
   input: CurrentPerformanceInput,
 ): Promise<CurrentPerformanceResult> {
-  const latestPeriod = await new GetLatestApmPeriodQuery().query();
+  const latestPeriod = (await new ListApmPeriodsQuery({ limit: 1 }).query())[0] ?? null
   const period = input.period ?? latestPeriod;
 
   return {

@@ -1,6 +1,6 @@
 import {
-  GetLatestApmPeriodQuery,
   getDb,
+  ListApmPeriodsQuery,
   listAgentPerformanceHistory,
   listAvailablePerformanceYears,
   type ApmPeriod,
@@ -30,7 +30,7 @@ export async function getAgentPerformanceHistory(
   year: number,
 ): Promise<AgentPerformanceHistoryResult> {
   const [latestPeriod, history] = await Promise.all([
-    new GetLatestApmPeriodQuery().query(),
+    new ListApmPeriodsQuery({ limit: 1 }).query().then(periods => periods[0] ?? null),
     listAgentPerformanceHistory(getDb(), agentCode, year),
   ]);
 

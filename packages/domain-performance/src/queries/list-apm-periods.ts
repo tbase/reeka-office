@@ -2,17 +2,27 @@ import { desc } from 'drizzle-orm'
 
 import { getDb, type DB } from '../context'
 import { apm } from '../schema'
-import type { ApmPeriod } from './get-latest-apm-period'
+
+export interface ApmPeriod {
+  year: number
+  month: number
+}
+
+export interface ListApmPeriodsInput {
+  limit?: number
+}
 
 export class ListApmPeriodsQuery {
   private readonly db: DB
+  private readonly input: ListApmPeriodsInput
 
-  constructor() {
+  constructor(input: ListApmPeriodsInput = {}) {
     this.db = getDb()
+    this.input = input
   }
 
   async query(): Promise<ApmPeriod[]> {
-    return this.db
+    const query = this.db
       .select({
         year: apm.year,
         month: apm.month,
@@ -23,5 +33,9 @@ export class ListApmPeriodsQuery {
         desc(apm.year),
         desc(apm.month),
       )
+
+    return typeof this.input.limit === 'number'
+      ? query.limit(this.input.limit)
+      : query
   }
 }

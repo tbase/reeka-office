@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import {
-  GetLatestApmPeriodQuery,
   ListApmPeriodsQuery,
 } from "@reeka-office/domain-performance";
 import { PerformanceDetailSection } from "./detail-section";
@@ -34,7 +33,7 @@ export default async function PruPerformancePage({
           latestPeriod={
             requestedPeriod
               ? null
-              : await new GetLatestApmPeriodQuery().query()
+              : (await new ListApmPeriodsQuery({ limit: 1 }).query())[0] ?? null
           }
           requestedPeriod={requestedPeriod}
         />

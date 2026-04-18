@@ -9,6 +9,8 @@ import {
   getMyPerformanceHistory,
   getMyPerformanceMeta,
   getOrgTree,
+  searchAgents,
+  getTeamMeta,
   getTeamStats,
   listTeamMembers,
 } from "./rpc/gege";
@@ -49,6 +51,8 @@ const gegeRegistry = rpc.registry({
   getMyPerformanceHistory,
   getMyPerformanceMeta,
   getOrgTree,
+  searchAgents,
+  getTeamMeta,
   getTeamStats,
   listTeamMembers,
 });

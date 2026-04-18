@@ -13,9 +13,10 @@ export const gegeYearInputSchema = gegeAgentCodeInputSchema.extend({
   year: z.number().int().min(2000).max(2100).optional(),
 });
 
-export const gegeTeamScopeSchema = z.enum(["direct", "all"]);
+export const gegeTeamScopeSchema = z.enum(["direct", "division", "all"]);
 export const gegeMetricScopeSchema = z.enum(["self", "direct", "all"]);
 export const gegeMetricNameSchema = z.enum(["nsc", "netCase"]);
+export type GegeTeamScope = z.infer<typeof gegeTeamScopeSchema>;
 
 const gegeTeamFiltersInputSchema = gegeAgentCodeInputSchema.extend({
   scope: gegeTeamScopeSchema.optional(),
@@ -34,6 +35,11 @@ export const gegeTeamStatsInputSchema = gegeTeamFiltersInputSchema;
 export const gegeListTeamMembersInputSchema = gegeTeamFiltersInputSchema.extend({
   page: z.number().int().min(1).optional(),
   pageSize: z.number().int().min(1).max(100).optional(),
+});
+
+export const gegeSearchAgentsInputSchema = gegeAgentCodeInputSchema.extend({
+  keyword: z.string(),
+  limit: z.number().int().min(1).max(50).optional(),
 });
 
 export const gegeMetricChartInputSchema = gegeAgentCodeInputSchema.extend({
