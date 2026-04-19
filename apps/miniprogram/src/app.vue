@@ -35,7 +35,6 @@ defineAppJson({
     'pages/product/index',
     'pages/resource/index',
     'pages/resource/detail/index',
-    'pages/training/index',
     'pages/mine/index',
     'pages/mine/settings/index',
     'pages/unauthorized/index',
@@ -90,12 +89,6 @@ defineAppJson({
         text: '资源',
         iconPath: 'tabbar/resource.png',
         selectedIconPath: 'tabbar/resource-active.png',
-      },
-      {
-        pagePath: 'pages/training/index',
-        text: '培训',
-        iconPath: 'tabbar/training.png',
-        selectedIconPath: 'tabbar/training-active.png',
       },
       {
         pagePath: 'pages/mine/index',

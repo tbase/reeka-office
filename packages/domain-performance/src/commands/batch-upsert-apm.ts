@@ -276,7 +276,7 @@ async function getDirectTeamNsc(
     )
     .where(and(
       eq(agentHierarchy.leaderCode, agentCode),
-      eq(agentHierarchy.hierarchy, 0),
+      eq(agentHierarchy.hierarchy, 1),
       gte(periodIndex, startIndex),
       lte(periodIndex, endIndex),
     ))
