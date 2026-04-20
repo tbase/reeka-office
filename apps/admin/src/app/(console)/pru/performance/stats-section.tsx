@@ -2,7 +2,7 @@ import { BarChart3Icon } from "lucide-react"
 
 import {
   ListApmYearlyStatsQuery,
-  type ApmPeriod,
+  type Period,
 } from "@reeka-office/domain-performance"
 
 import { Empty } from "@/components/ui/empty"
@@ -12,7 +12,7 @@ import { PerformanceYearlyChart } from "./yearly-chart"
 import { resolveActiveYear, resolveYearOptions } from "./search-params"
 
 interface PerformanceStatsSectionProps {
-  periods: readonly ApmPeriod[]
+  periods: readonly Period[]
   requestedYear?: string | null
 }
 

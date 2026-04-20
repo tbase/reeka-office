@@ -3,7 +3,7 @@ import { BarChart3Icon } from "lucide-react";
 import {
   ListApmQuery,
   type ApmListItem,
-  type ApmPeriod,
+  type Period,
 } from "@reeka-office/domain-performance";
 
 import {
@@ -22,7 +22,7 @@ import {
 const agentColumnClass = "w-[220px] min-w-[220px] max-w-[220px]";
 
 interface APMTableProps {
-  period: ApmPeriod;
+  period: Period;
   className?: string;
 }
 

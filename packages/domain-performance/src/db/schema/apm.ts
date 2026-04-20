@@ -52,19 +52,19 @@ export const apm = mysqlTable('agent_performance_monthly', {
   qualifiedGapNextMonth: int('qualified_gap_next_month'),
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
-}, (t) => [
+}, (table) => [
   foreignKey({
     name: 'apm_agent_code_fk',
-    columns: [t.agentCode],
+    columns: [table.agentCode],
     foreignColumns: [agents.agentCode],
   }).onDelete('no action'),
   uniqueIndex('apm_period_udx').on(
-    t.agentCode,
-    t.year,
-    t.month,
+    table.agentCode,
+    table.year,
+    table.month,
   ),
-  index('apm_period_idx').on(t.year, t.month),
-  index('apm_agent_year_idx').on(t.agentCode, t.year),
+  index('apm_period_idx').on(table.year, table.month),
+  index('apm_agent_year_idx').on(table.agentCode, table.year),
 ])
 
 export type ApmRow = typeof apm.$inferSelect

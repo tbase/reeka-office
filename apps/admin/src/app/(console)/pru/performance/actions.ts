@@ -1,9 +1,9 @@
 "use server"
 
 import {
-  BatchUpsertApmCommand,
+  ImportApmCommand,
   RecalculateApmQualificationCommand,
-  type BatchUpsertApmItem,
+  type ImportApmItem,
   type RecalculateApmQualificationResult,
 } from "@reeka-office/domain-performance"
 import { revalidatePath } from "next/cache"
@@ -188,7 +188,7 @@ function validateHeaders(headers: string[]) {
   }
 }
 
-function parseImportPayload(csvContent: string): BatchUpsertApmItem[] {
+function parseImportPayload(csvContent: string): ImportApmItem[] {
   const rows = parseCsvRows(csvContent)
 
   if (rows.length < 2) {
@@ -198,7 +198,7 @@ function parseImportPayload(csvContent: string): BatchUpsertApmItem[] {
   const headers = rows[0].map(normalizeHeader)
   validateHeaders(headers)
 
-  const parsedItems: BatchUpsertApmItem[] = []
+  const parsedItems: ImportApmItem[] = []
   const seenKeys = new Set<string>()
 
   for (const [rowIndex, row] of rows.slice(1).entries()) {
@@ -217,7 +217,7 @@ function parseImportPayload(csvContent: string): BatchUpsertApmItem[] {
     }
 
     const { year, month } = parseRequiredMonth(record.month, record.year, rowNumber)
-    const item: BatchUpsertApmItem = {
+    const item: ImportApmItem = {
       agentCode,
       year,
       month,
@@ -294,7 +294,7 @@ export async function importApmAction(
       await Promise.all(files.map(async (file) => parseImportPayload(await file.text())))
     ).flat()
 
-    const result = await new BatchUpsertApmCommand({
+    const result = await new ImportApmCommand({
       items,
     }).execute()
 

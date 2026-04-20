@@ -1,7 +1,7 @@
 import { BarChart3Icon } from "lucide-react"
 import { Suspense } from "react"
 
-import type { ApmPeriod } from "@reeka-office/domain-performance"
+import type { Period } from "@reeka-office/domain-performance"
 
 import { Empty } from "@/components/ui/empty"
 
@@ -12,7 +12,7 @@ import { RecalculateQualificationButton } from "./recalculate-qualification-butt
 import { resolveActivePeriod } from "./search-params"
 
 interface PerformanceDetailSectionProps {
-  latestPeriod: ApmPeriod | null
+  latestPeriod: Period | null
   requestedPeriod?: string | null
 }
 

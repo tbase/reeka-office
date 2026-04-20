@@ -1,7 +1,7 @@
 import { ListTeamMemberBaseQuery } from "@reeka-office/domain-agent";
 import {
   ListApmPeriodsQuery,
-  type ApmPeriod,
+  type Period,
 } from "@reeka-office/domain-performance";
 import type { z } from "zod";
 
@@ -11,7 +11,7 @@ import { gegeMetricChartInputSchema, resolveAccessibleAgentCode } from "./shared
 
 export type GetMetricChartInput = z.infer<typeof gegeMetricChartInputSchema>;
 export interface GetMetricChartOutput {
-  period: ApmPeriod | null;
+  period: Period | null;
   year: number;
   metricName: GetMetricChartInput["metricName"];
   scope: GetMetricChartInput["scope"];

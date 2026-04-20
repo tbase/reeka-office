@@ -14,7 +14,8 @@
     "db:push:center": "drizzle-kit push --config=drizzle/center.config.ts",
     "tabicon": "pnpm --filter reeka-office-miniprogram tabicon",
     "build": "pnpm -r --if-present build",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test"
   },
   "devDependencies": {
     "dotenv": "^17.4.1",

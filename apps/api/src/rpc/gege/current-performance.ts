@@ -1,19 +1,18 @@
 import {
-  getDb,
+  GetCurrentPerformanceMetricsQuery,
   ListApmPeriodsQuery,
-  listCurrentPerformanceMetrics,
-  type ApmPeriod,
+  type Period,
   type CurrentPerformanceMetricItem,
 } from "@reeka-office/domain-performance";
 
 export interface CurrentPerformanceInput {
   agentCodes: string[];
-  period?: ApmPeriod | null;
+  period?: Period | null;
 }
 
 export interface CurrentPerformanceResult {
-  latestPeriod: ApmPeriod | null;
-  period: ApmPeriod | null;
+  latestPeriod: Period | null;
+  period: Period | null;
   items: CurrentPerformanceMetricItem[];
 }
 
@@ -26,6 +25,9 @@ export async function getCurrentPerformanceMetrics(
   return {
     latestPeriod,
     period,
-    items: await listCurrentPerformanceMetrics(getDb(), input.agentCodes, period),
+    items: await new GetCurrentPerformanceMetricsQuery({
+      agentCodes: input.agentCodes,
+      period,
+    }).query(),
   };
 }

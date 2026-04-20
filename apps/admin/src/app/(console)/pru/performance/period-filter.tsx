@@ -2,7 +2,7 @@
 
 import { CalendarIcon } from "lucide-react"
 
-import type { ApmPeriod } from "@reeka-office/domain-performance"
+import type { Period } from "@reeka-office/domain-performance"
 import { parseAsString, useQueryState } from "nuqs"
 
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { formatPeriod } from "./format"
 
 interface PerformancePeriodFilterProps {
-  activePeriod: ApmPeriod
+  activePeriod: Period
   className?: string
 }
 

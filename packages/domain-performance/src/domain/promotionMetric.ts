@@ -1,6 +1,6 @@
 import type { DesignationName } from '@reeka-office/domain-agent'
 
-import type { ApmPeriod } from './list-apm-periods'
+import type { Period } from './period'
 
 export type PromotionStatus = 'ready' | 'no-target' | 'no-performance'
 
@@ -35,20 +35,16 @@ export interface AgentPromotionSnapshot {
     targetName: DesignationName | null
   }
   lastPromotionDate: string | null
-  saleCalculateStartPeriod: ApmPeriod | null
-  latestPeriod: ApmPeriod | null
+  saleCalculateStartPeriod: Period | null
+  latestPeriod: Period | null
   metrics: PromotionMetric[]
 }
 
-type PromotionMetricDefinition = {
+export const promotionMetricDefinitions: Array<{
   key: PromotionMetricKey
   label: string
   format: PromotionMetricFormat
-}
-
-const amount = (value: number) => value * 100
-
-export const PROMOTION_METRIC_DEFINITIONS: PromotionMetricDefinition[] = [
+}> = [
   {
     key: 'net_sales_personal',
     label: '近12个月个人业绩',
@@ -86,7 +82,9 @@ export const PROMOTION_METRIC_DEFINITIONS: PromotionMetricDefinition[] = [
   },
 ]
 
-export const PROMOTION_TARGETS: Partial<Record<DesignationName, Record<PromotionMetricKey, number>>> = {
+const amount = (value: number) => value * 100
+
+export const promotionTargets: Partial<Record<DesignationName, Record<PromotionMetricKey, number>>> = {
   UM: {
     net_sales_personal: amount(820000),
     net_sales_team: 0,

@@ -1,6 +1,5 @@
 import {
-  getDb,
-  listMonthlyMetricValues,
+  GetMonthlyMetricValuesQuery,
   type MonthlyMetricValueItem,
   type PerformanceMetricName,
 } from "@reeka-office/domain-performance";
@@ -23,11 +22,6 @@ export async function getMonthlyMetricValues(
   return {
     year: input.year,
     metricName: input.metricName,
-    items: await listMonthlyMetricValues(
-      getDb(),
-      input.agentCodes,
-      input.year,
-      input.metricName,
-    ),
+    items: await new GetMonthlyMetricValuesQuery(input).query(),
   };
 }

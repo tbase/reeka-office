@@ -1,4 +1,4 @@
-import type { ApmPeriod } from "@reeka-office/domain-performance"
+import type { Period } from "@reeka-office/domain-performance"
 
 export type PerformanceView = "table" | "stats"
 
@@ -46,8 +46,8 @@ export function parsePerformanceYear(value?: string): number | null {
 
 export function resolveActivePeriod(
   requested: string | null,
-  latestPeriod: ApmPeriod | null,
-): ApmPeriod | null {
+  latestPeriod: Period | null,
+): Period | null {
   const parsedRequested = parsePerformancePeriod(requested ?? undefined)
   if (parsedRequested) {
     const [yearValue, monthValue] = parsedRequested.split("-")
@@ -61,12 +61,12 @@ export function resolveActivePeriod(
   return latestPeriod
 }
 
-export function resolveYearOptions(periods: readonly ApmPeriod[]): number[] {
+export function resolveYearOptions(periods: readonly Period[]): number[] {
   return [...new Set(periods.map((period) => period.year))].sort((left, right) => right - left)
 }
 
 export function resolveActiveYear(
-  periods: readonly ApmPeriod[],
+  periods: readonly Period[],
   requested: string | null,
 ): number | null {
   const yearOptions = resolveYearOptions(periods)
