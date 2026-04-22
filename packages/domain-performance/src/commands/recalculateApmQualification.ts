@@ -1,5 +1,7 @@
+import type { AgentLogChange } from '@reeka-office/domain-agent'
 import { withTransaction } from '../context'
 import type { DomainEvent } from '../domain/events'
+import type { StoredApmMetrics } from '../domain/performanceMetrics'
 import { getCurrentQualificationPeriods } from '../domain/period'
 import { QualificationPolicy } from '../domain/qualification/policy'
 import { createPerformanceRuntime, type PerformanceRuntime } from '../infra/defaultDeps'
@@ -22,6 +24,16 @@ export interface RecalculateApmQualificationDependencies {
   executeInTransaction<T>(work: (runtime: PerformanceRuntime) => Promise<T>): Promise<T>
   now(): Date
 }
+
+const CURRENT_QUALIFICATION_FIELDS = [
+  'qualifiedGap',
+  'isQualifiedNextMonth',
+  'qualifiedGapNextMonth',
+] as const satisfies ReadonlyArray<keyof StoredApmMetrics>
+
+const PROJECTED_QUALIFICATION_FIELDS = [
+  'qualifiedGap',
+] as const satisfies ReadonlyArray<keyof StoredApmMetrics>
 
 export class RecalculateApmQualificationCommand {
   private readonly dependencies: RecalculateApmQualificationDependencies
@@ -63,6 +75,7 @@ export class RecalculateApmQualificationCommand {
         runtime.teamHierarchyPort,
       )
       const events: DomainEvent[] = []
+      const logs: Array<Parameters<PerformanceRuntime['appendAgentLogs']>[0][number]> = []
 
       let updatedCount = 0
       let skippedCount = 0
@@ -102,6 +115,7 @@ export class RecalculateApmQualificationCommand {
         )
 
         if (currentApm && currentAssessment && currentAgentCodes.has(agentCode)) {
+          const beforeMetrics = { ...currentApm.metrics }
           const changed = currentApm.refreshCurrentQualification({
             qualifiedGap: currentAssessment.qualifiedGap,
             ...(nextAssessment
@@ -115,21 +129,49 @@ export class RecalculateApmQualificationCommand {
           if (changed) {
             await runtime.apmRepository.save(currentApm)
             events.push(...currentApm.pullDomainEvents())
+            logs.push({
+              agentCode,
+              category: 'apm',
+              action: 'updated',
+              periodYear: qualificationPeriods.current.year,
+              periodMonth: qualificationPeriods.current.month,
+              source: 'RecalculateApmQualificationCommand',
+              changes: buildStoredMetricChanges(
+                beforeMetrics,
+                currentApm.metrics,
+                CURRENT_QUALIFICATION_FIELDS,
+              ),
+            })
+            updatedCount += 1
           }
-          updatedCount += 1
         }
 
         if (nextApm && nextAssessment && nextAgentCodes.has(agentCode)) {
+          const beforeMetrics = { ...nextApm.metrics }
           const changed = nextApm.refreshProjectedQualification(nextAssessment.qualifiedGap, now)
 
           if (changed) {
             await runtime.apmRepository.save(nextApm)
             events.push(...nextApm.pullDomainEvents())
+            logs.push({
+              agentCode,
+              category: 'apm',
+              action: 'updated',
+              periodYear: qualificationPeriods.next.year,
+              periodMonth: qualificationPeriods.next.month,
+              source: 'RecalculateApmQualificationCommand',
+              changes: buildStoredMetricChanges(
+                beforeMetrics,
+                nextApm.metrics,
+                PROJECTED_QUALIFICATION_FIELDS,
+              ),
+            })
+            updatedCount += 1
           }
-          updatedCount += 1
         }
       }
 
+      await runtime.appendAgentLogs(logs)
       await runtime.domainEventStore.append(events)
 
       return {
@@ -141,4 +183,22 @@ export class RecalculateApmQualificationCommand {
       }
     })
   }
+}
+
+function buildStoredMetricChanges<const TField extends keyof StoredApmMetrics>(
+  before: Pick<StoredApmMetrics, TField>,
+  after: Pick<StoredApmMetrics, TField>,
+  fields: readonly TField[],
+): AgentLogChange[] {
+  return fields.flatMap((field) => {
+    if (before[field] === after[field]) {
+      return []
+    }
+
+    return [{
+      field,
+      before: before[field],
+      after: after[field],
+    }]
+  })
 }

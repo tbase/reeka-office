@@ -1,6 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm'
 
-import { getDb, type DB } from '../context'
+import { appendAgentLogs, type AppendAgentLogInput } from '../agent-log'
+import { getDb, type DB, type DBExecutor } from '../context'
 import { agents } from '../db/schema'
 
 export interface UpdateAgentLastPromotionDateInput {
@@ -13,13 +14,77 @@ export interface UpdateAgentLastPromotionDateResult {
   lastPromotionDate: string | null
 }
 
-export class UpdateAgentLastPromotionDateCommand {
-  private readonly db: DB
-  private readonly input: UpdateAgentLastPromotionDateInput
+interface ActiveAgentRow {
+  id: number
+  agentCode: string
+  lastPromotionDate: string | null
+}
 
-  constructor(input: UpdateAgentLastPromotionDateInput) {
-    this.db = getDb()
+interface UpdateAgentLastPromotionDateRuntime {
+  findActiveAgentByCode(agentCode: string): Promise<ActiveAgentRow | null>
+  updateAgentLastPromotionDateById(id: number, lastPromotionDate: string | null): Promise<void>
+  appendAgentLogs(logs: AppendAgentLogInput[]): Promise<void>
+}
+
+interface UpdateAgentLastPromotionDateDependencies {
+  executeInTransaction<T>(work: (runtime: UpdateAgentLastPromotionDateRuntime) => Promise<T>): Promise<T>
+}
+
+function createUpdateAgentLastPromotionDateRuntime(db: DBExecutor): UpdateAgentLastPromotionDateRuntime {
+  return {
+    async findActiveAgentByCode(agentCode) {
+      const rows = await db
+        .select({
+          id: agents.id,
+          agentCode: agents.agentCode,
+          lastPromotionDate: agents.lastPromotionDate,
+        })
+        .from(agents)
+        .where(and(
+          eq(agents.agentCode, agentCode),
+          isNull(agents.deletedAt),
+        ))
+        .limit(1)
+
+      const row = rows[0]
+      if (!row?.agentCode) {
+        return null
+      }
+
+      return {
+        id: row.id,
+        agentCode: row.agentCode,
+        lastPromotionDate: row.lastPromotionDate,
+      }
+    },
+    async updateAgentLastPromotionDateById(id, lastPromotionDate) {
+      await db
+        .update(agents)
+        .set({
+          lastPromotionDate,
+        })
+        .where(eq(agents.id, id))
+    },
+    appendAgentLogs(logs) {
+      return appendAgentLogs(db, logs)
+    },
+  }
+}
+
+export class UpdateAgentLastPromotionDateCommand {
+  private readonly input: UpdateAgentLastPromotionDateInput
+  private readonly dependencies: UpdateAgentLastPromotionDateDependencies
+
+  constructor(
+    input: UpdateAgentLastPromotionDateInput,
+    dependencies?: Partial<UpdateAgentLastPromotionDateDependencies>,
+  ) {
     this.input = input
+    const db = dependencies?.executeInTransaction ? null : getDb()
+    this.dependencies = {
+      executeInTransaction: dependencies?.executeInTransaction
+        ?? ((work) => (db as DB).transaction((tx) => work(createUpdateAgentLastPromotionDateRuntime(tx)))),
+    }
   }
 
   async execute(): Promise<UpdateAgentLastPromotionDateResult> {
@@ -30,32 +95,33 @@ export class UpdateAgentLastPromotionDateCommand {
       throw new Error('代理人编码不能为空')
     }
 
-    const rows = await this.db
-      .select({
-        agentCode: agents.agentCode,
-      })
-      .from(agents)
-      .where(and(
-        eq(agents.agentCode, agentCode),
-        isNull(agents.deletedAt),
-      ))
-      .limit(1)
+    return this.dependencies.executeInTransaction(async (runtime) => {
+      const agent = await runtime.findActiveAgentByCode(agentCode)
 
-    if (!rows[0]?.agentCode) {
-      throw new Error(`代理人不存在: ${agentCode}`)
-    }
+      if (!agent) {
+        throw new Error(`代理人不存在: ${agentCode}`)
+      }
 
-    await this.db
-      .update(agents)
-      .set({
+      if (agent.lastPromotionDate !== lastPromotionDate) {
+        await runtime.updateAgentLastPromotionDateById(agent.id, lastPromotionDate)
+        await runtime.appendAgentLogs([{
+          agentCode,
+          category: 'profile',
+          action: 'updated',
+          source: 'UpdateAgentLastPromotionDateCommand',
+          changes: [{
+            field: 'lastPromotionDate',
+            before: agent.lastPromotionDate,
+            after: lastPromotionDate,
+          }],
+        }])
+      }
+
+      return {
+        agentCode,
         lastPromotionDate,
-      })
-      .where(eq(agents.agentCode, agentCode))
-
-    return {
-      agentCode,
-      lastPromotionDate,
-    }
+      }
+    })
   }
 }
 

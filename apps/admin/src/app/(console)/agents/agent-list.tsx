@@ -1,4 +1,5 @@
 import {
+  ListAgentLogsQuery,
   ListAgentsQuery,
   getDesignationName,
 } from "@reeka-office/domain-agent";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/sticky-table";
 import { getRequiredAdminContext } from "@/lib/admin-context";
 
+import { AgentLogsSheet } from "./agent-logs-sheet";
 import type { AgentSort } from "./search-params";
 
 const agentCodeColumnClass = "w-[160px] min-w-[160px] max-w-[160px]";
@@ -54,9 +56,25 @@ export async function AgentList({ agency, sort }: AgentListProps) {
     tenantCode,
     agentIds: agents.map((agent) => agent.id),
   }).query();
+  const agentLogs = await new ListAgentLogsQuery({
+    agentCodes: agents
+      .map((agent) => agent.agentCode)
+      .filter((agentCode): agentCode is string => !!agentCode),
+  }).query();
   const activationTimeByAgentId = new Map(
     activeBindings.map((binding) => [binding.agentId, binding.boundAt]),
   );
+  const logsByAgentCode = agentLogs.reduce((map, log) => {
+    const current = map.get(log.agentCode)
+
+    if (current) {
+      current.push(log)
+    } else {
+      map.set(log.agentCode, [log])
+    }
+
+    return map
+  }, new Map<string, typeof agentLogs>())
   const designationStats = Array.from(
     agents
       .reduce((stats, agent) => {
@@ -128,6 +146,9 @@ export async function AgentList({ agency, sort }: AgentListProps) {
               <StickyTableHeaderCell className="text-left">
                 激活时间
               </StickyTableHeaderCell>
+              <StickyTableHeaderCell className="text-left">
+                日志
+              </StickyTableHeaderCell>
             </tr>
           </thead>
           <tbody>
@@ -145,6 +166,9 @@ export async function AgentList({ agency, sort }: AgentListProps) {
               const activationTime = formatDateTime(
                 activationTimeByAgentId.get(agent.id) ?? null,
               );
+              const logs = agent.agentCode
+                ? logsByAgentCode.get(agent.agentCode) ?? []
+                : [];
 
               return (
                 <tr
@@ -188,6 +212,15 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                   </StickyTableBodyCell>
                   <StickyTableBodyCell>
                     {activationTime ?? ""}
+                  </StickyTableBodyCell>
+                  <StickyTableBodyCell>
+                    {agent.agentCode ? (
+                      <AgentLogsSheet
+                        agentCode={agent.agentCode}
+                        agentName={agent.name}
+                        logs={logs}
+                      />
+                    ) : null}
                   </StickyTableBodyCell>
                 </tr>
               );

@@ -1,17 +1,21 @@
 import type { MySql2Database } from 'drizzle-orm/mysql2'
-import { agentHierarchy, agents } from './db/schema'
+import { agentHierarchy, agentLogs, agents } from './db/schema'
 
 export type AgentSchema = {
   agents: typeof agents
   agentHierarchy: typeof agentHierarchy
+  agentLogs: typeof agentLogs
 }
 
 export const agentSchema: AgentSchema = {
   agents,
   agentHierarchy,
+  agentLogs,
 }
 
 export type DB = MySql2Database<AgentSchema>
+export type Transaction = Parameters<Parameters<DB['transaction']>[0]>[0]
+export type DBExecutor = DB | Transaction
 
 export interface SetupOptions {
   db: MySql2Database<AgentSchema>

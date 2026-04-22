@@ -21,6 +21,12 @@ export {
   type ListAgentAgenciesResult,
 } from './list-agent-agencies'
 export {
+  ListAgentLogsQuery,
+  type AgentLogItem,
+  type ListAgentLogsInput,
+  type ListAgentLogsResult,
+} from './list-agent-logs'
+export {
   LIST_AGENT_SORTS,
   ListAgentsQuery,
   type ListAgentSort,

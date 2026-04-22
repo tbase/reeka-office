@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import type { AppendAgentLogInput } from '@reeka-office/domain-agent'
 import { ImportApmCommand, type ImportApmItem } from '../src/commands/importApm'
 import { Apm } from '../src/domain/apm'
 import { toPerformanceMetrics } from '../src/domain/performanceMetrics'
@@ -11,6 +12,7 @@ import type { PerformanceRuntime } from '../src/infra/defaultDeps'
 class MemoryApmRepository implements ApmRepository {
   private readonly store = new Map<string, Apm>()
   private nextId = 1
+  saveCalls = 0
 
   async findByKeys(keys: Array<{ agentCode: string; period: Period }>): Promise<Apm[]> {
     return keys
@@ -20,6 +22,8 @@ class MemoryApmRepository implements ApmRepository {
   }
 
   async save(entity: Apm): Promise<void> {
+    this.saveCalls += 1
+
     if (entity.id == null) {
       entity.assignId(this.nextId)
       this.nextId += 1
@@ -34,6 +38,10 @@ class MemoryApmRepository implements ApmRepository {
 
   listSnapshots() {
     return [...this.store.values()].map((entity) => entity.toSnapshot())
+  }
+
+  resetCounters() {
+    this.saveCalls = 0
   }
 
   private buildKey(agentCode: string, period: Period) {
@@ -158,6 +166,21 @@ class MemoryDomainEventStore implements DomainEventStore {
   }
 }
 
+class MemoryAgentLogStore {
+  readonly logs: AppendAgentLogInput[] = []
+
+  async append(logs: AppendAgentLogInput[]) {
+    this.logs.push(...logs.map((log) => ({
+      ...log,
+      changes: log.changes.map((change) => ({
+        ...change,
+        before: Array.isArray(change.before) ? [...change.before] : change.before,
+        after: Array.isArray(change.after) ? [...change.after] : change.after,
+      })),
+    })))
+  }
+}
+
 function createRuntime(input: {
   profiles: AgentProfile[]
   hierarchy?: Record<string, string[]>
@@ -178,6 +201,8 @@ function createRuntime(input: {
     const agentDirectoryPort = new MemoryAgentDirectoryPort(input.profiles)
     const teamHierarchyPort = new MemoryTeamHierarchyPort(input.hierarchy ?? {})
     const domainEventStore = new MemoryDomainEventStore()
+    const agentLogStore = new MemoryAgentLogStore()
+    apmRepository.resetCounters()
 
     return {
       runtime: {
@@ -186,9 +211,11 @@ function createRuntime(input: {
         agentDirectoryPort,
         teamHierarchyPort,
         domainEventStore,
+        appendAgentLogs: (logs) => agentLogStore.append(logs),
       } satisfies PerformanceRuntime,
       apmRepository,
       domainEventStore,
+      agentLogStore,
     }
   })
 }
@@ -253,7 +280,7 @@ describe('ImportApmCommand', () => {
       year: 2026,
       month: 5,
     }
-    const { runtime, apmRepository, domainEventStore } = await createRuntime({
+    const { runtime, apmRepository, domainEventStore, agentLogStore } = await createRuntime({
       profiles: [{
         agentCode: 'A001',
         joinDate: '2026-01-01',
@@ -302,5 +329,108 @@ describe('ImportApmCommand', () => {
     }))
     expect(apmRepository.getSnapshot('A001', nextPeriod)?.metrics.qualifiedGap).toBe(-1_000_000)
     expect(domainEventStore.events.some((event) => event.type === 'QualificationRecalculated')).toBe(true)
+    expect(agentLogStore.logs).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        category: 'apm',
+        action: 'created',
+        periodYear: 2026,
+        periodMonth: 4,
+      }),
+      expect.objectContaining({
+        category: 'apm',
+        action: 'updated',
+        periodYear: 2026,
+        periodMonth: 4,
+      }),
+      expect.objectContaining({
+        category: 'apm',
+        action: 'updated',
+        periodYear: 2026,
+        periodMonth: 5,
+      }),
+    ]))
+  })
+
+  it('skips save and logs for unchanged monthly imports', async () => {
+    const currentItem = createImportItem()
+    const { runtime, apmRepository, agentLogStore, domainEventStore } = await createRuntime({
+      profiles: [{
+        agentCode: 'A001',
+        joinDate: '2026-01-01',
+        designation: 1,
+        lastPromotionDate: null,
+      }],
+      seed: [{
+        agentCode: 'A001',
+        period: {
+          year: 2026,
+          month: 4,
+        },
+        item: currentItem,
+      }],
+    })
+
+    const command = new ImportApmCommand({
+      items: [currentItem],
+    }, {
+      executeInTransaction: async (work) => work(runtime),
+      now: () => new Date('2026-06-10T00:00:00.000Z'),
+    })
+
+    const result = await command.execute()
+
+    expect(result).toEqual({
+      processedCount: 1,
+      createdCount: 0,
+      updatedCount: 0,
+    })
+    expect(apmRepository.saveCalls).toBe(0)
+    expect(agentLogStore.logs).toEqual([])
+    expect(domainEventStore.events).toEqual([])
+  })
+
+  it('logs only changed imported monthly fields on updates', async () => {
+    const { runtime, agentLogStore } = await createRuntime({
+      profiles: [{
+        agentCode: 'A001',
+        joinDate: '2026-01-01',
+        designation: 1,
+        lastPromotionDate: null,
+      }],
+      seed: [{
+        agentCode: 'A001',
+        period: {
+          year: 2026,
+          month: 4,
+        },
+        item: createImportItem(),
+      }],
+    })
+
+    const command = new ImportApmCommand({
+      items: [createImportItem({
+        nsc: 9_000_000,
+        nscSum: 9_000_000,
+      })],
+    }, {
+      executeInTransaction: async (work) => work(runtime),
+      now: () => new Date('2026-06-10T00:00:00.000Z'),
+    })
+
+    const result = await command.execute()
+
+    expect(result.updatedCount).toBe(1)
+    expect(agentLogStore.logs).toContainEqual({
+      agentCode: 'A001',
+      category: 'apm',
+      action: 'updated',
+      periodYear: 2026,
+      periodMonth: 4,
+      source: 'ImportApmCommand',
+      changes: [
+        { field: 'nsc', before: 8_000_000, after: 9_000_000 },
+        { field: 'nscSum', before: 8_000_000, after: 9_000_000 },
+      ],
+    })
   })
 })

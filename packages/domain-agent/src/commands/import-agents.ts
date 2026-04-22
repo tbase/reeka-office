@@ -1,5 +1,11 @@
 import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
-import { getDb, type DB } from '../context'
+
+import {
+  appendAgentLogs,
+  type AgentLogChange,
+  type AppendAgentLogInput,
+} from '../agent-log'
+import { getDb, type DB, type DBExecutor } from '../context'
 import { agentHierarchy, agents } from '../db/schema'
 
 export interface ImportedAgentInput {
@@ -38,6 +44,59 @@ interface AgentHierarchyRow {
   leaderCode: string
   hierarchy: number
 }
+
+interface AgentProfileState {
+  agentCode: string
+  name: string
+  joinDate: string | null
+  designation: number | null
+  finacingScheme: string[] | null
+  leaderCode: string | null
+  lastPromotionDate: string | null
+  agency: string | null
+  division: string | null
+  branch: string | null
+  unit: string | null
+}
+
+interface PersistedAgentRecord extends AgentProfileState {
+  id: number
+  deletedAt: string | Date | null
+}
+
+interface ImportAgentsRuntime {
+  listExistingAgents(agentCodes: string[]): Promise<PersistedAgentRecord[]>
+  listActiveAgentCodes(): Promise<string[]>
+  insertAgentBase(agent: AgentProfileState): Promise<void>
+  updateAgentBaseById(id: number, agent: AgentProfileState): Promise<void>
+  listCurrentAgents(agentCodes: string[]): Promise<Array<{
+    id: number
+    agentCode: string
+    leaderCode: string | null
+  }>>
+  updateAgentLeaderById(id: number, leaderCode: string | null): Promise<void>
+  softDeleteMissing(agentCodes: string[]): Promise<void>
+  listHierarchySourceRows(): Promise<AgentHierarchySourceRow[]>
+  replaceHierarchy(rows: AgentHierarchyRow[]): Promise<void>
+  appendAgentLogs(logs: AppendAgentLogInput[]): Promise<void>
+}
+
+interface ImportAgentsDependencies {
+  executeInTransaction<T>(work: (runtime: ImportAgentsRuntime) => Promise<T>): Promise<T>
+}
+
+const PROFILE_FIELDS = [
+  'name',
+  'joinDate',
+  'designation',
+  'finacingScheme',
+  'leaderCode',
+  'lastPromotionDate',
+  'agency',
+  'division',
+  'branch',
+  'unit',
+] as const satisfies ReadonlyArray<keyof AgentProfileState>
 
 function normalizeText(value: string | null | undefined): string | null {
   const text = value?.trim()
@@ -79,7 +138,21 @@ function areStringArraysEqual(
   return left.every((item, index) => item === right[index])
 }
 
-function normalizeAgent(agent: ImportedAgentInput): ImportedAgentInput {
+function areFieldValuesEqual(
+  left: AgentProfileState[keyof AgentProfileState] | null,
+  right: AgentProfileState[keyof AgentProfileState] | null,
+): boolean {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return areStringArraysEqual(
+      Array.isArray(left) ? left : null,
+      Array.isArray(right) ? right : null,
+    )
+  }
+
+  return left === right
+}
+
+function normalizeAgent(agent: ImportedAgentInput): AgentProfileState {
   const agentCode = agent.agentCode.trim()
   const name = agent.name.trim()
   const joinDate = normalizeText(agent.joinDate)
@@ -188,31 +261,30 @@ function buildAgentHierarchyRows(rows: AgentHierarchySourceRow[]): AgentHierarch
   return hierarchyRows
 }
 
-export class ImportAgentsCommand {
-  private readonly db: DB
-  private readonly input: ImportAgentsInput
+function buildProfileChanges(
+  before: AgentProfileState | null,
+  after: AgentProfileState,
+): AgentLogChange[] {
+  return PROFILE_FIELDS.flatMap((field) => {
+    const beforeValue = before?.[field] ?? null
+    const afterValue = after[field] ?? null
 
-  constructor(input: ImportAgentsInput) {
-    this.db = getDb()
-    this.input = input
-  }
-
-  async execute(): Promise<ImportAgentsResult> {
-    const dedupedAgents = new Map<string, ImportedAgentInput>()
-
-    for (const item of this.input.agents) {
-      const normalized = normalizeAgent(item)
-      dedupedAgents.set(normalized.agentCode, normalized)
+    if (before && areFieldValuesEqual(beforeValue, afterValue)) {
+      return []
     }
 
-    if (dedupedAgents.size === 0) {
-      throw new Error('没有可导入的代理人数据')
-    }
+    return [{
+      field,
+      before: beforeValue,
+      after: afterValue,
+    }]
+  })
+}
 
-    return this.db.transaction(async (tx) => {
-      const importedAgents = [...dedupedAgents.values()]
-      const importedCodes = importedAgents.map((agent) => agent.agentCode)
-      const existingRows = await tx
+function createImportAgentsRuntime(db: DBExecutor): ImportAgentsRuntime {
+  return {
+    async listExistingAgents(agentCodes) {
+      const rows = await db
         .select({
           id: agents.id,
           agentCode: agents.agentCode,
@@ -229,27 +301,149 @@ export class ImportAgentsCommand {
           deletedAt: agents.deletedAt,
         })
         .from(agents)
-        .where(inArray(agents.agentCode, importedCodes))
+        .where(inArray(agents.agentCode, agentCodes))
 
-      const activeAgentRows = await tx
+      return rows.filter((row): row is typeof rows[number] & { agentCode: string } => !!row.agentCode)
+    },
+    async listActiveAgentCodes() {
+      const rows = await db
         .select({
           agentCode: agents.agentCode,
         })
         .from(agents)
         .where(isNull(agents.deletedAt))
 
-      const existingByCode = new Map(
-        existingRows
-          .filter((row): row is typeof existingRows[number] & { agentCode: string } => !!row.agentCode)
-          .map((row) => [row.agentCode, row]),
-      )
-      const updatedAgentCodes = new Set<string>()
-      let createdCount = 0
-      const importedCodeSet = new Set(importedCodes)
-      const deletedCount = activeAgentRows
+      return rows
         .map((row) => row.agentCode)
-        .filter((code): code is string => !!code && !importedCodeSet.has(code))
-        .length
+        .filter((agentCode): agentCode is string => !!agentCode)
+    },
+    async insertAgentBase(agent) {
+      await db.insert(agents).values({
+        agentCode: agent.agentCode,
+        name: agent.name,
+        joinDate: agent.joinDate,
+        designation: agent.designation,
+        finacingScheme: agent.finacingScheme,
+        leaderCode: null,
+        lastPromotionDate: agent.lastPromotionDate,
+        agency: agent.agency,
+        division: agent.division,
+        branch: agent.branch,
+        unit: agent.unit,
+        deletedAt: null,
+      })
+    },
+    async updateAgentBaseById(id, agent) {
+      await db
+        .update(agents)
+        .set({
+          name: agent.name,
+          joinDate: agent.joinDate,
+          designation: agent.designation,
+          finacingScheme: agent.finacingScheme,
+          lastPromotionDate: agent.lastPromotionDate,
+          agency: agent.agency,
+          division: agent.division,
+          branch: agent.branch,
+          unit: agent.unit,
+          deletedAt: null,
+        })
+        .where(eq(agents.id, id))
+    },
+    async listCurrentAgents(agentCodes) {
+      const rows = await db
+        .select({
+          id: agents.id,
+          agentCode: agents.agentCode,
+          leaderCode: agents.leaderCode,
+        })
+        .from(agents)
+        .where(inArray(agents.agentCode, agentCodes))
+
+      return rows.filter((row): row is typeof rows[number] & { agentCode: string } => !!row.agentCode)
+    },
+    async updateAgentLeaderById(id, leaderCode) {
+      await db
+        .update(agents)
+        .set({
+          leaderCode,
+        })
+        .where(eq(agents.id, id))
+    },
+    async softDeleteMissing(agentCodes) {
+      await db
+        .update(agents)
+        .set({
+          deletedAt: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(and(
+          isNull(agents.deletedAt),
+          notInArray(agents.agentCode, agentCodes),
+        ))
+    },
+    async listHierarchySourceRows() {
+      const rows = await db
+        .select({
+          agentCode: agents.agentCode,
+          leaderCode: agents.leaderCode,
+          designation: agents.designation,
+        })
+        .from(agents)
+        .where(isNull(agents.deletedAt))
+
+      return rows.filter((row): row is typeof rows[number] & { agentCode: string } => !!row.agentCode)
+    },
+    async replaceHierarchy(rows) {
+      await db.delete(agentHierarchy)
+
+      if (rows.length > 0) {
+        await db.insert(agentHierarchy).values(rows)
+      }
+    },
+    appendAgentLogs(logs) {
+      return appendAgentLogs(db, logs)
+    },
+  }
+}
+
+export class ImportAgentsCommand {
+  private readonly input: ImportAgentsInput
+  private readonly dependencies: ImportAgentsDependencies
+
+  constructor(
+    input: ImportAgentsInput,
+    dependencies?: Partial<ImportAgentsDependencies>,
+  ) {
+    this.input = input
+    const db = dependencies?.executeInTransaction ? null : getDb()
+    this.dependencies = {
+      executeInTransaction: dependencies?.executeInTransaction
+        ?? ((work) => (db as DB).transaction((tx) => work(createImportAgentsRuntime(tx)))),
+    }
+  }
+
+  async execute(): Promise<ImportAgentsResult> {
+    const dedupedAgents = new Map<string, AgentProfileState>()
+
+    for (const item of this.input.agents) {
+      const normalized = normalizeAgent(item)
+      dedupedAgents.set(normalized.agentCode, normalized)
+    }
+
+    if (dedupedAgents.size === 0) {
+      throw new Error('没有可导入的代理人数据')
+    }
+
+    return this.dependencies.executeInTransaction(async (runtime) => {
+      const importedAgents = [...dedupedAgents.values()]
+      const importedCodes = importedAgents.map((agent) => agent.agentCode)
+      const existingRows = await runtime.listExistingAgents(importedCodes)
+      const activeAgentCodes = await runtime.listActiveAgentCodes()
+      const existingByCode = new Map(existingRows.map((row) => [row.agentCode, row]))
+      const updatedAgentCodes = new Set<string>()
+      const importedCodeSet = new Set(importedCodes)
+      const deletedAgentCodes = activeAgentCodes.filter((code) => !importedCodeSet.has(code))
+      const logs: AppendAgentLogInput[] = []
 
       const missingLeaderCodes = [...new Set(
         importedAgents
@@ -265,80 +459,32 @@ export class ImportAgentsCommand {
         const existing = existingByCode.get(agent.agentCode)
 
         if (!existing) {
-          await tx.insert(agents).values({
+          await runtime.insertAgentBase(agent)
+          logs.push({
             agentCode: agent.agentCode,
-            name: agent.name,
-            joinDate: agent.joinDate,
-            designation: agent.designation ?? null,
-            finacingScheme: agent.finacingScheme ?? null,
-            leaderCode: null,
-            lastPromotionDate: agent.lastPromotionDate ?? null,
-            agency: agent.agency ?? null,
-            division: agent.division ?? null,
-            branch: agent.branch ?? null,
-            unit: agent.unit ?? null,
-            deletedAt: null,
+            category: 'profile',
+            action: 'created',
+            source: 'ImportAgentsCommand',
+            changes: buildProfileChanges(null, agent),
           })
-          createdCount += 1
           continue
         }
 
-        const nextJoinDate = agent.joinDate
-        const nextDesignation = agent.designation ?? null
-        const nextFinacingScheme = agent.finacingScheme ?? null
-        const nextLastPromotionDate = agent.lastPromotionDate ?? null
-        const nextAgency = agent.agency ?? null
-        const nextDivision = agent.division ?? null
-        const nextBranch = agent.branch ?? null
-        const nextUnit = agent.unit ?? null
-        const hasChanges =
-          existing.name !== agent.name
-          || existing.joinDate !== nextJoinDate
-          || existing.designation !== nextDesignation
-          || !areStringArraysEqual(existing.finacingScheme, nextFinacingScheme)
-          || existing.lastPromotionDate !== nextLastPromotionDate
-          || existing.agency !== nextAgency
-          || existing.division !== nextDivision
-          || existing.branch !== nextBranch
-          || existing.unit !== nextUnit
-          || existing.deletedAt !== null
-
-        if (!hasChanges) {
-          continue
+        const nextBaseState: AgentProfileState = {
+          ...agent,
+          leaderCode: existing.leaderCode,
         }
+        const baseChanges = buildProfileChanges({
+          ...existing,
+        }, nextBaseState)
 
-        await tx
-          .update(agents)
-          .set({
-            name: agent.name,
-            joinDate: nextJoinDate,
-            designation: nextDesignation,
-            finacingScheme: nextFinacingScheme,
-            lastPromotionDate: nextLastPromotionDate,
-            agency: nextAgency,
-            division: nextDivision,
-            branch: nextBranch,
-            unit: nextUnit,
-            deletedAt: null,
-          })
-          .where(eq(agents.id, existing.id))
-
-        updatedAgentCodes.add(agent.agentCode)
+        if (baseChanges.length > 0 || existing.deletedAt !== null) {
+          await runtime.updateAgentBaseById(existing.id, agent)
+        }
       }
 
-      const currentRows = await tx
-        .select({
-          id: agents.id,
-          agentCode: agents.agentCode,
-          leaderCode: agents.leaderCode,
-        })
-        .from(agents)
-        .where(inArray(agents.agentCode, importedCodes))
-
       const currentByCode = new Map(
-        currentRows
-          .filter((row): row is typeof currentRows[number] & { agentCode: string } => !!row.agentCode)
-          .map((row) => [row.agentCode, row]),
+        (await runtime.listCurrentAgents(importedCodes)).map((row) => [row.agentCode, row]),
       )
 
       for (const agent of importedAgents) {
@@ -352,54 +498,62 @@ export class ImportAgentsCommand {
           continue
         }
 
-        await tx
-          .update(agents)
-          .set({
-            leaderCode: nextLeaderCode,
-          })
-          .where(eq(agents.id, current.id))
+        await runtime.updateAgentLeaderById(current.id, nextLeaderCode)
+      }
 
-        if (existingByCode.has(agent.agentCode)) {
+      await runtime.softDeleteMissing(importedCodes)
+
+      for (const agent of importedAgents) {
+        const existing = existingByCode.get(agent.agentCode)
+
+        if (!existing) {
+          continue
+        }
+
+        const changes = buildProfileChanges(existing, agent)
+        const restored = existing.deletedAt !== null
+
+        if (restored) {
+          logs.push({
+            agentCode: agent.agentCode,
+            category: 'profile',
+            action: 'restored',
+            source: 'ImportAgentsCommand',
+            changes: [],
+          })
+        }
+
+        if (changes.length > 0) {
+          logs.push({
+            agentCode: agent.agentCode,
+            category: 'profile',
+            action: 'updated',
+            source: 'ImportAgentsCommand',
+            changes,
+          })
           updatedAgentCodes.add(agent.agentCode)
         }
       }
 
-      await tx
-        .update(agents)
-        .set({
-          deletedAt: sql`CURRENT_TIMESTAMP`,
+      for (const agentCode of deletedAgentCodes) {
+        logs.push({
+          agentCode,
+          category: 'profile',
+          action: 'deleted',
+          source: 'ImportAgentsCommand',
+          changes: [],
         })
-        .where(and(
-          isNull(agents.deletedAt),
-          notInArray(agents.agentCode, importedCodes),
-        ))
-
-      const hierarchySourceRows = await tx
-        .select({
-          agentCode: agents.agentCode,
-          leaderCode: agents.leaderCode,
-          designation: agents.designation,
-        })
-        .from(agents)
-        .where(isNull(agents.deletedAt))
-
-      const hierarchyRows = buildAgentHierarchyRows(
-        hierarchySourceRows.filter(
-          (row): row is typeof hierarchySourceRows[number] & { agentCode: string } => !!row.agentCode,
-        ),
-      )
-
-      await tx.delete(agentHierarchy)
-
-      if (hierarchyRows.length > 0) {
-        await tx.insert(agentHierarchy).values(hierarchyRows)
       }
+
+      const hierarchyRows = buildAgentHierarchyRows(await runtime.listHierarchySourceRows())
+      await runtime.replaceHierarchy(hierarchyRows)
+      await runtime.appendAgentLogs(logs)
 
       return {
         importedCount: dedupedAgents.size,
-        createdCount,
+        createdCount: importedAgents.filter((agent) => !existingByCode.has(agent.agentCode)).length,
         updatedCount: updatedAgentCodes.size,
-        deletedCount,
+        deletedCount: deletedAgentCodes.length,
       }
     })
   }

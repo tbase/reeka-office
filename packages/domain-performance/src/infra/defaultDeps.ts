@@ -1,3 +1,8 @@
+import {
+  appendAgentLogs,
+  type AgentDBExecutor,
+  type AppendAgentLogInput,
+} from '@reeka-office/domain-agent'
 import type { DBExecutor } from '../context'
 import { getDb } from '../context'
 import type { AgentDirectoryPort, DomainEventStore, TeamHierarchyPort } from '../domain/ports'
@@ -14,6 +19,7 @@ export interface PerformanceRuntime {
   agentDirectoryPort: AgentDirectoryPort
   teamHierarchyPort: TeamHierarchyPort
   domainEventStore: DomainEventStore
+  appendAgentLogs(logs: AppendAgentLogInput[]): Promise<void>
 }
 
 export function createPerformanceRuntime(db: DBExecutor): PerformanceRuntime {
@@ -23,6 +29,7 @@ export function createPerformanceRuntime(db: DBExecutor): PerformanceRuntime {
     agentDirectoryPort: new DrizzleAgentDirectoryPort(db),
     teamHierarchyPort: new DrizzleTeamHierarchyPort(db),
     domainEventStore: new DrizzleDomainEventStore(db),
+    appendAgentLogs: (logs) => appendAgentLogs(db as unknown as AgentDBExecutor, logs),
   }
 }
 

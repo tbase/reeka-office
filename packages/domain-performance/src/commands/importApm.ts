@@ -1,8 +1,13 @@
+import type { AgentLogChange } from '@reeka-office/domain-agent'
 import { withTransaction } from '../context'
 import { Apm } from '../domain/apm'
 import { normalizeAgentCode } from '../domain/agentCode'
 import type { DomainEvent } from '../domain/events'
-import { normalizeImportedApmMetrics, type ImportedApmMetrics } from '../domain/performanceMetrics'
+import {
+  normalizeImportedApmMetrics,
+  type ImportedApmMetrics,
+  type StoredApmMetrics,
+} from '../domain/performanceMetrics'
 import { formatPeriodKey, getCurrentQualificationPeriods, type Period } from '../domain/period'
 import { QualificationPolicy } from '../domain/qualification/policy'
 import { createPerformanceRuntime, type PerformanceRuntime } from '../infra/defaultDeps'
@@ -27,6 +32,41 @@ export interface ImportApmDependencies {
   executeInTransaction<T>(work: (runtime: PerformanceRuntime) => Promise<T>): Promise<T>
   now(): Date
 }
+
+const IMPORTED_METRIC_FIELDS = [
+  'nsc',
+  'nscSum',
+  'netAfycSum',
+  'netAfyp',
+  'netAfypSum',
+  'netAfypAssigned',
+  'netAfypAssignedSum',
+  'nscHp',
+  'nscHpSum',
+  'netAfypHp',
+  'netAfypHpSum',
+  'netAfypH',
+  'netAfypHSum',
+  'netCaseH',
+  'netCaseHSum',
+  'netCase',
+  'netCaseSum',
+  'netCaseAssigned',
+  'netCaseAssignedSum',
+  'isQualified',
+  'isQualifiedAssigned',
+  'renewalRateTeam',
+] as const satisfies ReadonlyArray<keyof ImportedApmMetrics>
+
+const CURRENT_QUALIFICATION_FIELDS = [
+  'qualifiedGap',
+  'isQualifiedNextMonth',
+  'qualifiedGapNextMonth',
+] as const satisfies ReadonlyArray<keyof StoredApmMetrics>
+
+const PROJECTED_QUALIFICATION_FIELDS = [
+  'qualifiedGap',
+] as const satisfies ReadonlyArray<keyof StoredApmMetrics>
 
 export class ImportApmCommand {
   private readonly input: ImportApmInput
@@ -105,6 +145,7 @@ export class ImportApmCommand {
       )
       const qualificationAgentCodes = new Set<string>()
       const events: DomainEvent[] = []
+      const logs: Array<Parameters<PerformanceRuntime['appendAgentLogs']>[0][number]> = []
 
       let createdCount = 0
       let updatedCount = 0
@@ -125,10 +166,36 @@ export class ImportApmCommand {
         })
 
         if (existing) {
-          updatedCount += 1
-          entity.updateImportedMetrics(metrics, now)
+          const beforeMetrics = { ...existing.metrics }
+          const changed = entity.updateImportedMetrics(metrics, now)
+
+          if (changed) {
+            updatedCount += 1
+            await runtime.apmRepository.save(entity)
+            events.push(...entity.pullDomainEvents())
+            logs.push({
+              agentCode: row.agentCode,
+              category: 'apm',
+              action: 'updated',
+              periodYear: period.year,
+              periodMonth: period.month,
+              source: 'ImportApmCommand',
+              changes: buildImportedMetricChanges(beforeMetrics, metrics),
+            })
+          }
         } else {
           createdCount += 1
+          await runtime.apmRepository.save(entity)
+          events.push(...entity.pullDomainEvents())
+          logs.push({
+            agentCode: row.agentCode,
+            category: 'apm',
+            action: 'created',
+            periodYear: period.year,
+            periodMonth: period.month,
+            source: 'ImportApmCommand',
+            changes: buildImportedMetricChanges(null, metrics),
+          })
         }
 
         const periodKey = formatPeriodKey(period)
@@ -138,9 +205,6 @@ export class ImportApmCommand {
         ) {
           qualificationAgentCodes.add(row.agentCode)
         }
-
-        await runtime.apmRepository.save(entity)
-        events.push(...entity.pullDomainEvents())
       }
 
       for (const agentCode of qualificationAgentCodes) {
@@ -170,6 +234,7 @@ export class ImportApmCommand {
         const nextApm = relatedApmByKey.get(buildRowKey(agentCode, qualificationPeriods.next))
 
         if (currentApm && currentAssessment) {
+          const beforeMetrics = { ...currentApm.metrics }
           const changed = currentApm.refreshCurrentQualification({
             qualifiedGap: currentAssessment.qualifiedGap,
             ...(nextAssessment
@@ -183,19 +248,47 @@ export class ImportApmCommand {
           if (changed) {
             await runtime.apmRepository.save(currentApm)
             events.push(...currentApm.pullDomainEvents())
+            logs.push({
+              agentCode,
+              category: 'apm',
+              action: 'updated',
+              periodYear: qualificationPeriods.current.year,
+              periodMonth: qualificationPeriods.current.month,
+              source: 'ImportApmCommand',
+              changes: buildStoredMetricChanges(
+                beforeMetrics,
+                currentApm.metrics,
+                CURRENT_QUALIFICATION_FIELDS,
+              ),
+            })
           }
         }
 
         if (nextApm && nextAssessment) {
+          const beforeMetrics = { ...nextApm.metrics }
           const changed = nextApm.refreshProjectedQualification(nextAssessment.qualifiedGap, now)
 
           if (changed) {
             await runtime.apmRepository.save(nextApm)
             events.push(...nextApm.pullDomainEvents())
+            logs.push({
+              agentCode,
+              category: 'apm',
+              action: 'updated',
+              periodYear: qualificationPeriods.next.year,
+              periodMonth: qualificationPeriods.next.month,
+              source: 'ImportApmCommand',
+              changes: buildStoredMetricChanges(
+                beforeMetrics,
+                nextApm.metrics,
+                PROJECTED_QUALIFICATION_FIELDS,
+              ),
+            })
           }
         }
       }
 
+      await runtime.appendAgentLogs(logs)
       await runtime.domainEventStore.append(events)
 
       return {
@@ -257,6 +350,44 @@ function extractImportedMetrics(input: ImportApmItem): ImportedApmMetrics {
 
 function buildRowKey(agentCode: string, period: Period): string {
   return `${agentCode}:${period.year}:${period.month}`
+}
+
+function buildImportedMetricChanges(
+  before: ImportedApmMetrics | StoredApmMetrics | null,
+  after: ImportedApmMetrics,
+): AgentLogChange[] {
+  return IMPORTED_METRIC_FIELDS.flatMap((field) => {
+    const beforeValue = before?.[field] ?? null
+    const afterValue = after[field]
+
+    if (before && beforeValue === afterValue) {
+      return []
+    }
+
+    return [{
+      field,
+      before: beforeValue,
+      after: afterValue,
+    }]
+  })
+}
+
+function buildStoredMetricChanges<const TField extends keyof StoredApmMetrics>(
+  before: Pick<StoredApmMetrics, TField>,
+  after: Pick<StoredApmMetrics, TField>,
+  fields: readonly TField[],
+): AgentLogChange[] {
+  return fields.flatMap((field) => {
+    if (before[field] === after[field]) {
+      return []
+    }
+
+    return [{
+      field,
+      before: before[field],
+      after: after[field],
+    }]
+  })
 }
 
 function shouldRecalculateQualification(
