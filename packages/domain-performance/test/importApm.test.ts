@@ -7,7 +7,7 @@ import { toPerformanceMetrics } from '../src/domain/performanceMetrics'
 import type { AgentDirectoryPort, AgentProfile, DomainEventStore, TeamHierarchyPort } from '../src/domain/ports'
 import type { ApmRepository, PerformanceReadRepository } from '../src/domain/repositories'
 import { periodToIndex, type Period } from '../src/domain/period'
-import type { PerformanceRuntime } from '../src/infra/defaultDeps'
+import type { PerformanceRuntime } from '../src/application/runtime'
 
 class MemoryApmRepository implements ApmRepository {
   private readonly store = new Map<string, Apm>()
@@ -211,7 +211,7 @@ function createRuntime(input: {
         agentDirectoryPort,
         teamHierarchyPort,
         domainEventStore,
-        appendAgentLogs: (logs) => agentLogStore.append(logs),
+        agentLogStore,
       } satisfies PerformanceRuntime,
       apmRepository,
       domainEventStore,
@@ -324,7 +324,7 @@ describe('ImportApmCommand', () => {
       month: 4,
     })?.metrics).toEqual(expect.objectContaining({
       qualifiedGap: 0,
-      isQualifiedNextMonth: false,
+      isQualifiedNextMonth: 0,
       qualifiedGapNextMonth: -1_000_000,
     }))
     expect(apmRepository.getSnapshot('A001', nextPeriod)?.metrics.qualifiedGap).toBe(-1_000_000)

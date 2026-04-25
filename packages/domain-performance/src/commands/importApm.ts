@@ -1,5 +1,6 @@
-import type { AgentLogChange } from '@reeka-office/domain-agent'
-import { withTransaction } from '../context'
+import type { AgentLogChange, AppendAgentLogInput } from '@reeka-office/domain-agent'
+import type { PerformanceApplicationDependencies } from '../application/runtime'
+import { QualificationEvaluator } from '../application/qualificationEvaluator'
 import { Apm } from '../domain/apm'
 import { normalizeAgentCode } from '../domain/agentCode'
 import type { DomainEvent } from '../domain/events'
@@ -9,8 +10,7 @@ import {
   type StoredApmMetrics,
 } from '../domain/performanceMetrics'
 import { formatPeriodKey, getCurrentQualificationPeriods, type Period } from '../domain/period'
-import { QualificationPolicy } from '../domain/qualification/policy'
-import { createPerformanceRuntime, type PerformanceRuntime } from '../infra/defaultDeps'
+import { toQualificationMetricValue } from '../domain/qualification/assessment'
 
 export interface ImportApmItem extends ImportedApmMetrics {
   agentCode: string
@@ -26,11 +26,6 @@ export interface ImportApmResult {
   processedCount: number
   createdCount: number
   updatedCount: number
-}
-
-export interface ImportApmDependencies {
-  executeInTransaction<T>(work: (runtime: PerformanceRuntime) => Promise<T>): Promise<T>
-  now(): Date
 }
 
 const IMPORTED_METRIC_FIELDS = [
@@ -70,18 +65,14 @@ const PROJECTED_QUALIFICATION_FIELDS = [
 
 export class ImportApmCommand {
   private readonly input: ImportApmInput
-  private readonly dependencies: ImportApmDependencies
+  private readonly dependencies: PerformanceApplicationDependencies
 
   constructor(
     input: ImportApmInput,
-    dependencies?: Partial<ImportApmDependencies>,
+    dependencies: PerformanceApplicationDependencies,
   ) {
     this.input = input
-    this.dependencies = {
-      executeInTransaction: dependencies?.executeInTransaction
-        ?? ((work) => withTransaction((tx) => work(createPerformanceRuntime(tx)))),
-      now: dependencies?.now ?? (() => new Date()),
-    }
+    this.dependencies = dependencies
   }
 
   async execute(): Promise<ImportApmResult> {
@@ -139,13 +130,13 @@ export class ImportApmCommand {
         existingApms.map((entity) => [buildRowKey(entity.agentCode, entity.period), entity]),
       )
 
-      const qualificationPolicy = new QualificationPolicy(
+      const qualificationEvaluator = new QualificationEvaluator(
         runtime.performanceReadRepository,
         runtime.teamHierarchyPort,
       )
       const qualificationAgentCodes = new Set<string>()
       const events: DomainEvent[] = []
-      const logs: Array<Parameters<PerformanceRuntime['appendAgentLogs']>[0][number]> = []
+      const logs: AppendAgentLogInput[] = []
 
       let createdCount = 0
       let updatedCount = 0
@@ -214,8 +205,8 @@ export class ImportApmCommand {
         }
 
         const [currentAssessment, nextAssessment] = await Promise.all([
-          qualificationPolicy.evaluate(profile, qualificationPeriods.current),
-          qualificationPolicy.evaluate(profile, qualificationPeriods.next),
+          qualificationEvaluator.evaluate(profile, qualificationPeriods.current),
+          qualificationEvaluator.evaluate(profile, qualificationPeriods.next),
         ])
         const relatedApms = await runtime.apmRepository.findByKeys([
           {
@@ -239,7 +230,7 @@ export class ImportApmCommand {
             qualifiedGap: currentAssessment.qualifiedGap,
             ...(nextAssessment
               ? {
-                  isQualifiedNextMonth: nextAssessment.isQualified,
+                  isQualifiedNextMonth: toQualificationMetricValue(nextAssessment),
                   qualifiedGapNextMonth: nextAssessment.qualifiedGap,
                 }
               : {}),
@@ -288,7 +279,7 @@ export class ImportApmCommand {
         }
       }
 
-      await runtime.appendAgentLogs(logs)
+      await runtime.agentLogStore.append(logs)
       await runtime.domainEventStore.append(events)
 
       return {
@@ -395,7 +386,7 @@ function shouldRecalculateQualification(
   existing?: {
     nscSum: number
     qualifiedGap: number | null
-    isQualifiedNextMonth: boolean | null
+    isQualifiedNextMonth: number | null
     qualifiedGapNextMonth: number | null
   },
 ): boolean {

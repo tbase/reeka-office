@@ -1,6 +1,6 @@
 import type { PerformanceHistoryItem } from '../domain/readModels'
 import type { PerformanceReadRepository } from '../domain/repositories'
-import { createDefaultPerformanceRuntime } from '../infra/defaultDeps'
+import { createPerformanceReaderRuntime } from '../infra/defaultDeps'
 
 export interface GetAgentPerformanceHistoryInput {
   agentCode: string
@@ -13,7 +13,7 @@ export class GetAgentPerformanceHistoryQuery {
 
   constructor(
     input: GetAgentPerformanceHistoryInput,
-    repository = createDefaultPerformanceRuntime().performanceReadRepository,
+    repository = createPerformanceReaderRuntime().performanceReadRepository,
   ) {
     this.input = input
     this.performanceReadRepository = repository

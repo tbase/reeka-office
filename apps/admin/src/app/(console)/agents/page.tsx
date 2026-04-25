@@ -65,7 +65,7 @@ export default async function AgentsPage({
         key={`${agency ?? "all"}:${sort}`}
         fallback={<Empty title="正在加载代理人..." />}
       >
-        <AgentList agency={agency} sort={sort} />
+        <AgentList agency={agency} sort={sort} searchParams={params} />
       </Suspense>
     </div>
   );

@@ -106,6 +106,14 @@ function goPromotion() {
   })
 }
 
+function goLogs() {
+  wx.navigateTo({
+    url: buildPageUrl('/packages/gege/pages/logs/index', {
+      agentCode: routeAgentCode.value,
+    }),
+  })
+}
+
 function goSearch() {
   wx.navigateTo({
     url: buildPageUrl('/packages/gege/pages/search/index', {
@@ -202,6 +210,9 @@ const performanceCards = computed<PerformanceCard[]>(() => {
               <DesignationBadge :designation-name="profile.designationName" />
               <view class="hero-inline-link" @tap="goPromotion">
                 查看晋级信息
+              </view>
+              <view class="hero-inline-link" @tap="goLogs">
+                变更日志
               </view>
             </view>
           </view>

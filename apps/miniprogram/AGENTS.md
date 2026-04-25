@@ -54,3 +54,7 @@
 - Prefer `ref`, `reactive`, `computed`, and explicit event contracts over large opaque state writes.
 - Use `storeToRefs` when destructuring store state/getters.
 - Treat mini-program runtime constraints as primary; do not assume Vue web-only behavior.
+
+## UI 编写
+
+TDesign t-cell-group/t-cell 做主体结构，Tailwind 只负责间距、字体和展开内容的细节

@@ -1,8 +1,6 @@
-import { and, eq, isNull } from 'drizzle-orm'
-
-import { appendAgentLogs, type AppendAgentLogInput } from '../agent-log'
-import { getDb, type DB, type DBExecutor } from '../context'
-import { agents } from '../db/schema'
+import type { AppendAgentLogInput } from '../agent-log'
+import type { AgentApplicationDependencies } from '../application/runtime'
+import type { AgentDomainEvent } from '../domain/events'
 
 export interface UpdateAgentLastPromotionDateInput {
   agentCode: string
@@ -14,107 +12,41 @@ export interface UpdateAgentLastPromotionDateResult {
   lastPromotionDate: string | null
 }
 
-interface ActiveAgentRow {
-  id: number
-  agentCode: string
-  lastPromotionDate: string | null
-}
-
-interface UpdateAgentLastPromotionDateRuntime {
-  findActiveAgentByCode(agentCode: string): Promise<ActiveAgentRow | null>
-  updateAgentLastPromotionDateById(id: number, lastPromotionDate: string | null): Promise<void>
-  appendAgentLogs(logs: AppendAgentLogInput[]): Promise<void>
-}
-
-interface UpdateAgentLastPromotionDateDependencies {
-  executeInTransaction<T>(work: (runtime: UpdateAgentLastPromotionDateRuntime) => Promise<T>): Promise<T>
-}
-
-function createUpdateAgentLastPromotionDateRuntime(db: DBExecutor): UpdateAgentLastPromotionDateRuntime {
-  return {
-    async findActiveAgentByCode(agentCode) {
-      const rows = await db
-        .select({
-          id: agents.id,
-          agentCode: agents.agentCode,
-          lastPromotionDate: agents.lastPromotionDate,
-        })
-        .from(agents)
-        .where(and(
-          eq(agents.agentCode, agentCode),
-          isNull(agents.deletedAt),
-        ))
-        .limit(1)
-
-      const row = rows[0]
-      if (!row?.agentCode) {
-        return null
-      }
-
-      return {
-        id: row.id,
-        agentCode: row.agentCode,
-        lastPromotionDate: row.lastPromotionDate,
-      }
-    },
-    async updateAgentLastPromotionDateById(id, lastPromotionDate) {
-      await db
-        .update(agents)
-        .set({
-          lastPromotionDate,
-        })
-        .where(eq(agents.id, id))
-    },
-    appendAgentLogs(logs) {
-      return appendAgentLogs(db, logs)
-    },
-  }
-}
-
 export class UpdateAgentLastPromotionDateCommand {
   private readonly input: UpdateAgentLastPromotionDateInput
-  private readonly dependencies: UpdateAgentLastPromotionDateDependencies
+  private readonly dependencies: AgentApplicationDependencies
 
   constructor(
     input: UpdateAgentLastPromotionDateInput,
-    dependencies?: Partial<UpdateAgentLastPromotionDateDependencies>,
+    dependencies: AgentApplicationDependencies,
   ) {
     this.input = input
-    const db = dependencies?.executeInTransaction ? null : getDb()
-    this.dependencies = {
-      executeInTransaction: dependencies?.executeInTransaction
-        ?? ((work) => (db as DB).transaction((tx) => work(createUpdateAgentLastPromotionDateRuntime(tx)))),
-    }
+    this.dependencies = dependencies
   }
 
   async execute(): Promise<UpdateAgentLastPromotionDateResult> {
     const agentCode = this.input.agentCode.trim().toUpperCase()
     const lastPromotionDate = normalizeLastPromotionDate(this.input.lastPromotionDate)
+    const now = this.dependencies.now()
 
     if (!agentCode) {
       throw new Error('代理人编码不能为空')
     }
 
     return this.dependencies.executeInTransaction(async (runtime) => {
-      const agent = await runtime.findActiveAgentByCode(agentCode)
+      const agent = await runtime.agentRepository.findActiveByCode(agentCode)
 
       if (!agent) {
         throw new Error(`代理人不存在: ${agentCode}`)
       }
 
-      if (agent.lastPromotionDate !== lastPromotionDate) {
-        await runtime.updateAgentLastPromotionDateById(agent.id, lastPromotionDate)
-        await runtime.appendAgentLogs([{
-          agentCode,
-          category: 'profile',
-          action: 'updated',
-          source: 'UpdateAgentLastPromotionDateCommand',
-          changes: [{
-            field: 'lastPromotionDate',
-            before: agent.lastPromotionDate,
-            after: lastPromotionDate,
-          }],
-        }])
+      const changes = agent.updateLastPromotionDate(lastPromotionDate, now)
+      const events = agent.pullDomainEvents()
+
+      if (changes.length > 0) {
+        await runtime.agentRepository.save(agent)
+        await runtime.domainEventStore.append(events)
+        await runtime.agentLogStore.append(toPromotionDateLogs(events))
       }
 
       return {
@@ -141,4 +73,22 @@ function normalizeLastPromotionDate(value: string | null | undefined): string | 
   }
 
   throw new Error('上次晋级日期格式无效')
+}
+
+function toPromotionDateLogs(events: AgentDomainEvent[]): AppendAgentLogInput[] {
+  return events
+    .filter((event): event is Extract<AgentDomainEvent, { type: 'AgentPromotionDateChanged' }> =>
+      event.type === 'AgentPromotionDateChanged',
+    )
+    .map((event) => ({
+      agentCode: event.agentCode,
+      category: 'profile',
+      action: 'updated',
+      source: 'UpdateAgentLastPromotionDateCommand',
+      changes: [{
+        field: 'lastPromotionDate',
+        before: event.before,
+        after: event.after,
+      }],
+    }))
 }

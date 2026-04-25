@@ -1,4 +1,4 @@
-import { ensureMonth, ensureYear } from './shared/validation'
+import { ensureMonth, ensureYear } from '@reeka-office/domain-shared'
 
 export interface Period {
   year: number

@@ -1,4 +1,4 @@
-import { agents } from '@reeka-office/domain-agent'
+import { agents } from '@reeka-office/domain-agent/schema'
 import { and, asc, desc, eq, inArray, or, sql, sum } from 'drizzle-orm'
 
 import type { DBExecutor } from '../context'

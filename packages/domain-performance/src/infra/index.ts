@@ -1,8 +1,14 @@
 export {
   createDefaultPerformanceRuntime,
+  createPerformanceReaderRuntime,
   createPerformanceRuntime,
-  type PerformanceRuntime,
+  type PerformanceReaderRuntime,
 } from './defaultDeps'
+export type {
+  PerformanceAgentLogPort,
+  PerformanceApplicationDependencies,
+  PerformanceRuntime,
+} from '../application/runtime'
 export {
   DrizzleAgentDirectoryPort,
 } from './drizzleAgentDirectoryPort'

@@ -1,4 +1,12 @@
 export * from './commands'
+export type {
+  PerformanceAgentLogPort,
+  PerformanceApplicationDependencies,
+  PerformanceRuntime,
+} from './application/runtime'
+export {
+  QualificationEvaluator,
+} from './application/qualificationEvaluator'
 export {
   close,
   getDb,

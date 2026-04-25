@@ -1,39 +1,22 @@
-import type { AgentProfile } from '../ports'
-import { addMonths, getQuarter, isQuarterEndMonth, type Period } from '../period'
-import type { PerformanceReadRepository } from '../repositories'
+import { getQuarter, isQuarterEndMonth, type Period } from '../period'
 import type { QualificationAssessment } from './assessment'
-import { qualificationConfig } from './support'
+import { qualificationConfig } from './config'
 
 export class SeniorAgentQualificationPolicy {
-  private readonly performanceReadRepository: PerformanceReadRepository
-
-  constructor(performanceReadRepository: PerformanceReadRepository) {
-    this.performanceReadRepository = performanceReadRepository
-  }
-
-  async evaluate(
-    agent: AgentProfile,
-    period: Period,
-  ): Promise<QualificationAssessment> {
-    const previousPeriod = addMonths(period, -1)
-    const previousMetrics = await this.performanceReadRepository.getPerformanceMetrics(agent.agentCode, previousPeriod)
-    if (previousMetrics?.isQualified && !isQuarterEndMonth(period)) {
+  async evaluate(input: {
+    period: Period
+    wasQualifiedPreviousMonth: () => Promise<boolean>
+    actualSalesYearToDate: () => Promise<number>
+  }): Promise<QualificationAssessment> {
+    if (await input.wasQualifiedPreviousMonth() && !isQuarterEndMonth(input.period)) {
       return {
         isQualified: true,
         qualifiedGap: 0,
       }
     }
 
-    const targetSales = qualificationConfig.seniorQuarterlyTargets[getQuarter(period) - 1]
-    const actualSales = await this.performanceReadRepository.sumNsc(
-      [agent.agentCode],
-      {
-        year: period.year,
-        month: 1,
-      },
-      period,
-    )
-    const qualifiedGap = actualSales - targetSales
+    const targetSales = qualificationConfig.seniorQuarterlyTargets[getQuarter(input.period) - 1]
+    const qualifiedGap = await input.actualSalesYearToDate() - targetSales
 
     return {
       isQualified: qualifiedGap >= 0,

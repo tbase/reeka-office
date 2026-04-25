@@ -7,7 +7,7 @@ import { toPerformanceMetrics, type ImportedApmMetrics } from '../src/domain/per
 import type { AgentDirectoryPort, AgentProfile, DomainEventStore, TeamHierarchyPort } from '../src/domain/ports'
 import type { ApmRepository, PerformanceReadRepository } from '../src/domain/repositories'
 import { periodToIndex, type Period } from '../src/domain/period'
-import type { PerformanceRuntime } from '../src/infra/defaultDeps'
+import type { PerformanceRuntime } from '../src/application/runtime'
 
 class MemoryApmRepository implements ApmRepository {
   private readonly store = new Map<string, Apm>()
@@ -206,7 +206,7 @@ async function createRuntime() {
       agentDirectoryPort,
       teamHierarchyPort,
       domainEventStore,
-      appendAgentLogs: (logs) => agentLogStore.append(logs),
+      agentLogStore,
     } satisfies PerformanceRuntime,
     apmRepository,
     domainEventStore,
@@ -257,6 +257,41 @@ describe('RecalculateApmQualificationCommand', () => {
       agentCount: 1,
       updatedCount: 2,
       skippedCount: 0,
+      gapChanges: [
+        {
+          agentCode: 'A001',
+          agentName: null,
+          designation: 1,
+          joinDate: '2026-01-01',
+          lastPromotionDate: null,
+          period: { year: 2026, month: 4 },
+          field: 'qualifiedGap',
+          before: null,
+          after: 0,
+        },
+        {
+          agentCode: 'A001',
+          agentName: null,
+          designation: 1,
+          joinDate: '2026-01-01',
+          lastPromotionDate: null,
+          period: { year: 2026, month: 4 },
+          field: 'qualifiedGapNextMonth',
+          before: null,
+          after: 7_000_000,
+        },
+        {
+          agentCode: 'A001',
+          agentName: null,
+          designation: 1,
+          joinDate: '2026-01-01',
+          lastPromotionDate: null,
+          period: { year: 2026, month: 5 },
+          field: 'qualifiedGap',
+          before: null,
+          after: 7_000_000,
+        },
+      ],
     })
     expect(apmRepository.saveCalls).toBe(2)
     expect(domainEventStore.events.filter((event) => event.type === 'QualificationRecalculated')).toHaveLength(2)
@@ -270,7 +305,7 @@ describe('RecalculateApmQualificationCommand', () => {
         source: 'RecalculateApmQualificationCommand',
         changes: [
           { field: 'qualifiedGap', before: null, after: 0 },
-          { field: 'isQualifiedNextMonth', before: null, after: true },
+          { field: 'isQualifiedNextMonth', before: null, after: 100 },
           { field: 'qualifiedGapNextMonth', before: null, after: 7_000_000 },
         ],
       },
@@ -301,7 +336,7 @@ describe('RecalculateApmQualificationCommand', () => {
     const currentEntity = Apm.restore(currentSnapshot)
     currentEntity.refreshCurrentQualification({
       qualifiedGap: 0,
-      isQualifiedNextMonth: true,
+      isQualifiedNextMonth: 100,
       qualifiedGapNextMonth: 7_000_000,
     }, new Date('2026-04-05T00:00:00.000Z'))
     await apmRepository.save(currentEntity)
@@ -319,6 +354,7 @@ describe('RecalculateApmQualificationCommand', () => {
     const result = await command.execute()
 
     expect(result.updatedCount).toBe(0)
+    expect(result.gapChanges).toEqual([])
     expect(apmRepository.saveCalls).toBe(0)
     expect(agentLogStore.logs).toEqual([])
     expect(domainEventStore.events).toEqual([])

@@ -8,7 +8,7 @@ config({ path: `drizzle/.env.local.${process.env.TENANT_CODE}` })
 export default defineConfig({
   schema: [
     "./apps/admin/src/db/schema.ts",
-    "./packages/domain-agent/src/db/schema.ts",
+    "./packages/domain-agent/src/db/schema/index.ts",
     "./packages/domain-cms/src/db/schema.ts",
     "./packages/domain-performance/src/db/schema/index.ts",
     "./packages/domain-point/src/db/schema.ts",

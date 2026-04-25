@@ -1,4 +1,4 @@
-import { ensureInteger } from './shared/validation'
+import { ensureInteger } from '@reeka-office/domain-shared'
 
 export interface ImportedApmMetrics {
   nsc: number
@@ -27,7 +27,7 @@ export interface ImportedApmMetrics {
 
 export interface StoredApmMetrics extends ImportedApmMetrics {
   qualifiedGap: number | null
-  isQualifiedNextMonth: boolean | null
+  isQualifiedNextMonth: number | null
   qualifiedGapNextMonth: number | null
 }
 
@@ -36,7 +36,7 @@ export interface PerformanceMetrics {
   nscSum: number
   netCase: number
   netCaseSum: number
-  isQualified: boolean
+  isQualified: number
   qualifiedGap: number | null
   netAfyp: number
   netAfypSum: number
@@ -50,7 +50,7 @@ export interface PerformanceMetrics {
   netCaseH: number
   netCaseHSum: number
   renewalRateTeam: number
-  isQualifiedNextMonth: boolean | null
+  isQualifiedNextMonth: number | null
   qualifiedGapNextMonth: number | null
 }
 
@@ -153,7 +153,7 @@ export function toPerformanceMetrics(row?: PerformanceMetricsSource | null): Per
     nscSum: row.nscSum,
     netCase: row.netCase,
     netCaseSum: row.netCaseSum,
-    isQualified: Number(row.isQualified) > 0,
+    isQualified: row.isQualified,
     qualifiedGap: row.qualifiedGap,
     netAfyp: row.netAfyp,
     netAfypSum: row.netAfypSum,
@@ -167,9 +167,7 @@ export function toPerformanceMetrics(row?: PerformanceMetricsSource | null): Per
     netCaseH: row.netCaseH,
     netCaseHSum: row.netCaseHSum,
     renewalRateTeam: row.renewalRateTeam,
-    isQualifiedNextMonth: row.isQualifiedNextMonth == null
-      ? null
-      : Boolean(row.isQualifiedNextMonth),
+    isQualifiedNextMonth: row.isQualifiedNextMonth,
     qualifiedGapNextMonth: row.qualifiedGapNextMonth,
   }
 }
@@ -180,7 +178,7 @@ export function createEmptyPerformanceMetrics(): PerformanceMetrics {
     nscSum: 0,
     netCase: 0,
     netCaseSum: 0,
-    isQualified: false,
+    isQualified: 0,
     qualifiedGap: null,
     netAfyp: 0,
     netAfypSum: 0,

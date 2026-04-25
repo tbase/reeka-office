@@ -12,6 +12,8 @@ export const DESIGNATION_NAMES = [
 
 export type DesignationName = (typeof DESIGNATION_NAMES)[number]
 
+const firstManagementDesignation = 3
+
 export function getDesignationValue(
   designationName: string | null | undefined,
 ): number | null {
@@ -32,4 +34,8 @@ export function getDesignationName(
   }
 
   return DESIGNATION_NAMES[designation as number] ?? null
+}
+
+export function isManagementDesignation(designation: number | null | undefined): boolean {
+  return Number.isInteger(designation) && (designation as number) >= firstManagementDesignation
 }

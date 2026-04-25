@@ -3,12 +3,33 @@ import { getDesignationName } from '@reeka-office/domain-agent'
 import type { AgentProfile } from './ports'
 import { addMonths, maxPeriod, parseDateToPeriod, type Period } from './period'
 import {
-  promotionMetricDefinitions,
   promotionTargets,
-  type AgentPromotionSnapshot,
-  type PromotionMetric,
   type PromotionMetricKey,
+  type PromotionStatus,
 } from './promotionMetric'
+
+export interface PromotionAssessmentMetric {
+  key: PromotionMetricKey
+  actual: number
+  target: number
+  difference: number
+  progress: number
+}
+
+export interface PromotionAssessment {
+  status: PromotionStatus
+  agentCode: string
+  designation: {
+    actual: number | null
+    actualName: ReturnType<typeof getDesignationName>
+    target: number | null
+    targetName: ReturnType<typeof getDesignationName>
+  }
+  lastPromotionDate: string | null
+  saleCalculateStartPeriod: Period | null
+  latestPeriod: Period | null
+  metrics: PromotionAssessmentMetric[]
+}
 
 export class PromotionPolicy {
   resolveSaleCalculateStartPeriod(
@@ -23,7 +44,7 @@ export class PromotionPolicy {
     ]) ?? latestPeriod
   }
 
-  buildSnapshot(input: {
+  assess(input: {
     agent: AgentProfile
     latestPeriod: Period | null
     saleCalculateStartPeriod: Period | null
@@ -35,7 +56,7 @@ export class PromotionPolicy {
     qualifiedDirectCount: number
     selfQualifiedCount: number
     renewalRateTeamDirect: number
-  }): AgentPromotionSnapshot {
+  }): PromotionAssessment {
     const actualDesignation = input.agent.designation
     const targetDesignation = Number.isInteger(actualDesignation)
       ? (actualDesignation as number) + 1
@@ -110,25 +131,22 @@ export class PromotionPolicy {
 function buildPromotionMetrics(
   targets: Record<PromotionMetricKey, number>,
   actuals: Record<PromotionMetricKey, number>,
-): PromotionMetric[] {
-  return promotionMetricDefinitions
-    .map((definition) => {
-      const target = targets[definition.key] ?? 0
+): PromotionAssessmentMetric[] {
+  return Object.entries(targets)
+    .map(([key, target]) => {
       if (target <= 0) {
         return null
       }
 
-      const actual = actuals[definition.key] ?? 0
+      const actual = actuals[key as PromotionMetricKey] ?? 0
 
       return {
-        key: definition.key,
-        label: definition.label,
-        format: definition.format,
+        key: key as PromotionMetricKey,
         actual,
         target,
         difference: actual - target,
         progress: target > 0 ? actual / target : 0,
-      } satisfies PromotionMetric
+      } satisfies PromotionAssessmentMetric
     })
-    .filter((metric): metric is PromotionMetric => metric != null)
+    .filter((metric): metric is PromotionAssessmentMetric => metric != null)
 }

@@ -3,6 +3,7 @@ import type { Period } from './period'
 
 export interface AgentProfile {
   agentCode: string
+  name?: string | null
   joinDate: string | null
   designation: number | null
   lastPromotionDate: string | null

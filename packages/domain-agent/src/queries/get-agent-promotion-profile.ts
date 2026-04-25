@@ -1,7 +1,5 @@
-import { and, eq, isNull } from 'drizzle-orm'
-
-import { getDb, type DB } from '../context'
-import { agents } from '../db/schema'
+import { getDb } from '../context'
+import { DrizzleAgentReadRepository } from '../infra'
 
 export interface AgentPromotionProfile {
   agentCode: string
@@ -17,39 +15,15 @@ export interface GetAgentPromotionProfileInput {
 export type GetAgentPromotionProfileResult = AgentPromotionProfile | null
 
 export class GetAgentPromotionProfileQuery {
-  private readonly db: DB
+  private readonly repository: DrizzleAgentReadRepository
   private readonly input: GetAgentPromotionProfileInput
 
   constructor(input: GetAgentPromotionProfileInput) {
-    this.db = getDb()
+    this.repository = new DrizzleAgentReadRepository(getDb())
     this.input = input
   }
 
   async query(): Promise<GetAgentPromotionProfileResult> {
-    const rows = await this.db
-      .select({
-        agentCode: agents.agentCode,
-        designation: agents.designation,
-        joinDate: agents.joinDate,
-        lastPromotionDate: agents.lastPromotionDate,
-      })
-      .from(agents)
-      .where(and(
-        eq(agents.agentCode, this.input.agentCode),
-        isNull(agents.deletedAt),
-      ))
-      .limit(1)
-
-    const row = rows[0]
-    if (!row?.agentCode) {
-      return null
-    }
-
-    return {
-      agentCode: row.agentCode,
-      designation: row.designation,
-      joinDate: row.joinDate,
-      lastPromotionDate: row.lastPromotionDate,
-    }
+    return this.repository.getPromotionProfile(this.input.agentCode)
   }
 }

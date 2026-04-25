@@ -1,6 +1,7 @@
 import type { RpcInput, RpcOutput } from '@/lib/rpc'
 
 export type Dashboard = RpcOutput<'gege/getDashboard'>
+export type AgentLogs = RpcOutput<'gege/listAgentLogs'>
 export type ListTeamMembersInput = RpcInput<'gege/listTeamMembers'>
 export type MetricChart = RpcOutput<'gege/getMetricChart'>
 export type MyPerformanceHistory = RpcOutput<'gege/getMyPerformanceHistory'>
@@ -12,6 +13,8 @@ export type TeamStats = RpcOutput<'gege/getTeamStats'>
 export type TeamMembersPage = RpcOutput<'gege/listTeamMembers'>
 export type SearchAgentsResult = RpcOutput<'gege/searchAgents'>
 export type SearchAgent = SearchAgentsResult['agents'][number]
+export type AgentLogItem = AgentLogs[number]
+export type AgentLogCategory = NonNullable<RpcInput<'gege/listAgentLogs'>>['category']
 export type TeamMember = TeamMembersPage['members'][number]
 export type TeamMemberSortField = NonNullable<ListTeamMembersInput['sortField']>
 export type TeamMemberSortDirection = NonNullable<ListTeamMembersInput['sortDirection']>

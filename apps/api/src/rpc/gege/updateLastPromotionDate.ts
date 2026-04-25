@@ -1,4 +1,5 @@
 import { UpdateAgentLastPromotionDateCommand } from "@reeka-office/domain-agent";
+import { executeWithAgentRuntime } from "@reeka-office/domain-agent/infra";
 import { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
@@ -22,6 +23,9 @@ export const updateLastPromotionDate = rpc.define({
     return new UpdateAgentLastPromotionDateCommand({
       agentCode,
       lastPromotionDate: input.lastPromotionDate,
+    }, {
+      executeInTransaction: executeWithAgentRuntime,
+      now: () => new Date(),
     }).execute();
   }),
 });

@@ -1,49 +1,59 @@
-import type { AgentProfile, TeamHierarchyPort } from '../ports'
-import { type Period } from '../period'
-import type { PerformanceReadRepository } from '../repositories'
+import type { AgentProfile } from '../ports'
+import { addMonths, type Period } from '../period'
+import { QualificationAgent } from './agent'
 import { ManagementQualificationPolicy } from './managementPolicy'
 import { NewAgentQualificationPolicy } from './newAgentPolicy'
 import type { QualificationAssessment } from './assessment'
 import { SeniorAgentQualificationPolicy } from './seniorAgentPolicy'
-import { getMonthsSinceJoin, parseJoinDate } from './support'
+
+export interface QualificationFactsProvider {
+  sumPersonalNsc(startPeriod: Period, endPeriod: Period): Promise<number>
+  sumDirectTeamNsc(startPeriod: Period, endPeriod: Period): Promise<number>
+  wasQualifiedIn(period: Period): Promise<boolean>
+}
 
 export class QualificationPolicy {
-  private readonly newAgentQualificationPolicy: NewAgentQualificationPolicy
-  private readonly seniorAgentQualificationPolicy: SeniorAgentQualificationPolicy
-  private readonly managementQualificationPolicy: ManagementQualificationPolicy
+  private readonly newAgentQualificationPolicy = new NewAgentQualificationPolicy()
+  private readonly seniorAgentQualificationPolicy = new SeniorAgentQualificationPolicy()
+  private readonly managementQualificationPolicy = new ManagementQualificationPolicy()
 
-  constructor(
-    performanceReadRepository: PerformanceReadRepository,
-    teamHierarchyPort: TeamHierarchyPort,
-  ) {
-    this.newAgentQualificationPolicy = new NewAgentQualificationPolicy(performanceReadRepository)
-    this.seniorAgentQualificationPolicy = new SeniorAgentQualificationPolicy(performanceReadRepository)
-    this.managementQualificationPolicy = new ManagementQualificationPolicy(
-      performanceReadRepository,
-      teamHierarchyPort,
-    )
-  }
-
-  async evaluate(agent: AgentProfile, period: Period): Promise<QualificationAssessment | null> {
-    const joinDate = parseJoinDate(agent.joinDate)
-    if (!joinDate) {
+  async evaluate(input: {
+    agent: AgentProfile
+    period: Period
+    facts: QualificationFactsProvider
+  }): Promise<QualificationAssessment | null> {
+    const agent = QualificationAgent.fromProfile(input.agent)
+    if (!agent || !agent.canBeEvaluatedIn(input.period)) {
       return null
     }
 
-    const monthsSinceJoin = getMonthsSinceJoin(joinDate, period)
-    if (monthsSinceJoin <= 0) {
-      return null
+    if (agent.isInNewAgentPeriod(input.period)) {
+      return this.newAgentQualificationPolicy.evaluate({
+        startPeriod: agent.joinPeriod,
+        period: input.period,
+        actualSales: await input.facts.sumPersonalNsc(agent.joinPeriod, input.period),
+      })
     }
 
-    if (monthsSinceJoin < 12) {
-      return this.newAgentQualificationPolicy.evaluate(agent, joinDate, period)
+    const managementDesignation = agent.managementDesignation
+    if (managementDesignation != null) {
+      const managementAssessment = this.managementQualificationPolicy.evaluate({
+        designation: managementDesignation,
+        directTeamNsc: await input.facts.sumDirectTeamNsc(addMonths(input.period, -12), input.period),
+      })
+      if (managementAssessment) {
+        return managementAssessment
+      }
     }
 
-    const managementAssessment = await this.managementQualificationPolicy.evaluate(agent, period)
-    if (managementAssessment) {
-      return managementAssessment
-    }
-
-    return this.seniorAgentQualificationPolicy.evaluate(agent, period)
+    const previousPeriod = addMonths(input.period, -1)
+    return await this.seniorAgentQualificationPolicy.evaluate({
+      period: input.period,
+      wasQualifiedPreviousMonth: () => input.facts.wasQualifiedIn(previousPeriod),
+      actualSalesYearToDate: () => input.facts.sumPersonalNsc({
+        year: input.period.year,
+        month: 1,
+      }, input.period),
+    })
   }
 }

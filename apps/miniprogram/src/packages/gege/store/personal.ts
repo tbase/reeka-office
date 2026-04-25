@@ -3,6 +3,7 @@ import type { Ref } from 'wevu'
 import type { RpcError } from '@/lib/rpc'
 import { useQuery } from '@/hooks/useQuery'
 import type {
+  AgentLogs,
   MetricChart,
   MyPerformanceHistory,
   MyPerformanceMeta,
@@ -28,6 +29,13 @@ export interface MetricChartStore {
   isLoading: Ref<boolean>
   error: Ref<RpcError | null>
   refetch: () => Promise<MetricChart | null>
+}
+
+export interface AgentLogsStore {
+  logs: Ref<AgentLogs | null>
+  isLoading: Ref<boolean>
+  error: Ref<RpcError | null>
+  refetch: () => Promise<AgentLogs | null>
 }
 
 export function useMyPerformanceMetaStore(
@@ -112,6 +120,35 @@ export function useMetricChartStore(
 
   return {
     chart: data as Ref<MetricChart | null>,
+    isLoading: loading,
+    error: error as Ref<RpcError | null>,
+    refetch,
+  }
+}
+
+export function useAgentLogsStore(
+  agentCode: Ref<string | null>,
+  category: Ref<'all' | 'profile' | 'apm'>,
+  enabled: Ref<boolean>,
+): AgentLogsStore {
+  const { data, loading, error, refetch } = useQuery({
+    queryKey: () => {
+      if (!enabled.value) {
+        return undefined
+      }
+
+      return ['gege/listAgentLogs', {
+        ...buildAgentCodeInput(agentCode.value),
+        category: category.value,
+        limit: 50,
+      }]
+    },
+    refetchOnShow: true,
+    showLoading: '加载日志中...',
+  })
+
+  return {
+    logs: data as Ref<AgentLogs | null>,
     isLoading: loading,
     error: error as Ref<RpcError | null>,
     refetch,

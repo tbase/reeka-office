@@ -1,38 +1,44 @@
-import {
-  appendAgentLogs,
-  type AgentDBExecutor,
-  type AppendAgentLogInput,
-} from '@reeka-office/domain-agent'
+import type { PerformanceAgentLogPort, PerformanceRuntime } from '../application/runtime'
 import type { DBExecutor } from '../context'
 import { getDb } from '../context'
-import type { AgentDirectoryPort, DomainEventStore, TeamHierarchyPort } from '../domain/ports'
-import type { ApmRepository, PerformanceReadRepository } from '../domain/repositories'
 import { DrizzleAgentDirectoryPort } from './drizzleAgentDirectoryPort'
 import { DrizzleApmRepository } from './drizzleApmRepository'
 import { DrizzleDomainEventStore } from './drizzleDomainEventStore'
 import { DrizzlePerformanceReadRepository } from './drizzlePerformanceReadRepository'
 import { DrizzleTeamHierarchyPort } from './drizzleTeamHierarchyPort'
 
-export interface PerformanceRuntime {
-  apmRepository: ApmRepository
-  performanceReadRepository: PerformanceReadRepository
-  agentDirectoryPort: AgentDirectoryPort
-  teamHierarchyPort: TeamHierarchyPort
-  domainEventStore: DomainEventStore
-  appendAgentLogs(logs: AppendAgentLogInput[]): Promise<void>
+export interface PerformanceReaderRuntime {
+  performanceReadRepository: DrizzlePerformanceReadRepository
+  agentDirectoryPort: DrizzleAgentDirectoryPort
+  teamHierarchyPort: DrizzleTeamHierarchyPort
 }
 
-export function createPerformanceRuntime(db: DBExecutor): PerformanceRuntime {
+export function createPerformanceRuntime(
+  db: DBExecutor,
+  dependencies: {
+    agentLogStore: PerformanceAgentLogPort
+  },
+): PerformanceRuntime {
   return {
     apmRepository: new DrizzleApmRepository(db),
     performanceReadRepository: new DrizzlePerformanceReadRepository(db),
     agentDirectoryPort: new DrizzleAgentDirectoryPort(db),
     teamHierarchyPort: new DrizzleTeamHierarchyPort(db),
     domainEventStore: new DrizzleDomainEventStore(db),
-    appendAgentLogs: (logs) => appendAgentLogs(db as unknown as AgentDBExecutor, logs),
+    agentLogStore: dependencies.agentLogStore,
   }
 }
 
-export function createDefaultPerformanceRuntime(): PerformanceRuntime {
-  return createPerformanceRuntime(getDb())
+export function createDefaultPerformanceRuntime(dependencies: {
+  agentLogStore: PerformanceAgentLogPort
+}): PerformanceRuntime {
+  return createPerformanceRuntime(getDb(), dependencies)
+}
+
+export function createPerformanceReaderRuntime(db: DBExecutor = getDb()): PerformanceReaderRuntime {
+  return {
+    performanceReadRepository: new DrizzlePerformanceReadRepository(db),
+    agentDirectoryPort: new DrizzleAgentDirectoryPort(db),
+    teamHierarchyPort: new DrizzleTeamHierarchyPort(db),
+  }
 }

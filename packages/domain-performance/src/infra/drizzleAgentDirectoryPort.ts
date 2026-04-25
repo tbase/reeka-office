@@ -1,4 +1,4 @@
-import { agents } from '@reeka-office/domain-agent'
+import { agents } from '@reeka-office/domain-agent/schema'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 
 import type { DBExecutor } from '../context'
@@ -19,6 +19,7 @@ export class DrizzleAgentDirectoryPort implements AgentDirectoryPort {
     const rows = await this.db
       .select({
         agentCode: agents.agentCode,
+        name: agents.name,
         joinDate: agents.joinDate,
         designation: agents.designation,
         lastPromotionDate: agents.lastPromotionDate,
@@ -27,9 +28,10 @@ export class DrizzleAgentDirectoryPort implements AgentDirectoryPort {
       .where(inArray(agents.agentCode, agentCodes))
 
     return rows
-      .filter((row): row is Required<Pick<AgentProfile, 'agentCode'>> & Omit<AgentProfile, 'agentCode'> => row.agentCode != null)
+      .filter((row) => row.agentCode != null)
       .map((row) => ({
-        agentCode: row.agentCode,
+        agentCode: row.agentCode!,
+        name: row.name,
         joinDate: row.joinDate,
         designation: row.designation,
         lastPromotionDate: row.lastPromotionDate,
@@ -40,6 +42,7 @@ export class DrizzleAgentDirectoryPort implements AgentDirectoryPort {
     const rows = await this.db
       .select({
         agentCode: agents.agentCode,
+        name: agents.name,
         designation: agents.designation,
         joinDate: agents.joinDate,
         lastPromotionDate: agents.lastPromotionDate,
@@ -58,6 +61,7 @@ export class DrizzleAgentDirectoryPort implements AgentDirectoryPort {
 
     return {
       agentCode: row.agentCode,
+      name: row.name,
       designation: row.designation,
       joinDate: row.joinDate,
       lastPromotionDate: row.lastPromotionDate,

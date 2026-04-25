@@ -2,10 +2,6 @@ import {
   ListTeamMemberBaseQuery,
   type AgentProfile,
 } from "@reeka-office/domain-agent";
-import {
-  type PerformanceMetrics,
-} from "@reeka-office/domain-performance";
-
 import { mustAgent, rpc } from "../../context";
 import { getCurrentPerformanceMetrics, type CurrentPerformanceResult } from "./current-performance";
 import {
@@ -14,6 +10,7 @@ import {
   presentAgentProfile,
   presentTeamMembers,
   summarizeTeamMembers,
+  type PresentedPerformanceMetrics,
   type TeamSummary,
 } from "./presentation";
 import { gegeDashboardInputSchema, resolveAccessibleAgentCode } from "./shared";
@@ -22,7 +19,7 @@ import { buildTeamMeta, getTeamAgent, listMembersByScope } from "./team-scope";
 export interface GetDashboardOutput {
   period: CurrentPerformanceResult["period"];
   agent: AgentProfile & { designationName: string | null };
-  self: PerformanceMetrics;
+  self: PresentedPerformanceMetrics;
   team: {
     direct: TeamSummary;
     division: TeamSummary | null;

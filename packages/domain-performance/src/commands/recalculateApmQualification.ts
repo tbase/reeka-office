@@ -1,10 +1,30 @@
-import type { AgentLogChange } from '@reeka-office/domain-agent'
-import { withTransaction } from '../context'
+import type { AgentLogChange, AppendAgentLogInput } from '@reeka-office/domain-agent'
+import type { PerformanceApplicationDependencies } from '../application/runtime'
+import { QualificationEvaluator } from '../application/qualificationEvaluator'
 import type { DomainEvent } from '../domain/events'
 import type { StoredApmMetrics } from '../domain/performanceMetrics'
-import { getCurrentQualificationPeriods } from '../domain/period'
-import { QualificationPolicy } from '../domain/qualification/policy'
-import { createPerformanceRuntime, type PerformanceRuntime } from '../infra/defaultDeps'
+import type { AgentProfile } from '../domain/ports'
+import { getCurrentQualificationPeriods, type Period } from '../domain/period'
+import { toQualificationMetricValue } from '../domain/qualification/assessment'
+
+export type RecalculateApmQualificationGapField =
+  | 'qualifiedGap'
+  | 'qualifiedGapNextMonth'
+
+export interface RecalculateApmQualificationGapChange {
+  agentCode: string
+  agentName: string | null
+  designation: number | null
+  joinDate: string | null
+  lastPromotionDate: string | null
+  period: {
+    year: number
+    month: number
+  }
+  field: RecalculateApmQualificationGapField
+  before: number | null
+  after: number | null
+}
 
 export interface RecalculateApmQualificationResult {
   currentPeriod: {
@@ -18,11 +38,7 @@ export interface RecalculateApmQualificationResult {
   agentCount: number
   updatedCount: number
   skippedCount: number
-}
-
-export interface RecalculateApmQualificationDependencies {
-  executeInTransaction<T>(work: (runtime: PerformanceRuntime) => Promise<T>): Promise<T>
-  now(): Date
+  gapChanges: RecalculateApmQualificationGapChange[]
 }
 
 const CURRENT_QUALIFICATION_FIELDS = [
@@ -35,15 +51,20 @@ const PROJECTED_QUALIFICATION_FIELDS = [
   'qualifiedGap',
 ] as const satisfies ReadonlyArray<keyof StoredApmMetrics>
 
-export class RecalculateApmQualificationCommand {
-  private readonly dependencies: RecalculateApmQualificationDependencies
+const CURRENT_GAP_FIELDS = [
+  'qualifiedGap',
+  'qualifiedGapNextMonth',
+] as const satisfies ReadonlyArray<RecalculateApmQualificationGapField>
 
-  constructor(dependencies?: Partial<RecalculateApmQualificationDependencies>) {
-    this.dependencies = {
-      executeInTransaction: dependencies?.executeInTransaction
-        ?? ((work) => withTransaction((tx) => work(createPerformanceRuntime(tx)))),
-      now: dependencies?.now ?? (() => new Date()),
-    }
+const PROJECTED_GAP_FIELDS = [
+  'qualifiedGap',
+] as const satisfies ReadonlyArray<RecalculateApmQualificationGapField>
+
+export class RecalculateApmQualificationCommand {
+  private readonly dependencies: PerformanceApplicationDependencies
+
+  constructor(dependencies: PerformanceApplicationDependencies) {
+    this.dependencies = dependencies
   }
 
   async execute(): Promise<RecalculateApmQualificationResult> {
@@ -70,20 +91,21 @@ export class RecalculateApmQualificationCommand {
         ...new Set(periodRows.map((row) => row.agentCode)),
       ])
       const profileByCode = new Map(profiles.map((profile) => [profile.agentCode, profile]))
-      const qualificationPolicy = new QualificationPolicy(
+      const qualificationEvaluator = new QualificationEvaluator(
         runtime.performanceReadRepository,
         runtime.teamHierarchyPort,
       )
       const events: DomainEvent[] = []
-      const logs: Array<Parameters<PerformanceRuntime['appendAgentLogs']>[0][number]> = []
+      const logs: AppendAgentLogInput[] = []
+      const gapChanges: RecalculateApmQualificationGapChange[] = []
 
       let updatedCount = 0
       let skippedCount = 0
 
       for (const [agentCode, profile] of profileByCode) {
         const [currentAssessment, nextAssessment] = await Promise.all([
-          qualificationPolicy.evaluate(profile, qualificationPeriods.current),
-          qualificationPolicy.evaluate(profile, qualificationPeriods.next),
+          qualificationEvaluator.evaluate(profile, qualificationPeriods.current),
+          qualificationEvaluator.evaluate(profile, qualificationPeriods.next),
         ])
 
         if (!currentAssessment && !nextAssessment) {
@@ -120,7 +142,7 @@ export class RecalculateApmQualificationCommand {
             qualifiedGap: currentAssessment.qualifiedGap,
             ...(nextAssessment
               ? {
-                  isQualifiedNextMonth: nextAssessment.isQualified,
+                  isQualifiedNextMonth: toQualificationMetricValue(nextAssessment),
                   qualifiedGapNextMonth: nextAssessment.qualifiedGap,
                 }
               : {}),
@@ -142,6 +164,13 @@ export class RecalculateApmQualificationCommand {
                 CURRENT_QUALIFICATION_FIELDS,
               ),
             })
+            gapChanges.push(...buildGapChanges({
+              profile,
+              period: qualificationPeriods.current,
+              before: beforeMetrics,
+              after: currentApm.metrics,
+              fields: CURRENT_GAP_FIELDS,
+            }))
             updatedCount += 1
           }
         }
@@ -166,12 +195,19 @@ export class RecalculateApmQualificationCommand {
                 PROJECTED_QUALIFICATION_FIELDS,
               ),
             })
+            gapChanges.push(...buildGapChanges({
+              profile,
+              period: qualificationPeriods.next,
+              before: beforeMetrics,
+              after: nextApm.metrics,
+              fields: PROJECTED_GAP_FIELDS,
+            }))
             updatedCount += 1
           }
         }
       }
 
-      await runtime.appendAgentLogs(logs)
+      await runtime.agentLogStore.append(logs)
       await runtime.domainEventStore.append(events)
 
       return {
@@ -180,9 +216,46 @@ export class RecalculateApmQualificationCommand {
         agentCount: profileByCode.size,
         updatedCount,
         skippedCount,
+        gapChanges: gapChanges.sort(compareGapChanges),
       }
     })
   }
+}
+
+function buildGapChanges(input: {
+  profile: AgentProfile
+  period: Period
+  before: StoredApmMetrics
+  after: StoredApmMetrics
+  fields: readonly RecalculateApmQualificationGapField[]
+}): RecalculateApmQualificationGapChange[] {
+  return input.fields.flatMap((field) => {
+    if (input.before[field] === input.after[field]) {
+      return []
+    }
+
+    return [{
+      agentCode: input.profile.agentCode,
+      agentName: input.profile.name ?? null,
+      designation: input.profile.designation,
+      joinDate: input.profile.joinDate,
+      lastPromotionDate: input.profile.lastPromotionDate,
+      period: input.period,
+      field,
+      before: input.before[field],
+      after: input.after[field],
+    }]
+  })
+}
+
+function compareGapChanges(
+  left: RecalculateApmQualificationGapChange,
+  right: RecalculateApmQualificationGapChange,
+) {
+  return left.period.year - right.period.year
+    || left.period.month - right.period.month
+    || left.agentCode.localeCompare(right.agentCode)
+    || left.field.localeCompare(right.field)
 }
 
 function buildStoredMetricChanges<const TField extends keyof StoredApmMetrics>(

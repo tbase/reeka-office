@@ -6,6 +6,7 @@ export { getOrgTree } from "./getOrgTree";
 export { getPromotion } from "./getPromotion";
 export { getTeamMeta } from "./getTeamMeta";
 export { getTeamStats } from "./getTeamStats";
+export { listAgentLogs } from "./listAgentLogs";
 export { listTeamMembers } from "./listTeamMembers";
 export { searchAgents } from "./searchAgents";
 export { updateLastPromotionDate } from "./updateLastPromotionDate";

@@ -1,29 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  Agent,
   ImportAgentsCommand,
   UpdateAgentLastPromotionDateCommand,
+  buildAgentHierarchy,
+  normalizeAgentProfile,
+  type AgentApplicationRuntime,
+  type AgentDomainEvent,
+  type AgentSnapshot,
   type AppendAgentLogInput,
   type ImportedAgentInput,
 } from '../src'
 
-interface AgentRecord {
-  id: number
-  agentCode: string
-  name: string
-  joinDate: string | null
-  designation: number | null
-  finacingScheme: string[] | null
-  leaderCode: string | null
-  lastPromotionDate: string | null
-  agency: string | null
-  division: string | null
-  branch: string | null
-  unit: string | null
-  deletedAt: string | null
-}
-
-function createAgent(overrides: Partial<AgentRecord> = {}): AgentRecord {
+function createAgent(overrides: Partial<AgentSnapshot> = {}): AgentSnapshot {
   return {
     id: 1,
     agentCode: 'A001',
@@ -42,7 +32,7 @@ function createAgent(overrides: Partial<AgentRecord> = {}): AgentRecord {
   }
 }
 
-function toImportedAgent(agent: AgentRecord): ImportedAgentInput {
+function toImportedAgent(agent: AgentSnapshot): ImportedAgentInput {
   return {
     agentCode: agent.agentCode,
     name: agent.name,
@@ -60,92 +50,77 @@ function toImportedAgent(agent: AgentRecord): ImportedAgentInput {
 
 class MemoryAgentRuntime {
   readonly logs: AppendAgentLogInput[] = []
+  readonly events: AgentDomainEvent[] = []
   hierarchy: Array<{ agentCode: string; leaderCode: string; hierarchy: number }> = []
-  private readonly records = new Map<string, AgentRecord>()
+  private readonly records = new Map<string, AgentSnapshot>()
   private nextId = 1
 
-  constructor(records: AgentRecord[] = []) {
+  readonly runtime: AgentApplicationRuntime = {
+    agentRepository: {
+      findByCodes: (agentCodes) => this.findByCodes(agentCodes),
+      findActiveByCode: (agentCode) => this.findActiveByCode(agentCode),
+      listActiveAgentCodes: () => this.listActiveAgentCodes(),
+      save: (agent) => this.save(agent),
+    },
+    teamHierarchyRepository: {
+      listSources: () => this.listHierarchySourceRows(),
+      replace: (rows) => this.replaceHierarchy(rows),
+    },
+    domainEventStore: {
+      append: (events) => this.appendEvents(events),
+    },
+    agentLogStore: {
+      append: (logs) => this.appendLogs(logs),
+    },
+  }
+
+  constructor(records: AgentSnapshot[] = []) {
     for (const record of records) {
       this.records.set(record.agentCode, cloneRecord(record))
-      this.nextId = Math.max(this.nextId, record.id + 1)
+      this.nextId = Math.max(this.nextId, (record.id ?? 0) + 1)
     }
   }
 
-  async listExistingAgents(agentCodes: string[]) {
-    return agentCodes
-      .map((agentCode) => this.records.get(agentCode))
-      .filter((record): record is AgentRecord => record != null)
-      .map(cloneRecord)
+  getRecord(agentCode: string) {
+    const record = this.records.get(agentCode)
+    return record ? cloneRecord(record) : null
   }
 
-  async listActiveAgentCodes() {
+  private async findByCodes(agentCodes: string[]) {
+    return agentCodes
+      .map((agentCode) => this.records.get(agentCode))
+      .filter((record): record is AgentSnapshot => record != null)
+      .map((record) => Agent.restore(cloneRecord(record)))
+  }
+
+  private async findActiveByCode(agentCode: string) {
+    const record = this.records.get(agentCode)
+    return record && record.deletedAt === null ? Agent.restore(cloneRecord(record)) : null
+  }
+
+  private async listActiveAgentCodes() {
     return [...this.records.values()]
-      .filter((record) => record.deletedAt == null)
+      .filter((record) => record.deletedAt === null)
       .map((record) => record.agentCode)
   }
 
-  async insertAgentBase(agent: ImportedAgentInput) {
-    this.records.set(agent.agentCode, {
-      id: this.nextId,
-      agentCode: agent.agentCode,
-      name: agent.name,
-      joinDate: agent.joinDate,
-      designation: agent.designation ?? null,
-      finacingScheme: agent.finacingScheme ?? null,
-      leaderCode: null,
-      lastPromotionDate: agent.lastPromotionDate ?? null,
-      agency: agent.agency ?? null,
-      division: agent.division ?? null,
-      branch: agent.branch ?? null,
-      unit: agent.unit ?? null,
-      deletedAt: null,
-    })
-    this.nextId += 1
-  }
-
-  async updateAgentBaseById(id: number, agent: ImportedAgentInput) {
-    const record = this.findById(id)
-    Object.assign(record, {
-      name: agent.name,
-      joinDate: agent.joinDate,
-      designation: agent.designation ?? null,
-      finacingScheme: agent.finacingScheme ?? null,
-      lastPromotionDate: agent.lastPromotionDate ?? null,
-      agency: agent.agency ?? null,
-      division: agent.division ?? null,
-      branch: agent.branch ?? null,
-      unit: agent.unit ?? null,
-      deletedAt: null,
-    })
-  }
-
-  async listCurrentAgents(agentCodes: string[]) {
-    return agentCodes
-      .map((agentCode) => this.records.get(agentCode))
-      .filter((record): record is AgentRecord => record != null)
-      .map((record) => ({
-        id: record.id,
-        agentCode: record.agentCode,
-        leaderCode: record.leaderCode,
-      }))
-  }
-
-  async updateAgentLeaderById(id: number, leaderCode: string | null) {
-    this.findById(id).leaderCode = leaderCode
-  }
-
-  async softDeleteMissing(agentCodes: string[]) {
-    const imported = new Set(agentCodes)
-    for (const record of this.records.values()) {
-      if (record.deletedAt == null && !imported.has(record.agentCode)) {
-        record.deletedAt = '2026-04-01T00:00:00.000Z'
-      }
+  private async save(agent: Agent) {
+    const snapshot = agent.toSnapshot()
+    const id = snapshot.id ?? this.nextId
+    if (snapshot.id == null) {
+      agent.assignId(id)
+      this.nextId += 1
     }
+
+    this.records.set(snapshot.agentCode, {
+      ...snapshot,
+      id,
+    })
   }
 
-  async listHierarchySourceRows() {
+  private async listHierarchySourceRows() {
     return [...this.records.values()]
-      .filter((record) => record.deletedAt == null)
+      .filter((record) => record.deletedAt === null)
       .map((record) => ({
         agentCode: record.agentCode,
         leaderCode: record.leaderCode,
@@ -153,11 +128,15 @@ class MemoryAgentRuntime {
       }))
   }
 
-  async replaceHierarchy(rows: Array<{ agentCode: string; leaderCode: string; hierarchy: number }>) {
+  private async replaceHierarchy(rows: Array<{ agentCode: string; leaderCode: string; hierarchy: number }>) {
     this.hierarchy = rows.map((row) => ({ ...row }))
   }
 
-  async appendAgentLogs(logs: AppendAgentLogInput[]) {
+  private async appendEvents(events: AgentDomainEvent[]) {
+    this.events.push(...events)
+  }
+
+  private async appendLogs(logs: AppendAgentLogInput[]) {
     this.logs.push(...logs.map((log) => ({
       ...log,
       changes: log.changes.map((change) => ({
@@ -168,53 +147,89 @@ class MemoryAgentRuntime {
     })))
   }
 
-  async findActiveAgentByCode(agentCode: string) {
-    const record = this.records.get(agentCode)
-    if (!record || record.deletedAt != null) {
-      return null
-    }
-
-    return {
-      id: record.id,
-      agentCode: record.agentCode,
-      lastPromotionDate: record.lastPromotionDate,
-    }
-  }
-
-  async updateAgentLastPromotionDateById(id: number, lastPromotionDate: string | null) {
-    this.findById(id).lastPromotionDate = lastPromotionDate
-  }
-
-  getRecord(agentCode: string) {
-    const record = this.records.get(agentCode)
-    return record ? cloneRecord(record) : null
-  }
-
-  private findById(id: number) {
-    const record = [...this.records.values()].find((item) => item.id === id)
-    if (!record) {
-      throw new Error(`Missing agent id: ${id}`)
-    }
-
-    return record
-  }
 }
 
-function cloneRecord(record: AgentRecord): AgentRecord {
+function cloneRecord(record: AgentSnapshot): AgentSnapshot {
   return {
     ...record,
     finacingScheme: record.finacingScheme ? [...record.finacingScheme] : null,
   }
 }
 
+function executeWith(runtime: MemoryAgentRuntime) {
+  return {
+    executeInTransaction: async <T>(work: (runtime: AgentApplicationRuntime) => Promise<T>) =>
+      work(runtime.runtime),
+    now: () => new Date('2026-04-01T00:00:00.000Z'),
+  }
+}
+
+describe('Agent profile domain', () => {
+  it('normalizes and validates imported profiles', () => {
+    expect(normalizeAgentProfile({
+      agentCode: ' A001 ',
+      name: ' Alice ',
+      joinDate: '',
+    })).toMatchObject({
+      agentCode: 'A001',
+      name: 'Alice',
+      joinDate: null,
+    })
+
+    expect(() => normalizeAgentProfile({
+      agentCode: '',
+      name: 'Alice',
+      joinDate: null,
+    })).toThrow('代理人编码不能为空')
+  })
+
+  it('records create, update, restore, and delete events', () => {
+    const agent = Agent.create(toImportedAgent(createAgent()))
+    expect(agent.pullDomainEvents().map((event) => event.type)).toEqual(['AgentCreated'])
+
+    agent.updateProfile(toImportedAgent(createAgent({ agency: 'Agency B' })))
+    agent.delete()
+    agent.restoreDeleted()
+
+    expect(agent.pullDomainEvents().map((event) => event.type)).toEqual([
+      'AgentProfileUpdated',
+      'AgentDeleted',
+      'AgentRestored',
+    ])
+  })
+})
+
+describe('Agent hierarchy domain', () => {
+  it('builds direct and management-level hierarchy rows', () => {
+    expect(buildAgentHierarchy([
+      { agentCode: 'L001', leaderCode: null, designation: 3 },
+      { agentCode: 'M001', leaderCode: 'L001', designation: 1 },
+      { agentCode: 'A001', leaderCode: 'M001', designation: 1 },
+    ])).toEqual([
+      { agentCode: 'M001', leaderCode: 'L001', hierarchy: 1 },
+      { agentCode: 'A001', leaderCode: 'M001', hierarchy: 1 },
+      { agentCode: 'A001', leaderCode: 'L001', hierarchy: 1 },
+    ])
+  })
+
+  it('rejects missing leaders and cycles', () => {
+    expect(() => buildAgentHierarchy([
+      { agentCode: 'A001', leaderCode: 'NOPE', designation: 1 },
+    ])).toThrow('直属上级不存在: NOPE')
+
+    expect(() => buildAgentHierarchy([
+      { agentCode: 'A001', leaderCode: 'B001', designation: 1 },
+      { agentCode: 'B001', leaderCode: 'A001', designation: 1 },
+    ])).toThrow('代理人层级存在循环')
+  })
+})
+
 describe('ImportAgentsCommand', () => {
   it('writes profile.created logs for newly imported agents', async () => {
     const runtime = new MemoryAgentRuntime()
     const command = new ImportAgentsCommand({
       agents: [toImportedAgent(createAgent())],
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     const result = await command.execute()
 
@@ -243,6 +258,7 @@ describe('ImportAgentsCommand', () => {
       'branch',
       'unit',
     ])
+    expect(runtime.events.map((event) => event.type)).toEqual(['AgentCreated'])
   })
 
   it('skips logs when imported data is unchanged', async () => {
@@ -250,9 +266,7 @@ describe('ImportAgentsCommand', () => {
     const runtime = new MemoryAgentRuntime([existing])
     const command = new ImportAgentsCommand({
       agents: [toImportedAgent(existing)],
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     const result = await command.execute()
 
@@ -263,6 +277,7 @@ describe('ImportAgentsCommand', () => {
       deletedCount: 0,
     })
     expect(runtime.logs).toEqual([])
+    expect(runtime.events).toEqual([])
   })
 
   it('logs only changed profile fields', async () => {
@@ -273,9 +288,7 @@ describe('ImportAgentsCommand', () => {
         agency: 'Agency B',
         unit: 'Unit B',
       }))],
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     await command.execute()
 
@@ -309,13 +322,12 @@ describe('ImportAgentsCommand', () => {
           leaderCode: 'L001',
         })),
       ],
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     const result = await command.execute()
 
     expect(result.updatedCount).toBe(1)
+    expect(runtime.getRecord('A001')?.leaderCode).toBe('L001')
     expect(runtime.logs.find((log) => log.agentCode === 'A001')?.changes).toEqual([
       { field: 'leaderCode', before: null, after: 'L001' },
     ])
@@ -331,9 +343,7 @@ describe('ImportAgentsCommand', () => {
     const runtime = new MemoryAgentRuntime([kept, removed])
     const command = new ImportAgentsCommand({
       agents: [toImportedAgent(kept)],
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     const result = await command.execute()
 
@@ -371,9 +381,7 @@ describe('ImportAgentsCommand', () => {
           agency: 'Agency New',
         })),
       ],
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     await command.execute()
 
@@ -394,9 +402,7 @@ describe('UpdateAgentLastPromotionDateCommand', () => {
     const command = new UpdateAgentLastPromotionDateCommand({
       agentCode: 'a001',
       lastPromotionDate: '2026-03',
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     const result = await command.execute()
 
@@ -405,6 +411,7 @@ describe('UpdateAgentLastPromotionDateCommand', () => {
       lastPromotionDate: '2026-03-01',
     })
     expect(runtime.logs).toEqual([])
+    expect(runtime.events).toEqual([])
     expect(runtime.getRecord('A001')?.lastPromotionDate).toBe('2026-03-01')
   })
 
@@ -413,13 +420,15 @@ describe('UpdateAgentLastPromotionDateCommand', () => {
     const command = new UpdateAgentLastPromotionDateCommand({
       agentCode: 'A001',
       lastPromotionDate: '2026-04',
-    }, {
-      executeInTransaction: async (work) => work(runtime),
-    })
+    }, executeWith(runtime))
 
     await command.execute()
 
     expect(runtime.getRecord('A001')?.lastPromotionDate).toBe('2026-04-01')
+    expect(runtime.events.map((event) => event.type)).toEqual([
+      'AgentProfileUpdated',
+      'AgentPromotionDateChanged',
+    ])
     expect(runtime.logs).toEqual([{
       agentCode: 'A001',
       category: 'profile',

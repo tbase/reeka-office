@@ -32,6 +32,11 @@ export interface PresentedTeamMember extends TeamMemberBaseItem {
   netCaseSum: number;
 }
 
+export interface PresentedPerformanceMetrics extends Omit<PerformanceMetrics, "isQualified" | "isQualifiedNextMonth"> {
+  isQualified: boolean;
+  isQualifiedNextMonth: boolean | null;
+}
+
 export interface TeamSummary {
   memberCount: number;
   nsc: number;
@@ -57,11 +62,11 @@ export function presentAgentProfile(agent: AgentProfile): PresentedAgentProfile 
   };
 }
 
-export function createMetricsMap(items: CurrentPerformanceMetricItem[]): Map<string, PerformanceMetrics> {
+export function createMetricsMap(items: CurrentPerformanceMetricItem[]): Map<string, PresentedPerformanceMetrics> {
   return new Map(
     items.map((item) => [
       item.agentCode,
-      {
+      presentPerformanceMetrics({
         nsc: item.nsc,
         nscSum: item.nscSum,
         netCase: item.netCase,
@@ -82,21 +87,21 @@ export function createMetricsMap(items: CurrentPerformanceMetricItem[]): Map<str
         renewalRateTeam: item.renewalRateTeam,
         isQualifiedNextMonth: item.isQualifiedNextMonth,
         qualifiedGapNextMonth: item.qualifiedGapNextMonth,
-      },
+      }),
     ]),
   );
 }
 
 export function getMetrics(
-  metricsMap: Map<string, PerformanceMetrics>,
+  metricsMap: Map<string, PresentedPerformanceMetrics>,
   agentCode: string,
-): PerformanceMetrics {
-  return metricsMap.get(agentCode) ?? createEmptyPerformanceMetrics();
+): PresentedPerformanceMetrics {
+  return metricsMap.get(agentCode) ?? presentPerformanceMetrics(createEmptyPerformanceMetrics());
 }
 
 export function presentTeamMembers(
   members: TeamMemberBaseItem[],
-  metricsMap: Map<string, PerformanceMetrics>,
+  metricsMap: Map<string, PresentedPerformanceMetrics>,
 ): PresentedTeamMember[] {
   return members.map((member) => {
     const metrics = getMetrics(metricsMap, member.agentCode);
@@ -192,7 +197,7 @@ export function sortPresentedTeamMembers(
 
 export function summarizeTeamMembers(
   members: PresentedTeamMember[],
-  self: PerformanceMetrics,
+  self: PresentedPerformanceMetrics,
 ): TeamSummary {
   return members.reduce<TeamSummary>((summary, member) => ({
     memberCount: summary.memberCount + 1,
@@ -209,6 +214,16 @@ export function summarizeTeamMembers(
     netCaseSum: self.netCaseSum,
     qualifiedCount: self.isQualified ? 1 : 0,
   });
+}
+
+function presentPerformanceMetrics(metrics: PerformanceMetrics): PresentedPerformanceMetrics {
+  return {
+    ...metrics,
+    isQualified: metrics.isQualified > 0,
+    isQualifiedNextMonth: metrics.isQualifiedNextMonth == null
+      ? null
+      : metrics.isQualifiedNextMonth > 0,
+  };
 }
 
 export function resolveYear(

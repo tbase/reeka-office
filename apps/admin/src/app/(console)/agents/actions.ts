@@ -6,6 +6,7 @@ import {
   ListAgentsQuery,
   type ImportedAgentInput,
 } from "@reeka-office/domain-agent"
+import { executeWithAgentRuntime } from "@reeka-office/domain-agent/infra"
 import {
   CreateBindingTokenCommand,
   ListActiveBindingTokensQuery,
@@ -328,6 +329,9 @@ export async function importAgentsAction(
 
     const result = await new ImportAgentsCommand({
       agents: parseImportPayload(await file.text()),
+    }, {
+      executeInTransaction: executeWithAgentRuntime,
+      now: () => new Date(),
     }).execute()
 
     revalidatePath("/agents")

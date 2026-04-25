@@ -1,5 +1,4 @@
 import {
-  ListAgentLogsQuery,
   ListAgentsQuery,
   getDesignationName,
 } from "@reeka-office/domain-agent";
@@ -13,15 +12,17 @@ import {
   StickyTableHeaderCell,
 } from "@/components/ui/sticky-table";
 import { getRequiredAdminContext } from "@/lib/admin-context";
+import { formatDateTime } from "@/lib/datetime";
 
 import { AgentLogsSheet } from "./agent-logs-sheet";
-import type { AgentSort } from "./search-params";
+import { buildAgentLogsHref, type AgentSort, type SearchParamsRecord } from "./search-params";
 
 const agentCodeColumnClass = "w-[160px] min-w-[160px] max-w-[160px]";
 
 interface AgentListProps {
   agency: string | null;
   sort: AgentSort;
+  searchParams: SearchParamsRecord;
 }
 
 function formatMonth(value: string | null) {
@@ -36,17 +37,7 @@ function formatOrganization(parts: Array<string | null>) {
   return parts.filter((item) => !!item).join(" / ") || "-";
 }
 
-function formatDateTime(value: Date | string | null) {
-  if (!value) {
-    return null;
-  }
-
-  return new Date(value).toLocaleString("zh-CN", {
-    hour12: false,
-  });
-}
-
-export async function AgentList({ agency, sort }: AgentListProps) {
+export async function AgentList({ agency, sort, searchParams }: AgentListProps) {
   const { tenantCode } = await getRequiredAdminContext();
   const agents = await new ListAgentsQuery({
     agency,
@@ -56,25 +47,9 @@ export async function AgentList({ agency, sort }: AgentListProps) {
     tenantCode,
     agentIds: agents.map((agent) => agent.id),
   }).query();
-  const agentLogs = await new ListAgentLogsQuery({
-    agentCodes: agents
-      .map((agent) => agent.agentCode)
-      .filter((agentCode): agentCode is string => !!agentCode),
-  }).query();
   const activationTimeByAgentId = new Map(
     activeBindings.map((binding) => [binding.agentId, binding.boundAt]),
   );
-  const logsByAgentCode = agentLogs.reduce((map, log) => {
-    const current = map.get(log.agentCode)
-
-    if (current) {
-      current.push(log)
-    } else {
-      map.set(log.agentCode, [log])
-    }
-
-    return map
-  }, new Map<string, typeof agentLogs>())
   const designationStats = Array.from(
     agents
       .reduce((stats, agent) => {
@@ -163,12 +138,13 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                 agent.branch,
                 agent.unit,
               ]);
-              const activationTime = formatDateTime(
-                activationTimeByAgentId.get(agent.id) ?? null,
-              );
-              const logs = agent.agentCode
-                ? logsByAgentCode.get(agent.agentCode) ?? []
-                : [];
+              const activationTimeValue = activationTimeByAgentId.get(agent.id) ?? null;
+              const activationTime = activationTimeValue
+                ? formatDateTime(activationTimeValue, {
+                    dateSeparator: "/",
+                    includeSeconds: true,
+                  })
+                : null;
 
               return (
                 <tr
@@ -216,9 +192,7 @@ export async function AgentList({ agency, sort }: AgentListProps) {
                   <StickyTableBodyCell>
                     {agent.agentCode ? (
                       <AgentLogsSheet
-                        agentCode={agent.agentCode}
-                        agentName={agent.name}
-                        logs={logs}
+                        href={buildAgentLogsHref(agent.agentCode, searchParams)}
                       />
                     ) : null}
                   </StickyTableBodyCell>

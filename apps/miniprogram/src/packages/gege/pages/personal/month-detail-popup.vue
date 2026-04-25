@@ -36,28 +36,34 @@ const qualificationRows = computed(() => {
     return []
   }
 
+  const isQualified = isQualificationMet(props.item.isQualified)
   const rows = [
     {
       label: '本月资格',
-      value: props.item.isQualified
+      value: isQualified
         ? formatQualified(true)
         : formatMetricValue(props.item.qualifiedGap),
-      tone: props.item.isQualified ? 'text-success' : 'text-warning-foreground',
+      tone: isQualified ? 'text-success' : 'text-warning-foreground',
     },
   ]
 
   if (props.showNextQualification && props.item.isQualifiedNextMonth != null) {
+    const isQualifiedNextMonth = isQualificationMet(props.item.isQualifiedNextMonth)
     rows.push({
       label: '下月资格',
-      value: props.item.isQualifiedNextMonth
+      value: isQualifiedNextMonth
         ? formatQualified(true)
         : formatMetricValue(props.item.qualifiedGapNextMonth),
-      tone: props.item.isQualifiedNextMonth ? 'text-success' : 'text-warning-foreground',
+      tone: isQualifiedNextMonth ? 'text-success' : 'text-warning-foreground',
     })
   }
 
   return rows
 })
+
+function isQualificationMet(value: boolean | number | null | undefined): boolean {
+  return typeof value === 'number' ? value > 0 : value === true
+}
 
 const metricRows = computed(() => {
   if (!props.item) {

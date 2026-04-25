@@ -36,32 +36,36 @@ export function createMemberMetric(
 }
 
 function formatQualificationValue(
-  qualified: boolean | null | undefined,
+  qualified: boolean | number | null | undefined,
   gap: number | null | undefined,
 ): string {
-  if (qualified === true) {
+  if (isQualificationMet(qualified)) {
     return formatQualified(true)
   }
 
-  if (qualified === false) {
+  if (qualified != null) {
     return gap == null ? formatQualified(false) : formatMetricValue(gap)
   }
 
   return '-'
 }
 
+function isQualificationMet(value: boolean | number | null | undefined): boolean {
+  return typeof value === 'number' ? value > 0 : value === true
+}
+
 export function createQualificationMetric(
-  qualified: boolean | null | undefined,
+  qualified: boolean | number | null | undefined,
   gap: number | null | undefined,
-  nextMonthQualified: boolean | null | undefined,
+  nextMonthQualified: boolean | number | null | undefined,
   nextMonthGap: number | null | undefined,
 ): MetricQualificationRow {
   return {
     kind: 'qualification',
     label: '合资格',
-    isQualified: qualified ?? false,
+    isQualified: isQualificationMet(qualified),
     qualifiedGap: formatQualificationValue(qualified, gap),
-    isQualifiedNextMonth: nextMonthQualified ?? false,
+    isQualifiedNextMonth: isQualificationMet(nextMonthQualified),
     qualifiedGapNextMonth: formatQualificationValue(nextMonthQualified, nextMonthGap),
   }
 }

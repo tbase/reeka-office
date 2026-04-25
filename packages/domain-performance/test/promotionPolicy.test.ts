@@ -21,10 +21,10 @@ describe('PromotionPolicy', () => {
     })
   })
 
-  it('builds promotion snapshots with target metrics for the next designation', () => {
+  it('assesses promotion metrics for the next designation', () => {
     const policy = new PromotionPolicy()
 
-    const snapshot = policy.buildSnapshot({
+    const assessment = policy.assess({
       agent: {
         agentCode: 'A001',
         designation: 2,
@@ -49,10 +49,10 @@ describe('PromotionPolicy', () => {
       renewalRateTeamDirect: 82,
     })
 
-    expect(snapshot.status).toBe('ready')
-    expect(snapshot.designation.actualName).toBe('UM')
-    expect(snapshot.designation.targetName).toBe('SUM')
-    expect(snapshot.metrics).toEqual(expect.arrayContaining([
+    expect(assessment.status).toBe('ready')
+    expect(assessment.designation.actualName).toBe('UM')
+    expect(assessment.designation.targetName).toBe('SUM')
+    expect(assessment.metrics).toEqual(expect.arrayContaining([
       expect.objectContaining({
         key: 'net_sales_personal',
         actual: 30_000_000,
@@ -70,7 +70,7 @@ describe('PromotionPolicy', () => {
   it('returns no-target when there is no next designation target', () => {
     const policy = new PromotionPolicy()
 
-    const snapshot = policy.buildSnapshot({
+    const assessment = policy.assess({
       agent: {
         agentCode: 'A999',
         designation: 8,
@@ -95,7 +95,7 @@ describe('PromotionPolicy', () => {
       renewalRateTeamDirect: 0,
     })
 
-    expect(snapshot.status).toBe('no-target')
-    expect(snapshot.metrics).toEqual([])
+    expect(assessment.status).toBe('no-target')
+    expect(assessment.metrics).toEqual([])
   })
 })

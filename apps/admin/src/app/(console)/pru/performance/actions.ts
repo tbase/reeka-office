@@ -4,14 +4,26 @@ import {
   ImportApmCommand,
   RecalculateApmQualificationCommand,
   type ImportApmItem,
+  type PerformanceApplicationDependencies,
   type RecalculateApmQualificationResult,
+  withTransaction as withPerformanceTransaction,
 } from "@reeka-office/domain-performance"
+import type { AgentDBExecutor } from "@reeka-office/domain-agent"
+import { DrizzleAgentLogStore } from "@reeka-office/domain-agent/infra"
+import { createPerformanceRuntime } from "@reeka-office/domain-performance/infra"
 import { revalidatePath } from "next/cache"
 
 import { getRequiredAdminContext } from "@/lib/admin-context"
 import { getFormDataValues } from "@/lib/form-data"
 
 const importPerformanceFieldNames = ["file"] as const
+
+const performanceCommandDependencies: PerformanceApplicationDependencies = {
+  executeInTransaction: (work) => withPerformanceTransaction((tx) => work(createPerformanceRuntime(tx, {
+    agentLogStore: new DrizzleAgentLogStore(tx as unknown as AgentDBExecutor),
+  }))),
+  now: () => new Date(),
+}
 
 const REQUIRED_HEADERS = [
   "month",
@@ -296,7 +308,7 @@ export async function importApmAction(
 
     const result = await new ImportApmCommand({
       items,
-    }).execute()
+    }, performanceCommandDependencies).execute()
 
     revalidatePath("/pru/performance")
 
@@ -315,7 +327,7 @@ export async function recalculateApmQualificationAction(): Promise<RecalculateAp
   try {
     await getRequiredAdminContext()
 
-    const result = await new RecalculateApmQualificationCommand().execute()
+    const result = await new RecalculateApmQualificationCommand(performanceCommandDependencies).execute()
 
     revalidatePath("/pru/performance")
 

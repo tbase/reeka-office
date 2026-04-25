@@ -1,4 +1,4 @@
-import { AggregateRoot } from './shared/aggregateRoot'
+import { AggregateRoot } from '@reeka-office/domain-shared'
 import type { DomainEvent, MonthlyPerformanceCreated, MonthlyPerformanceUpdated, QualificationRecalculated } from './events'
 import { normalizeAgentCode } from './agentCode'
 import { createStoredApmMetrics, normalizeImportedApmMetrics, type ImportedApmMetrics, type StoredApmMetrics } from './performanceMetrics'
@@ -87,7 +87,7 @@ export class Apm extends AggregateRoot<ApmSnapshot, DomainEvent> {
   refreshCurrentQualification(
     input: {
       qualifiedGap: number
-      isQualifiedNextMonth?: boolean | null
+      isQualifiedNextMonth?: number | null
       qualifiedGapNextMonth?: number | null
     },
     occurredAt = new Date(),

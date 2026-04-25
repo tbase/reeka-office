@@ -1,16 +1,18 @@
 import type { MySql2Database } from 'drizzle-orm/mysql2'
-import { agentHierarchy, agentLogs, agents } from './db/schema'
+import { agentDomainEvents, agentHierarchy, agentLogs, agents } from './schema'
 
 export type AgentSchema = {
   agents: typeof agents
   agentHierarchy: typeof agentHierarchy
   agentLogs: typeof agentLogs
+  agentDomainEvents: typeof agentDomainEvents
 }
 
 export const agentSchema: AgentSchema = {
   agents,
   agentHierarchy,
   agentLogs,
+  agentDomainEvents,
 }
 
 export type DB = MySql2Database<AgentSchema>
@@ -64,6 +66,10 @@ export function getDb(): DB {
   }
 
   return ctx.db
+}
+
+export async function withTransaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
+  return getDb().transaction(work)
 }
 
 export async function close(): Promise<void> {

@@ -67,6 +67,11 @@ export const gegeMetricChartInputSchema = gegeAgentCodeInputSchema.extend({
 });
 
 export const gegeDashboardInputSchema = gegeAgentCodeInputSchema.optional();
+export const gegeAgentLogsInputSchema = gegeAgentCodeInputSchema.extend({
+  category: z.enum(["all", "profile", "apm"]).optional(),
+  month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+}).optional();
 
 export function requireAgentCode(context: AgentContext): string {
   const agentCode = context.agent.agentCode?.trim();

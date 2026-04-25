@@ -1,4 +1,4 @@
-export interface Agent {
+export interface AgentRecord {
   id: number
   agentCode: string | null
   name: string

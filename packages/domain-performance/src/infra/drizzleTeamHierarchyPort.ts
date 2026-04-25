@@ -1,4 +1,4 @@
-import { agentHierarchy } from '@reeka-office/domain-agent'
+import { agentHierarchy } from '@reeka-office/domain-agent/schema'
 import { and, eq, gt } from 'drizzle-orm'
 
 import type { DBExecutor } from '../context'

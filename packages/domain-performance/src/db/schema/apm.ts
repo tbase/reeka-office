@@ -1,4 +1,4 @@
-import { agents } from '@reeka-office/domain-agent'
+import { agents } from '@reeka-office/domain-agent/schema'
 import { sql } from 'drizzle-orm'
 import {
   datetime,
@@ -47,7 +47,7 @@ export const apm = mysqlTable('agent_performance_monthly', {
   isMdrt: int('is_mdrt').notNull().default(0).$type<boolean>(),
   isQualified: int('is_qualified').notNull().default(0),
   isQualifiedAssigned: int('is_qualified_assigned').notNull().default(0),
-  isQualifiedNextMonth: int('is_qualified_next_month').$type<boolean>(),
+  isQualifiedNextMonth: int('is_qualified_next_month'),
   qualifiedGap: int('qualified_gap'),
   qualifiedGapNextMonth: int('qualified_gap_next_month'),
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),

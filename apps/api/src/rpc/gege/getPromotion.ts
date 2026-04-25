@@ -4,6 +4,7 @@ import {
   GetAgentPromotionSnapshotQuery,
   type AgentPromotionSnapshot,
 } from "@reeka-office/domain-performance";
+import { createPerformanceReaderRuntime } from "@reeka-office/domain-performance/infra";
 
 import { mustAgent, rpc } from "../../context";
 import { gegeDashboardInputSchema, resolveAccessibleAgentCode } from "./shared";
@@ -16,6 +17,9 @@ export const getPromotion = rpc.define({
   execute: mustAgent(async ({ context, input }): Promise<GetPromotionOutput> => {
     const agentCode = await resolveAccessibleAgentCode(context, input?.agentCode);
 
-    return new GetAgentPromotionSnapshotQuery({ agentCode }).query();
+    return new GetAgentPromotionSnapshotQuery(
+      { agentCode },
+      createPerformanceReaderRuntime(),
+    ).query();
   }),
 });

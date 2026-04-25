@@ -1,7 +1,7 @@
 import type { ApmListItem } from '../domain/readModels'
 import type { Period } from '../domain/period'
 import type { PerformanceReadRepository } from '../domain/repositories'
-import { createDefaultPerformanceRuntime } from '../infra/defaultDeps'
+import { createPerformanceReaderRuntime } from '../infra/defaultDeps'
 
 export type ListApmInput = Period
 
@@ -11,7 +11,7 @@ export class ListApmQuery {
 
   constructor(
     input: ListApmInput,
-    repository = createDefaultPerformanceRuntime().performanceReadRepository,
+    repository = createPerformanceReaderRuntime().performanceReadRepository,
   ) {
     this.input = input
     this.performanceReadRepository = repository

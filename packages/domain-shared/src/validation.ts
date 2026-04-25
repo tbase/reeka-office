@@ -28,3 +28,15 @@ export function normalizeOptionalText(value?: string | null): string | null {
   const text = value?.trim()
   return text ? text : null
 }
+
+export function ensureMaxLength(value: string | null, maxLength: number, message: string): void {
+  if (value && value.length > maxLength) {
+    throw new Error(message)
+  }
+}
+
+export function ensureDateString(value: string | null, message: string): void {
+  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(message)
+  }
+}

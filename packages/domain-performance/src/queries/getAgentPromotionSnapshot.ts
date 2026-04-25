@@ -1,8 +1,11 @@
-import { PromotionPolicy } from '../domain/promotionPolicy'
-import type { AgentPromotionSnapshot } from '../domain/promotionMetric'
+import { PromotionPolicy, type PromotionAssessment } from '../domain/promotionPolicy'
+import {
+  promotionMetricDefinitions,
+  type AgentPromotionSnapshot,
+  type PromotionMetric,
+} from '../domain/promotionMetric'
 import type { AgentDirectoryPort, TeamHierarchyPort } from '../domain/ports'
 import type { PerformanceReadRepository } from '../domain/repositories'
-import { createDefaultPerformanceRuntime } from '../infra/defaultDeps'
 
 export interface GetAgentPromotionSnapshotInput {
   agentCode: string
@@ -17,7 +20,11 @@ export class GetAgentPromotionSnapshotQuery {
 
   constructor(
     input: GetAgentPromotionSnapshotInput,
-    dependencies = createDefaultPerformanceRuntime(),
+    dependencies: {
+      performanceReadRepository: PerformanceReadRepository
+      agentDirectoryPort: AgentDirectoryPort
+      teamHierarchyPort: TeamHierarchyPort
+    },
     promotionPolicy = new PromotionPolicy(),
   ) {
     this.input = input
@@ -36,7 +43,7 @@ export class GetAgentPromotionSnapshotQuery {
 
     const latestPeriod = (await this.performanceReadRepository.listPeriods({ limit: 1 }))[0] ?? null
     if (!latestPeriod) {
-      return this.promotionPolicy.buildSnapshot({
+      return buildAgentPromotionSnapshot(this.promotionPolicy.assess({
         agent,
         latestPeriod: null,
         saleCalculateStartPeriod: null,
@@ -48,7 +55,7 @@ export class GetAgentPromotionSnapshotQuery {
         qualifiedDirectCount: 0,
         selfQualifiedCount: 0,
         renewalRateTeamDirect: 0,
-      })
+      }))
     }
 
     const saleCalculateStartPeriod = this.promotionPolicy.resolveSaleCalculateStartPeriod(
@@ -79,7 +86,7 @@ export class GetAgentPromotionSnapshotQuery {
       this.performanceReadRepository.getRenewalRate(agent.agentCode, latestPeriod),
     ])
 
-    return this.promotionPolicy.buildSnapshot({
+    return buildAgentPromotionSnapshot(this.promotionPolicy.assess({
       agent,
       latestPeriod,
       saleCalculateStartPeriod,
@@ -89,8 +96,23 @@ export class GetAgentPromotionSnapshotQuery {
       directTeamSales,
       qualifiedTeamCount,
       qualifiedDirectCount,
-      selfQualifiedCount: latestMetrics?.isQualified ? 1 : 0,
+      selfQualifiedCount: latestMetrics != null && latestMetrics.isQualified > 0 ? 1 : 0,
       renewalRateTeamDirect,
-    })
+    }))
+  }
+}
+
+function buildAgentPromotionSnapshot(assessment: PromotionAssessment): AgentPromotionSnapshot {
+  return {
+    ...assessment,
+    metrics: assessment.metrics.map((metric) => {
+      const definition = promotionMetricDefinitions.find((item) => item.key === metric.key)
+
+      return {
+        ...metric,
+        label: definition?.label ?? metric.key,
+        format: definition?.format ?? 'count',
+      } satisfies PromotionMetric
+    }),
   }
 }

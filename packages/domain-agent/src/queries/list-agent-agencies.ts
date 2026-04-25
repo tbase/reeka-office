@@ -1,31 +1,18 @@
-import { asc, isNull } from 'drizzle-orm'
-
-import { getDb, type DB } from '../context'
-import { agents } from '../db/schema'
+import { getDb } from '../context'
+import { DrizzleAgentReadRepository } from '../infra'
 
 export interface ListAgentAgenciesInput {}
 
 export type ListAgentAgenciesResult = string[]
 
 export class ListAgentAgenciesQuery {
-  private readonly db: DB
+  private readonly repository: DrizzleAgentReadRepository
 
   constructor(_input: ListAgentAgenciesInput = {}) {
-    this.db = getDb()
+    this.repository = new DrizzleAgentReadRepository(getDb())
   }
 
   async query(): Promise<ListAgentAgenciesResult> {
-    const rows = await this.db
-      .select({
-        agency: agents.agency,
-      })
-      .from(agents)
-      .where(isNull(agents.deletedAt))
-      .groupBy(agents.agency)
-      .orderBy(asc(agents.agency))
-
-    return rows
-      .map((row) => row.agency?.trim() ?? '')
-      .filter((agency) => agency.length > 0)
+    return this.repository.listAgencies()
   }
 }

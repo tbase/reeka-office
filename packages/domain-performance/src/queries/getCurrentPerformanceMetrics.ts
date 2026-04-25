@@ -1,7 +1,7 @@
 import type { CurrentPerformanceMetricItem } from '../domain/readModels'
 import type { Period } from '../domain/period'
 import type { PerformanceReadRepository } from '../domain/repositories'
-import { createDefaultPerformanceRuntime } from '../infra/defaultDeps'
+import { createPerformanceReaderRuntime } from '../infra/defaultDeps'
 
 export interface GetCurrentPerformanceMetricsInput {
   agentCodes: string[]
@@ -14,7 +14,7 @@ export class GetCurrentPerformanceMetricsQuery {
 
   constructor(
     input: GetCurrentPerformanceMetricsInput,
-    repository = createDefaultPerformanceRuntime().performanceReadRepository,
+    repository = createPerformanceReaderRuntime().performanceReadRepository,
   ) {
     this.input = input
     this.performanceReadRepository = repository
