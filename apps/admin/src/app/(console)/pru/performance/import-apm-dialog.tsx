@@ -2,7 +2,7 @@
 
 import { UploadIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useRef, useState } from "react"
+import { useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -24,21 +24,23 @@ export function ImportApmDialog() {
   const formRef = useRef<HTMLFormElement>(null)
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     event.stopPropagation()
 
-    if (!formRef.current) {
+    const form = formRef.current
+
+    if (!form) {
       return
     }
 
-    setSubmitting(true)
+    const formData = new FormData(form)
 
-    try {
-      const result = await importApmAction(new FormData(formRef.current))
+    startTransition(async () => {
+      const result = await importApmAction(formData)
       if ("error" in result) {
         toast.error(result.error)
         return
@@ -47,13 +49,11 @@ export function ImportApmDialog() {
       toast.success(
         `导入完成：共 ${result.processedCount} 条，新增 ${result.createdCount} 条，更新 ${result.updatedCount} 条`,
       )
-      formRef.current.reset()
+      form.reset()
       setSelectedFiles([])
       setOpen(false)
       router.refresh()
-    } finally {
-      setSubmitting(false)
-    }
+    })
   }
 
   return (
@@ -111,16 +111,16 @@ export function ImportApmDialog() {
             type="button"
             variant="ghost"
             onClick={() => setOpen(false)}
-            disabled={submitting}
+            disabled={isPending}
           >
             取消
           </Button>
           <Button
             type="submit"
             form="import-apm-form"
-            disabled={submitting || selectedFiles.length === 0}
+            disabled={isPending || selectedFiles.length === 0}
           >
-            {submitting ? "导入中..." : "确定"}
+            {isPending ? "导入中..." : "确定"}
           </Button>
         </DialogFooter>
       </DialogContent>

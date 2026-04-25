@@ -3,7 +3,7 @@
 import { getDesignationName } from "@reeka-office/domain-agent"
 import { RefreshCcwIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -84,14 +84,12 @@ function QualificationStatus({ value }: { value: number | null }) {
 
 export function RecalculateQualificationButton() {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [lastResult, setLastResult] = useState<RecalculateApmQualificationSuccess | null>(null)
 
-  const handleClick = async () => {
-    setIsSubmitting(true)
-
-    try {
+  const handleClick = () => {
+    startTransition(async () => {
       const result = await recalculateApmQualificationAction()
       if ("error" in result) {
         toast.error(result.error)
@@ -104,9 +102,7 @@ export function RecalculateQualificationButton() {
       )
       setDetailsOpen(result.gapChanges.length > 0)
       router.refresh()
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (
@@ -116,10 +112,10 @@ export function RecalculateQualificationButton() {
         size="sm"
         variant="outline"
         onClick={handleClick}
-        disabled={isSubmitting}
+        disabled={isPending}
       >
         <RefreshCcwIcon className="size-4" />
-        {isSubmitting ? "重算中..." : "重算合资格"}
+        {isPending ? "重算中..." : "重算合资格"}
       </Button>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>

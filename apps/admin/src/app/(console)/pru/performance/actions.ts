@@ -326,9 +326,7 @@ export async function importApmAction(
 export async function recalculateApmQualificationAction(): Promise<RecalculateApmQualificationActionResult> {
   try {
     await getRequiredAdminContext()
-
     const result = await new RecalculateApmQualificationCommand(performanceCommandDependencies).execute()
-
     revalidatePath("/pru/performance")
 
     return {

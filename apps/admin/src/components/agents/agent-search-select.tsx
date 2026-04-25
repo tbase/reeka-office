@@ -355,7 +355,8 @@ export function AgentSearchSelect({
 
     let cancelled = false;
 
-    void searchAction({ agentId: value }).then((agents) => {
+    startTransition(async () => {
+      const agents = await searchAction({ agentId: value });
       const agent = agents[0];
 
       if (cancelled || !agent) {
@@ -377,20 +378,21 @@ export function AgentSearchSelect({
 
     let cancelled = false;
 
-    void searchAction({ keyword: deferredKeywordTrimmed })
-      .then((items) => {
-        if (cancelled) return;
+    startTransition(async () => {
+      try {
+        const items = await searchAction({ keyword: deferredKeywordTrimmed });
+        if (cancelled) {
+          return;
+        }
 
-        startTransition(() => {
-          setResults(items);
-          setHighlightedIndex(items.length > 0 ? 0 : -1);
-        });
-      })
-      .finally(() => {
+        setResults(items);
+        setHighlightedIndex(items.length > 0 ? 0 : -1);
+      } finally {
         if (!cancelled) {
           setIsLoading(false);
         }
-      });
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -566,24 +568,24 @@ export function AgentSearchSelect({
 
       {isOpen && panelStyle
         ? (
-            <AgentSearchSelectPanel
-              panelRef={panelRef}
-              panelStyle={panelStyle}
-              inputRef={inputRef}
-              keyword={keyword}
-              placeholder={placeholder}
-              listboxId={listboxId}
-              listRef={listRef}
-              results={results}
-              value={value}
-              isLoading={isLoading}
-              highlightedIndex={highlightedIndex}
-              onKeywordChange={handleKeywordChange}
-              onSearchKeyDown={handleSearchKeyDown}
-              onHighlight={setHighlightedIndex}
-              onSelect={selectAgent}
-            />
-          )
+          <AgentSearchSelectPanel
+            panelRef={panelRef}
+            panelStyle={panelStyle}
+            inputRef={inputRef}
+            keyword={keyword}
+            placeholder={placeholder}
+            listboxId={listboxId}
+            listRef={listRef}
+            results={results}
+            value={value}
+            isLoading={isLoading}
+            highlightedIndex={highlightedIndex}
+            onKeywordChange={handleKeywordChange}
+            onSearchKeyDown={handleSearchKeyDown}
+            onHighlight={setHighlightedIndex}
+            onSelect={selectAgent}
+          />
+        )
         : null}
     </div>
   );
