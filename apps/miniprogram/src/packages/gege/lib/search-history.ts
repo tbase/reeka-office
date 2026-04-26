@@ -79,3 +79,32 @@ export function pushRecentViewedAgent(agent: RecentViewedAgent): RecentViewedAge
 
   return nextItems
 }
+
+export function removeRecentViewedAgent(agentCode: string): RecentViewedAgent[] {
+  const normalizedAgentCode = agentCode.trim().toUpperCase()
+
+  if (!normalizedAgentCode) {
+    return getRecentViewedAgents()
+  }
+
+  const nextItems = getRecentViewedAgents()
+    .filter(item => item.agentCode.toUpperCase() !== normalizedAgentCode)
+
+  try {
+    wx.setStorageSync(RECENT_VIEWED_AGENTS_KEY, nextItems)
+  } catch {
+    return getRecentViewedAgents()
+  }
+
+  return nextItems
+}
+
+export function clearRecentViewedAgents(): RecentViewedAgent[] {
+  try {
+    wx.removeStorageSync(RECENT_VIEWED_AGENTS_KEY)
+  } catch {
+    return getRecentViewedAgents()
+  }
+
+  return []
+}

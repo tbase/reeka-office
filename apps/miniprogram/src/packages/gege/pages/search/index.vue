@@ -6,9 +6,10 @@ import DesignationBadge from '@/components/designation-badge/index.vue'
 import { useToast } from '@/hooks/useToast'
 import { buildPageUrl, parseRouteAgentCode } from '../../lib/agent-code'
 import {
+  clearRecentViewedAgents,
   getRecentViewedAgents,
   pushRecentViewedAgent,
-
+  removeRecentViewedAgent,
 } from '../../lib/search-history'
 import { useAgentSearchStore } from '../../store'
 
@@ -127,6 +128,26 @@ async function openSearchResult(agent: {
   openAgentDashboard(agent)
 }
 
+function removeRecentAgent(agentCode: string) {
+  recentViewedAgents.value = removeRecentViewedAgent(agentCode)
+}
+
+function clearRecentAgents() {
+  wx.showModal({
+    title: '清空查看记录',
+    content: '清空后不可恢复',
+    confirmText: '清空',
+    confirmColor: '#ef4444',
+    success(result) {
+      if (!result.confirm) {
+        return
+      }
+
+      recentViewedAgents.value = clearRecentViewedAgents()
+    },
+  })
+}
+
 async function retrySearch() {
   await searchNow()
 }
@@ -151,11 +172,18 @@ async function retrySearch() {
         />
       </view>
 
-      <view v-if="showDefaultState" class="mt-4 space-y-4">
-        <view class="card p-4">
-          <view class="flex items-center justify-between gap-3">
-            <view class="text-base font-medium text-foreground">
+      <view v-if="showDefaultState" class="mt-5">
+        <view>
+          <view class="flex items-center justify-between gap-3 px-1">
+            <view class="text-xs font-normal text-muted-foreground">
               最近查看
+            </view>
+            <view
+              v-if="recentViewedAgents.length > 0"
+              class="recent-clear-button"
+              @tap="clearRecentAgents"
+            >
+              清空
             </view>
           </view>
 
@@ -163,6 +191,7 @@ async function retrySearch() {
             <view
               v-for="agent in recentViewedAgents"
               :key="agent.agentCode"
+              hover-class="bg-muted"
               class="rounded-xl bg-card px-4 py-3 shadow-sm"
               @tap="openAgentDashboard(agent)"
             >
@@ -176,7 +205,16 @@ async function retrySearch() {
                   </view>
                 </view>
 
-                <DesignationBadge :designation-name="agent.designationName" />
+                <view class="flex shrink-0 items-center gap-2">
+                  <DesignationBadge :designation-name="agent.designationName" />
+                  <view
+                    class="recent-delete-button"
+                    aria-label="删除最近查看"
+                    @tap.stop="removeRecentAgent(agent.agentCode)"
+                  >
+                    <t-icon name="delete" size="34rpx" />
+                  </view>
+                </view>
               </view>
             </view>
           </view>
@@ -245,5 +283,13 @@ async function retrySearch() {
   @apply rounded-full shadow-md overflow-hidden;
   --td-search-bg-color: var(--card);
   --td-search-square-radius: 999rpx;
+}
+
+.recent-clear-button {
+  @apply rounded-full px-3 py-1 text-sm font-medium text-destructive;
+}
+
+.recent-delete-button {
+  @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground;
 }
 </style>
