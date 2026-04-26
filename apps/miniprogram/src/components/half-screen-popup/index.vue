@@ -7,12 +7,14 @@ const props = withDefaults(
     maxContentHeight?: string
     closeBtn?: boolean
     useFooterSlot?: boolean
+    footerBorder?: boolean
   }>(),
   {
     maxHeight: '85vh',
     maxContentHeight: '60vh',
     closeBtn: true,
     useFooterSlot: false,
+    footerBorder: true,
   },
 )
 
@@ -63,7 +65,7 @@ function handleVisibleChange(event: {
 
       <view
         v-if="useFooterSlot"
-        class="mt-4 shrink-0 border-t border-border bg-card px-4 pb-4 pt-3"
+        :class="props.footerBorder ? 'mt-4 shrink-0 border-t border-border bg-card px-4 pb-4 pt-3' : 'mt-4 shrink-0 bg-card px-4 pb-4 pt-3'"
       >
         <slot name="footer" />
       </view>

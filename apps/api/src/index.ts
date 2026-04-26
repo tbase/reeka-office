@@ -6,6 +6,11 @@ import {
   type IdentityDB,
 } from "@reeka-office/domain-identity";
 import {
+  crmSchema,
+  setup as setupDomainCrm,
+  type CrmDB,
+} from "@reeka-office/domain-crm";
+import {
   performanceSchema,
   setup as setupDomainPerformance,
   type PerformanceDB,
@@ -159,6 +164,9 @@ setupDomainIdentity({ db: identityDb as unknown as IdentityDB })
 
 const cmsDb = createBusinessDb(cmsSchema)
 setupDomainCms({ db: cmsDb as unknown as CmsDB })
+
+const crmDb = createBusinessDb(crmSchema)
+setupDomainCrm({ db: crmDb as unknown as CrmDB })
 
 const pointDb = createBusinessDb(pointSchema)
 setupDomainPoint({ db: pointDb as unknown as PointDB })

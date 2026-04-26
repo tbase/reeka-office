@@ -4,6 +4,16 @@ import {
   listResourceContents,
 } from "./rpc/cms";
 import {
+  archiveCustomer,
+  createCustomer,
+  createFollowUp,
+  getCustomer,
+  listCustomers,
+  listCustomerTypes,
+  updateCustomer,
+  updateFollowUp,
+} from "./rpc/crm";
+import {
   getDashboard,
   getMetricChart,
   getMyPerformanceHistory,
@@ -42,6 +52,17 @@ const cmsRegistry = rpc.registry({
   listResourceContents,
 });
 
+const crmRegistry = rpc.registry({
+  archiveCustomer,
+  createCustomer,
+  createFollowUp,
+  getCustomer,
+  listCustomers,
+  listCustomerTypes,
+  updateCustomer,
+  updateFollowUp,
+});
+
 const identityRegistry = rpc.registry({
   getCurrentUser,
   updateAvatar,
@@ -73,6 +94,7 @@ const pointsRegistry = rpc.registry({
 });
 export const registry = {
   ...prefixRegistry("cms", cmsRegistry),
+  ...prefixRegistry("crm", crmRegistry),
   ...prefixRegistry("gege", gegeRegistry),
   ...prefixRegistry("identity", identityRegistry),
   ...prefixRegistry("points", pointsRegistry),

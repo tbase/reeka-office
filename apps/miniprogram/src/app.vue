@@ -35,6 +35,8 @@ defineAppJson({
     'pages/product/index',
     'pages/resource/index',
     'pages/resource/detail/index',
+    'pages/customer/index',
+    'pages/customer-new/index',
     'pages/mine/index',
     'pages/mine/settings/index',
     'pages/unauthorized/index',
@@ -50,6 +52,15 @@ defineAppJson({
         'pages/team/index',
         'pages/promotion/index',
         'pages/logs/index',
+      ],
+    },
+    {
+      root: 'packages/crm',
+      pages: [
+        'pages/index/index',
+        'pages/detail/index',
+        'pages/profile/index',
+        'pages/follow-up/index',
       ],
     },
     {
@@ -90,6 +101,12 @@ defineAppJson({
         text: '资源',
         iconPath: 'tabbar/resource.png',
         selectedIconPath: 'tabbar/resource-active.png',
+      },
+      {
+        pagePath: 'pages/customer/index',
+        text: '客户',
+        iconPath: 'tabbar/customer.png',
+        selectedIconPath: 'tabbar/customer-active.png',
       },
       {
         pagePath: 'pages/mine/index',

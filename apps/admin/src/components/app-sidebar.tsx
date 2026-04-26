@@ -3,6 +3,7 @@
 import {
   BlocksIcon,
   ChartColumnIcon,
+  ContactIcon,
   FileTextIcon,
   FolderTreeIcon,
   GiftIcon,
@@ -83,6 +84,16 @@ const menuGroups: MenuGroup[] = [
         title: "业绩管理",
         url: "/pru/performance",
         icon: ChartColumnIcon,
+      },
+    ],
+  },
+  {
+    title: "CRM",
+    items: [
+      {
+        title: "客户类型",
+        url: "/crm/customer-types",
+        icon: ContactIcon,
       },
     ],
   },

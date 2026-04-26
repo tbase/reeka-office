@@ -1,0 +1,27 @@
+{
+  "name": "@reeka-office/domain-crm",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./infra": "./src/infra/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@reeka-office/domain-shared": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "mysql2": "^3.20.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.4"
+  }
+}

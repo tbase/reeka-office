@@ -16,6 +16,7 @@
     "@next-safe-action/adapter-react-hook-form": "^2.0.5",
     "@reeka-office/domain-agent": "workspace:*",
     "@reeka-office/domain-cms": "workspace:*",
+    "@reeka-office/domain-crm": "workspace:*",
     "@reeka-office/domain-identity": "workspace:*",
     "@reeka-office/domain-performance": "workspace:*",
     "@reeka-office/domain-plan": "workspace:*",
