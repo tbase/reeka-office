@@ -1,6 +1,4 @@
-export * from './check-duplicate-customers'
 export * from './get-customer-detail'
 export * from './get-customer-type-config'
 export * from './list-customer-type-summaries'
 export * from './list-customers'
-export * from './list-enabled-customer-type-configs'

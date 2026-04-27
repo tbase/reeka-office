@@ -1,13 +1,13 @@
 import type { NormalizedCustomerInput } from './customer'
-import type { NormalizedCustomerTypeConfig, NormalizedProfileField } from './profile'
+import type { NormalizedCustomerTypeConfig } from './profile'
 import type {
   CustomerDetail,
   CustomerListInput,
   CustomerListItem,
   CustomerTypeConfig,
+  CustomerTypeSummaryFilters,
   CustomerTypeSummary,
   DuplicateCustomerCandidate,
-  FollowUpStatusConfig,
 } from './readModels'
 
 export interface CrmMetadataRepository {
@@ -40,9 +40,8 @@ export interface CrmCustomerRepository {
 }
 
 export interface CrmReadRepository {
-  listCustomerTypeSummaries(): Promise<CustomerTypeSummary[]>
+  listCustomerTypeSummaries(filters?: CustomerTypeSummaryFilters): Promise<CustomerTypeSummary[]>
   getCustomerTypeConfig(customerTypeId: number): Promise<CustomerTypeConfig | null>
-  listEnabledCustomerTypeConfigs(): Promise<CustomerTypeConfig[]>
   listCustomers(input: CustomerListInput): Promise<CustomerListItem[]>
   getCustomerDetail(input: { agentId: number; customerId: number }): Promise<CustomerDetail | null>
   findDuplicateCustomers(input: {
@@ -58,7 +57,4 @@ export interface CrmReadRepository {
     customerTypeId: number
     lastFollowedAt: Date | null
   } | null>
-  getEnabledCustomerType(customerTypeId: number): Promise<CustomerTypeConfig | null>
-  getEnabledFollowUpStatus(input: { customerTypeId: number; statusId: number }): Promise<FollowUpStatusConfig | null>
-  listEnabledProfileFields(customerTypeId: number): Promise<NormalizedProfileField[]>
 }

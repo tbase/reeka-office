@@ -40,12 +40,14 @@ export class UpdateCustomerCommand {
         throw new Error('客户不存在')
       }
 
-      const customerType = await runtime.readRepository.getEnabledCustomerType(customer.customerTypeId)
-      if (!customerType) {
+      const customerType = await runtime.readRepository.getCustomerTypeConfig(customer.customerTypeId)
+      if (!customerType?.enabled) {
         throw new Error('客户类型不可用')
       }
 
-      const allowedFieldIds = new Set(customerType.profileFields.map((field) => field.id))
+      const allowedFieldIds = new Set(
+        customerType.profileFields.filter((field) => field.enabled).map((field) => field.id),
+      )
       const invalidFieldIds = customer.profileValues
         .map((item) => item.fieldId)
         .filter((fieldId) => !allowedFieldIds.has(fieldId))

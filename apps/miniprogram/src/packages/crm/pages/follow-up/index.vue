@@ -7,11 +7,23 @@ import { invalidateQueries } from '@/hooks/useQuery'
 import { useMutation } from '@/hooks/useMutation'
 import { useToast } from '@/hooks/useToast'
 import { formatTime } from '@/lib/time'
-import { useCustomerDetailStore, useCustomerTypesStore, type CustomerDetail } from '../../store'
+import { useCustomerDetailStore, useCustomerTypeConfigStore, type CustomerDetail } from '../../store'
 
 definePageJson({
   navigationBarTitleText: '跟进记录',
   backgroundColor: '#f6f7fb',
+  usingComponents: {
+    't-button': 'tdesign-miniprogram/button/button',
+    't-cell': 'tdesign-miniprogram/cell/cell',
+    't-cell-group': 'tdesign-miniprogram/cell-group/cell-group',
+    't-date-time-picker': 'tdesign-miniprogram/date-time-picker/date-time-picker',
+    't-empty': 'tdesign-miniprogram/empty/empty',
+    't-icon': 'tdesign-miniprogram/icon/icon',
+    't-step-item': 'tdesign-miniprogram/step-item/step-item',
+    't-steps': 'tdesign-miniprogram/steps/steps',
+    't-textarea': 'tdesign-miniprogram/textarea/textarea',
+    't-toast': 'tdesign-miniprogram/toast/toast',
+  },
 })
 
 const customerId = ref<number | null>(null)
@@ -26,8 +38,9 @@ const content = ref('')
 const initializedFor = ref<number | null>(null)
 
 const { showToast } = useToast()
-const { customerTypes, error: typesError } = useCustomerTypesStore()
 const { customer, error, refetch } = useCustomerDetailStore(customerId)
+const customerTypeId = computed(() => customer.value?.customerTypeId ?? null)
+const { customerType, error: typeError } = useCustomerTypeConfigStore(customerTypeId)
 const mutation = useMutation('crm/createFollowUp', {
   showLoading: '保存跟进中...',
   onError: err => showToast(err.message || '保存失败', 'error'),
@@ -58,16 +71,10 @@ const followUps = computed(() => customer.value?.followUps ?? [])
 const popupTitle = computed(() => editingFollowUpId.value ? '编辑跟进' : '添加跟进')
 const saveButtonText = computed(() => editingFollowUpId.value ? '保存跟进' : '保存跟进')
 const statuses = computed(() => {
-  const typeId = customer.value?.customerTypeId
-  if (!typeId) {
-    return []
-  }
-
-  return (customerTypes.value ?? [])
-    .find(type => type.id === typeId)
-    ?.followUpStatuses ?? []
+  return customerType.value?.followUpStatuses ?? []
 })
 const isArchived = computed(() => Boolean(customer.value?.archivedAt))
+const completedStepIndex = computed(() => followUps.value.length)
 
 watchEffect(() => {
   const detail = customer.value
@@ -126,6 +133,18 @@ function closeTimePicker() {
   timePickerVisible.value = false
 }
 
+function handleStepChange(event: { current?: number, detail?: { current?: number } }) {
+  const index = event.current ?? event.detail?.current
+  if (typeof index !== 'number') {
+    return
+  }
+
+  const record = followUps.value[index]
+  if (record) {
+    openEditFollowUp(record)
+  }
+}
+
 function handleFollowedAtConfirm(event: { value?: string | number, detail?: { value?: string | number } }) {
   const value = event.value ?? event.detail?.value
   if (value != null) {
@@ -142,8 +161,8 @@ async function saveFollowUp() {
   if (!customerId.value) {
     return
   }
-  if (typesError.value) {
-    showToast(typesError.value.message || '跟进配置加载失败', 'error')
+  if (typeError.value) {
+    showToast(typeError.value.message || '跟进配置加载失败', 'error')
     return
   }
   if (!statusId.value) {
@@ -217,30 +236,31 @@ function shiftMonths(value: Date, offset: number): Date {
         description="暂无跟进记录"
       />
 
-      <t-cell-group v-else bordered>
-        <t-cell
-          v-for="record in followUps"
-          :key="record.id"
-          arrow
-          @click="openEditFollowUp(record)"
+      <view v-else class="bg-card px-4 py-4">
+        <t-steps
+          layout="vertical"
+          theme="dot"
+          :current="completedStepIndex"
+          @change="handleStepChange"
         >
-          <template #title>
-            <view>
-              <view class="flex items-center justify-between gap-3">
-                <view class="text-xs text-muted-foreground">
-                  {{ formatDateTime(record.followedAt) }}
-                </view>
-                <view class="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                  {{ record.statusNameSnapshot }}
-                </view>
+          <t-step-item
+            v-for="record in followUps"
+            :key="record.id"
+            :title="formatDateTime(record.followedAt)"
+          >
+            <template #title-right>
+              <view class="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                {{ record.statusNameSnapshot }}
               </view>
-              <view class="mt-2 text-sm text-foreground">
+            </template>
+            <template #content>
+              <view class="text-sm text-foreground">
                 {{ truncateContent(record.content) }}
               </view>
-            </view>
-          </template>
-        </t-cell>
-      </t-cell-group>
+            </template>
+          </t-step-item>
+        </t-steps>
+      </view>
 
       <view v-if="!isArchived" class="fixed bottom-8 right-4 z-10">
         <t-button theme="primary" shape="circle" size="large" @click="openFollowUpPopup">

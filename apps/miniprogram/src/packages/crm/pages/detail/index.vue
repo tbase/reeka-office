@@ -319,31 +319,30 @@ function formatLastFollowedAt(value: string | Date | null): string {
           <template v-if="editField === 'name'">
             <t-input
               :value="editValue"
-              label="姓名"
+              label="称呼"
               placeholder="必填"
+              t-class-label="customer-detail-label"
               @change="handleEditValueChange"
-            />
-            <view class="flex items-center justify-between gap-3 px-4 py-3">
-              <view class="text-sm text-muted-foreground">
-                称谓
-              </view>
-              <view class="flex gap-2">
-                <view
-                  class="pill"
-                  :class="editGender === 'M' ? 'pill-selected' : 'pill-muted'"
-                  @tap="selectEditGender('M')"
-                >
-                  先生
+            >
+              <template #suffix>
+                <view class="flex gap-2">
+                  <view
+                    class="pill"
+                    :class="editGender === 'M' ? 'pill-selected' : 'pill-muted'"
+                    @tap="selectEditGender('M')"
+                  >
+                    先生
+                  </view>
+                  <view
+                    class="pill"
+                    :class="editGender === 'F' ? 'pill-selected' : 'pill-muted'"
+                    @tap="selectEditGender('F')"
+                  >
+                    女士
+                  </view>
                 </view>
-                <view
-                  class="pill"
-                  :class="editGender === 'F' ? 'pill-selected' : 'pill-muted'"
-                  @tap="selectEditGender('F')"
-                >
-                  女士
-                </view>
-              </view>
-            </view>
+              </template>
+            </t-input>
           </template>
           <t-input
             v-else
@@ -365,3 +364,10 @@ function formatLastFollowedAt(value: string | Date | null): string {
     <t-toast id="t-toast" />
   </view>
 </template>
+
+<style lang="postcss">
+.customer-detail-label {
+  flex: 0 0 112rpx;
+  width: 112rpx;
+}
+</style>

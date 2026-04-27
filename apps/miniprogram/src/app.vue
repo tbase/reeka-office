@@ -36,7 +36,6 @@ defineAppJson({
     'pages/resource/index',
     'pages/resource/detail/index',
     'pages/customer/index',
-    'pages/customer-new/index',
     'pages/mine/index',
     'pages/mine/settings/index',
     'pages/unauthorized/index',

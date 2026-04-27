@@ -23,3 +23,7 @@ export const customerPayloadSchema = z.object({
 export const customerIdInputSchema = z.object({
   customerId: z.number().int().positive(),
 });
+
+export const customerTypeIdInputSchema = z.object({
+  customerTypeId: z.number().int().positive(),
+});

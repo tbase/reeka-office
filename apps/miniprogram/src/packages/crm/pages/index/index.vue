@@ -1,17 +1,26 @@
 <script setup lang="ts">
+import type { CustomerGender } from '../../utils/customer'
 import type { RpcInput } from '@/lib/rpc'
-import { computed, onLoad, ref, watchEffect } from 'wevu'
+import { computed, onLoad, ref } from 'wevu'
+import HalfScreenPopup from '@/components/half-screen-popup/index.vue'
+import { useMutation } from '@/hooks/useMutation'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
+import { invalidateQueries } from '@/hooks/useQuery'
+import { useToast } from '@/hooks/useToast'
 import { formatDate as formatDateValue } from '@/lib/time'
-import { useCustomersStore, useCustomerTypesStore } from '../../store'
+import { useCustomersStore } from '../../store'
 import { formatCustomerDisplayName } from '../../utils/customer'
 
 definePageJson({
   navigationBarTitleText: '客户管理',
   backgroundColor: '#f6f7fb',
   usingComponents: {
+    't-button': 'tdesign-miniprogram/button/button',
+    't-cell-group': 'tdesign-miniprogram/cell-group/cell-group',
     't-empty': 'tdesign-miniprogram/empty/empty',
     't-fab': 'tdesign-miniprogram/fab/fab',
+    't-icon': 'tdesign-miniprogram/icon/icon',
+    't-input': 'tdesign-miniprogram/input/input',
     't-indexes': 'tdesign-miniprogram/indexes/indexes',
     't-indexes-anchor': 'tdesign-miniprogram/indexes-anchor/indexes-anchor',
     't-search': 'tdesign-miniprogram/search/search',
@@ -99,38 +108,45 @@ const zhCollator = typeof Intl !== 'undefined' && typeof Intl.Collator === 'func
 const archived = ref(false)
 const keyword = ref('')
 const customerTypeId = ref<number | null>(null)
+const createPopupVisible = ref(false)
+const createName = ref('')
+const createGender = ref<CustomerGender>('M')
+const createPhone = ref('')
 
-const filters = computed<RpcInput<'crm/listCustomers'>>(() => ({
-  archived: archived.value,
-  keyword: keyword.value || undefined,
-  customerTypeId: customerTypeId.value,
-}))
+const filters = computed<RpcInput<'crm/listCustomers'>>(() => customerTypeId.value
+  ? ({
+      archived: archived.value,
+      keyword: keyword.value || undefined,
+      customerTypeId: customerTypeId.value,
+    })
+  : undefined)
 
-const { customerTypes } = useCustomerTypesStore()
+const { showToast } = useToast()
 const { customers, isLoading, error, refetch } = useCustomersStore(filters)
+const createMutation = useMutation('crm/createCustomer', {
+  showLoading: '保存客户中...',
+  onError: err => showToast(err.message || '保存失败', 'error'),
+})
 
 const rows = computed(() => customers.value ?? [])
-const currentCustomerType = computed(() => {
-  return (customerTypes.value ?? []).find(type => type.id === customerTypeId.value) ?? null
+const pageError = computed(() => {
+  if (!customerTypeId.value) {
+    return '客户类型 ID 无效'
+  }
+
+  return error.value?.message ?? null
 })
-const pageError = computed(() => error.value?.message ?? null)
+const hasBlockingPageError = computed(() =>
+  Boolean(pageError.value && (!customers.value || !customerTypeId.value)),
+)
 const customerSections = computed(() => buildCustomerSections(rows.value))
 const customerIndexList = computed(() => customerSections.value.map(section => section.letter))
+const isCreatingCustomer = computed(() => createMutation.loading.value)
+const createPopupTitle = '新建客户'
 
 onLoad((options) => {
   const id = Number(options?.customerTypeId)
   customerTypeId.value = Number.isInteger(id) && id > 0 ? id : null
-})
-
-watchEffect(() => {
-  const typeRows = customerTypes.value ?? []
-  if (!customerTypeId.value && typeRows.length) {
-    customerTypeId.value = typeRows[0].id
-  }
-
-  wx.setNavigationBarTitle({
-    title: currentCustomerType.value?.name ?? '客户管理',
-  })
 })
 
 usePullDownRefresh(async () => {
@@ -150,12 +166,96 @@ function showArchivedCustomers() {
 }
 
 function goCreate() {
-  const query = customerTypeId.value ? `?customerTypeId=${customerTypeId.value}` : ''
-  wx.navigateTo({ url: `/pages/customer-new/index${query}` })
+  if (!customerTypeId.value) {
+    showToast('客户类型无效', 'warning')
+    return
+  }
+
+  createName.value = ''
+  createGender.value = 'M'
+  createPhone.value = ''
+  createPopupVisible.value = true
 }
 
 function goDetail(customerId: number) {
   wx.navigateTo({ url: `/packages/crm/pages/detail/index?id=${customerId}` })
+}
+
+function handleCreatePopupVisibleChange(payload: { visible?: boolean }) {
+  createPopupVisible.value = payload.visible ?? false
+}
+
+function handleCreateNameChange(event: { value?: string }) {
+  createName.value = event.value ?? ''
+}
+
+function selectCreateGender(value: CustomerGender) {
+  createGender.value = value
+}
+
+function handleCreatePhoneChange(event: { value?: string }) {
+  createPhone.value = event.value ?? ''
+}
+
+function buildCreatePayload(allowDuplicate: boolean): RpcInput<'crm/createCustomer'> | null {
+  if (!customerTypeId.value) {
+    showToast('客户类型无效', 'warning')
+    return null
+  }
+
+  const customerName = createName.value.trim()
+  if (!customerName) {
+    showToast('请填写客户称呼', 'warning')
+    return null
+  }
+
+  return {
+    customerTypeId: customerTypeId.value,
+    name: customerName,
+    gender: createGender.value,
+    phone: createPhone.value.trim() || null,
+    wechat: null,
+    tags: [],
+    note: null,
+    profileValues: [],
+    allowDuplicate,
+  }
+}
+
+async function saveCreatedCustomer(allowDuplicate = false) {
+  const payload = buildCreatePayload(allowDuplicate)
+  if (!payload) {
+    return
+  }
+
+  const result = await createMutation.mutate(payload)
+  if (!result) {
+    return
+  }
+
+  if (result.duplicates.length > 0 && !allowDuplicate) {
+    wx.showModal({
+      title: '发现重复客户',
+      content: `已存在 ${result.duplicates.length} 个同类型客户，仍然保存？`,
+      confirmText: '继续保存',
+      success: (modalResult) => {
+        if (modalResult.confirm) {
+          void saveCreatedCustomer(true)
+        }
+      },
+    })
+    return
+  }
+
+  invalidateQueries('crm/listCustomers')
+  invalidateQueries('crm/getCustomer')
+  await refetch()
+  createPopupVisible.value = false
+  showToast('客户已创建')
+}
+
+function handleSaveCreatedCustomer() {
+  void saveCreatedCustomer(false)
 }
 
 function formatDate(value: string | Date | null): string {
@@ -254,7 +354,7 @@ function getCustomerInitial(value: string): string {
 
     <view class="pb-16">
       <t-empty
-        v-if="pageError && !customers"
+        v-if="hasBlockingPageError"
         class="mx-4 mt-4 rounded-xl bg-card py-10 shadow-sm"
         icon="error-circle"
         :description="pageError"
@@ -262,8 +362,6 @@ function getCustomerInitial(value: string): string {
 
       <t-empty
         v-else-if="rows.length === 0 && !isLoading"
-        class="mx-4 mt-4 rounded-xl bg-card py-10 shadow-sm"
-        icon="view-list"
         description="暂无客户"
       />
 
@@ -305,14 +403,76 @@ function getCustomerInitial(value: string): string {
       </t-indexes>
     </view>
 
-    <t-fab icon="add" @click="goCreate" />
+    <t-fab>
+      <t-button theme="primary" shape="circle" size="large" @click="goCreate">
+        <t-icon name="add" size="44rpx" />
+      </t-button>
+    </t-fab>
+
+    <HalfScreenPopup
+      :visible="createPopupVisible"
+      :title="createPopupTitle"
+      use-footer-slot
+      :footer-border="false"
+      max-content-height="52vh"
+      @visible-change="handleCreatePopupVisibleChange"
+    >
+      <view class="-mx-4">
+        <t-cell-group bordered>
+          <t-input
+            :value="createName"
+            label="称呼"
+            placeholder="必填"
+            t-class-label="customer-create-label"
+            @change="handleCreateNameChange"
+          >
+            <template #suffix>
+              <view class="flex gap-2">
+                <view
+                  class="pill"
+                  :class="createGender === 'M' ? 'pill-selected' : 'pill-muted'"
+                  @tap="selectCreateGender('M')"
+                >
+                  先生
+                </view>
+                <view
+                  class="pill"
+                  :class="createGender === 'F' ? 'pill-selected' : 'pill-muted'"
+                  @tap="selectCreateGender('F')"
+                >
+                  女士
+                </view>
+              </view>
+            </template>
+          </t-input>
+          <t-input
+            :value="createPhone"
+            label="手机号"
+            placeholder="选填"
+            t-class-label="customer-create-label"
+            @change="handleCreatePhoneChange"
+          />
+        </t-cell-group>
+      </view>
+
+      <template #footer>
+        <t-button theme="primary" block :disabled="isCreatingCustomer" @click="handleSaveCreatedCustomer">
+          新建客户
+        </t-button>
+      </template>
+    </HalfScreenPopup>
 
     <t-toast id="t-toast" />
   </view>
 </template>
 
-<style scoped>
+<style lang="postcss">
 .customer-search {
   --td-search-bg-color: var(--card);
+}
+
+.customer-create-label {
+  flex: 0 0 112rpx;
+  width: 112rpx;
 }
 </style>

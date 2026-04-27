@@ -38,10 +38,8 @@ export class CreateFollowUpCommand {
         throw new Error('客户不存在')
       }
 
-      const status = await runtime.readRepository.getEnabledFollowUpStatus({
-        customerTypeId: customer.customerTypeId,
-        statusId,
-      })
+      const customerType = await runtime.readRepository.getCustomerTypeConfig(customer.customerTypeId)
+      const status = customerType?.followUpStatuses.find((item) => item.id === statusId && item.enabled) ?? null
       if (!status) {
         throw new Error('跟进状态不可用')
       }

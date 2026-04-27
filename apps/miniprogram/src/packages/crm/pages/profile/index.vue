@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onLoad, ref } from 'wevu'
 import { useNavTitle } from '@/hooks/useNavTitle'
-import { useCustomerDetailStore, useCustomerTypesStore } from '../../store'
+import { useCustomerDetailStore, useCustomerTypeConfigStore } from '../../store'
 
 definePageJson({
   navigationBarTitleText: '画像信息',
@@ -10,7 +10,8 @@ definePageJson({
 
 const customerId = ref<number | null>(null)
 const { customer, error } = useCustomerDetailStore(customerId)
-const { customerTypes, error: typesError } = useCustomerTypesStore()
+const customerTypeId = computed(() => customer.value?.customerTypeId ?? null)
+const { customerType, error: typeError } = useCustomerTypeConfigStore(customerTypeId)
 
 useNavTitle(() => {
   const name = customer.value?.name.trim()
@@ -27,15 +28,7 @@ const pageError = computed(() => {
     return '客户 ID 无效'
   }
 
-  return error.value?.message ?? typesError.value?.message ?? null
-})
-const currentType = computed(() => {
-  const detail = customer.value
-  if (!detail) {
-    return null
-  }
-
-  return (customerTypes.value ?? []).find(type => type.id === detail.customerTypeId) ?? null
+  return error.value?.message ?? typeError.value?.message ?? null
 })
 const profileRows = computed(() => {
   const detail = customer.value
@@ -43,7 +36,7 @@ const profileRows = computed(() => {
     return []
   }
 
-  const fields = currentType.value?.profileFields ?? []
+  const fields = customerType.value?.profileFields ?? []
   if (fields.length === 0) {
     return detail.currentProfileValues.map(row => ({
       fieldId: row.fieldId,
@@ -69,7 +62,7 @@ const profileRows = computed(() => {
 <template>
   <view class="flex min-h-screen flex-col bg-background pb-10 pt-4">
     <t-empty
-      v-if="pageError && (!customer || !customerTypes)"
+      v-if="pageError && (!customer || !customerType)"
       class="bg-card py-10"
       icon="error-circle"
       :description="pageError"

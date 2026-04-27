@@ -19,7 +19,6 @@ import {
   type FollowUpStatusConfig,
   type NormalizedCustomerInput,
   type NormalizedCustomerTypeConfig,
-  type NormalizedProfileField,
 } from '../src'
 
 class MemoryCrm {
@@ -76,36 +75,12 @@ class MemoryCrm {
       createFollowUp: input => this.createFollowUp(input),
     },
     readRepository: {
-      listCustomerTypeSummaries: () => this.listCustomerTypeSummaries(),
+      listCustomerTypeSummaries: filters => this.listCustomerTypeSummaries(filters),
       getCustomerTypeConfig: id => Promise.resolve(this.customerTypes.get(id) ?? null),
-      listEnabledCustomerTypeConfigs: () => Promise.resolve([...this.customerTypes.values()].filter(type => type.enabled)),
       listCustomers: input => this.listCustomers(input),
       getCustomerDetail: input => Promise.resolve(this.getCustomerDetail(input.agentId, input.customerId)),
       findDuplicateCustomers: input => this.findDuplicateCustomers(input),
       getOwnedCustomer: input => Promise.resolve(this.getOwnedCustomer(input.agentId, input.customerId)),
-      getEnabledCustomerType: id => {
-        const type = this.customerTypes.get(id)
-        return Promise.resolve(type?.enabled ? {
-          ...type,
-          profileFields: type.profileFields.filter(field => field.enabled),
-          followUpStatuses: type.followUpStatuses.filter(status => status.enabled),
-        } : null)
-      },
-      getEnabledFollowUpStatus: input => {
-        const status = this.customerTypes.get(input.customerTypeId)?.followUpStatuses
-          .find(item => item.id === input.statusId && item.enabled)
-        return Promise.resolve(status ?? null)
-      },
-      listEnabledProfileFields: id => {
-        const fields = this.customerTypes.get(id)?.profileFields ?? []
-        return Promise.resolve(fields.filter(field => field.enabled).map(field => ({
-          id: field.id,
-          name: field.name,
-          description: field.description,
-          enabled: field.enabled,
-          sortOrder: field.sortOrder,
-        } satisfies NormalizedProfileField)))
-      },
     },
   }
 
@@ -190,19 +165,20 @@ class MemoryCrm {
     return id
   }
 
-  private async listCustomerTypeSummaries(): Promise<CustomerTypeSummary[]> {
-    return [...this.customerTypes.values()].map(type => ({
-      id: type.id,
-      name: type.name,
-      description: type.description,
-      enabled: type.enabled,
-      supportsOpportunity: type.supportsOpportunity,
-      sortOrder: type.sortOrder,
-      profileFieldCount: type.profileFields.length,
-      followUpStatusCount: type.followUpStatuses.length,
-      createdAt: type.createdAt,
-      updatedAt: type.updatedAt,
-    }))
+  private async listCustomerTypeSummaries(filters: { enabled?: boolean } = {}): Promise<CustomerTypeSummary[]> {
+    return [...this.customerTypes.values()]
+      .filter(type => filters.enabled == null || type.enabled === filters.enabled)
+      .sort((left, right) => left.sortOrder - right.sortOrder || left.id - right.id)
+      .map(type => ({
+        id: type.id,
+        name: type.name,
+        description: type.description,
+        enabled: type.enabled,
+        supportsOpportunity: type.supportsOpportunity,
+        sortOrder: type.sortOrder,
+        createdAt: type.createdAt,
+        updatedAt: type.updatedAt,
+      }))
   }
 
   private async listCustomers(input: CustomerListInput): Promise<CustomerListItem[]> {

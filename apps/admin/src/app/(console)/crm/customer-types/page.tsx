@@ -50,10 +50,6 @@ export default async function CrmCustomerTypesPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
-                  <span>画像字段</span>
-                  <span className="text-foreground text-right">{item.profileFieldCount}</span>
-                  <span>跟进状态</span>
-                  <span className="text-foreground text-right">{item.followUpStatusCount}</span>
                   <span>排序</span>
                   <span className="text-foreground text-right">{item.sortOrder}</span>
                 </div>

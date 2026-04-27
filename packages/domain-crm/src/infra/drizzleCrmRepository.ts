@@ -10,6 +10,7 @@ import type {
   CustomerListItem,
   CustomerProfileValueDetail,
   CustomerTypeConfig,
+  CustomerTypeSummaryFilters,
   CustomerTypeSummary,
   DuplicateCustomerCandidate,
   FollowUpRecordDetail,
@@ -205,8 +206,13 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     return true
   }
 
-  async listCustomerTypeSummaries(): Promise<CustomerTypeSummary[]> {
-    const rows = await this.db
+  async listCustomerTypeSummaries(filters: CustomerTypeSummaryFilters = {}): Promise<CustomerTypeSummary[]> {
+    const conditions = []
+    if (filters.enabled != null) {
+      conditions.push(eq(crmCustomerTypes.enabled, filters.enabled))
+    }
+
+    return this.db
       .select({
         id: crmCustomerTypes.id,
         name: crmCustomerTypes.name,
@@ -216,29 +222,10 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         sortOrder: crmCustomerTypes.sortOrder,
         createdAt: crmCustomerTypes.createdAt,
         updatedAt: crmCustomerTypes.updatedAt,
-        profileFieldCount: sql<number>`count(distinct ${crmProfileFields.id})`,
-        followUpStatusCount: sql<number>`count(distinct ${crmFollowUpStatuses.id})`,
       })
       .from(crmCustomerTypes)
-      .leftJoin(crmProfileFields, eq(crmProfileFields.customerTypeId, crmCustomerTypes.id))
-      .leftJoin(crmFollowUpStatuses, eq(crmFollowUpStatuses.customerTypeId, crmCustomerTypes.id))
-      .groupBy(
-        crmCustomerTypes.id,
-        crmCustomerTypes.name,
-        crmCustomerTypes.description,
-        crmCustomerTypes.enabled,
-        crmCustomerTypes.supportsOpportunity,
-        crmCustomerTypes.sortOrder,
-        crmCustomerTypes.createdAt,
-        crmCustomerTypes.updatedAt,
-      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(crmCustomerTypes.sortOrder), asc(crmCustomerTypes.id))
-
-    return rows.map((row) => ({
-      ...row,
-      profileFieldCount: Number(row.profileFieldCount),
-      followUpStatusCount: Number(row.followUpStatusCount),
-    }))
   }
 
   async getCustomerTypeConfig(customerTypeId: number): Promise<CustomerTypeConfig | null> {
@@ -262,23 +249,6 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       profileFields,
       followUpStatuses,
     }
-  }
-
-  async listEnabledCustomerTypeConfigs(): Promise<CustomerTypeConfig[]> {
-    const rows = await this.db
-      .select({ id: crmCustomerTypes.id })
-      .from(crmCustomerTypes)
-      .where(eq(crmCustomerTypes.enabled, true))
-      .orderBy(asc(crmCustomerTypes.sortOrder), asc(crmCustomerTypes.id))
-
-    const configs = await Promise.all(rows.map((row) => this.getCustomerTypeConfig(row.id)))
-    return configs
-      .filter((config): config is CustomerTypeConfig => config != null)
-      .map((config) => ({
-        ...config,
-        profileFields: config.profileFields.filter((field) => field.enabled),
-        followUpStatuses: config.followUpStatuses.filter((status) => status.enabled),
-      }))
   }
 
   async listCustomers(input: CustomerListInput): Promise<CustomerListItem[]> {
@@ -436,52 +406,6 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .limit(1)
 
     return rows[0] ?? null
-  }
-
-  async getEnabledCustomerType(customerTypeId: number): Promise<CustomerTypeConfig | null> {
-    const config = await this.getCustomerTypeConfig(customerTypeId)
-    if (!config?.enabled) {
-      return null
-    }
-
-    return {
-      ...config,
-      profileFields: config.profileFields.filter((field) => field.enabled),
-      followUpStatuses: config.followUpStatuses.filter((status) => status.enabled),
-    }
-  }
-
-  async getEnabledFollowUpStatus(input: { customerTypeId: number; statusId: number }): Promise<FollowUpStatusConfig | null> {
-    const rows = await this.db
-      .select({
-        id: crmFollowUpStatuses.id,
-        customerTypeId: crmFollowUpStatuses.customerTypeId,
-        name: crmFollowUpStatuses.name,
-        enabled: crmFollowUpStatuses.enabled,
-        sortOrder: crmFollowUpStatuses.sortOrder,
-      })
-      .from(crmFollowUpStatuses)
-      .where(and(
-        eq(crmFollowUpStatuses.id, input.statusId),
-        eq(crmFollowUpStatuses.customerTypeId, input.customerTypeId),
-        eq(crmFollowUpStatuses.enabled, true),
-      ))
-      .limit(1)
-
-    return rows[0] ?? null
-  }
-
-  async listEnabledProfileFields(customerTypeId: number): Promise<NormalizedProfileField[]> {
-    const rows = await this.listProfileFields(customerTypeId)
-    return rows
-      .filter((field) => field.enabled)
-      .map((field) => ({
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        enabled: field.enabled,
-        sortOrder: field.sortOrder,
-      }))
   }
 
   private async saveProfileFields(customerTypeId: number, fields: NormalizedProfileField[]): Promise<void> {

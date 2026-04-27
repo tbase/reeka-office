@@ -7,10 +7,12 @@ export interface CustomerTypeSummary {
   enabled: boolean
   supportsOpportunity: boolean
   sortOrder: number
-  profileFieldCount: number
-  followUpStatusCount: number
   createdAt: Date
   updatedAt: Date
+}
+
+export interface CustomerTypeSummaryFilters {
+  enabled?: boolean
 }
 
 export interface ProfileFieldConfig {

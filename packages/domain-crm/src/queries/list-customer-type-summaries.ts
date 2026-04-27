@@ -1,15 +1,20 @@
 import { createDefaultCrmRuntime } from '../infra'
 import type { CrmReadRepository } from '../domain/repositories'
-import type { CustomerTypeSummary } from '../domain/readModels'
+import type { CustomerTypeSummary, CustomerTypeSummaryFilters } from '../domain/readModels'
 
 export class ListCustomerTypeSummariesQuery {
+  private readonly filters: CustomerTypeSummaryFilters
   private readonly readRepository: CrmReadRepository
 
-  constructor(readRepository = createDefaultCrmRuntime().readRepository) {
+  constructor(
+    filters: CustomerTypeSummaryFilters = {},
+    readRepository = createDefaultCrmRuntime().readRepository,
+  ) {
+    this.filters = filters
     this.readRepository = readRepository
   }
 
   async query(): Promise<CustomerTypeSummary[]> {
-    return this.readRepository.listCustomerTypeSummaries()
+    return this.readRepository.listCustomerTypeSummaries(this.filters)
   }
 }
