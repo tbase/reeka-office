@@ -8,12 +8,17 @@ import {
   refreshTenantCatalog,
   switchTenant,
 } from '@/lib/rpc/center'
-import { getActiveTenantCode } from '@/lib/tenant-session'
 
 definePageJson({
-  navigationBarTitleText: '身份绑定',
+  navigationBarTitleText: '身份状态',
   navigationBarBackgroundColor: '#ff2056',
   navigationBarTextStyle: 'white',
+  usingComponents: {
+    't-button': 'tdesign-miniprogram/button/button',
+    't-cell': 'tdesign-miniprogram/cell/cell',
+    't-cell-group': 'tdesign-miniprogram/cell-group/cell-group',
+    't-toast': 'tdesign-miniprogram/toast/toast',
+  },
 })
 
 const { hideLoading, showLoading, showToast } = useToast()
@@ -29,11 +34,7 @@ async function reloadTenants(showError = false) {
   try {
     const result = await refreshTenantCatalog()
     tenants.value = result.tenants
-    activeTenantCode.value
-      = getActiveTenantCode()
-        ?? result.activeTenant?.tenantCode
-        ?? result.tenants[0]?.tenantCode
-        ?? ''
+    activeTenantCode.value = result.activeTenant?.tenantCode ?? ''
   }
   catch (error) {
     if (showError) {
@@ -87,44 +88,53 @@ onShow(() => {
 </script>
 
 <template>
-  <view
-    class="flex min-h-screen flex-col items-center justify-center bg-background px-4"
-  >
-    <view class="w-full max-w-sm">
-      <view class="mb-8 text-center">
-        <view class="block text-2xl font-semibold">
-          代理人绑定
-        </view>
-        <view class="mt-2 block text-sm text-muted-foreground">
-          {{
-            loadingTenants
-              ? "正在加载身份信息"
-              : tenants.length
-                ? "请选择要进入的团队"
-                : "请通过上级代理人的邀请链接加入团队"
-          }}
-        </view>
-      </view>
+  <view class="flex min-h-screen flex-col bg-background px-5 py-10">
+    <view
+      v-if="loadingTenants"
+      class="flex flex-1 items-center justify-center text-sm text-muted-foreground"
+    >
+      正在加载身份信息
+    </view>
 
-      <view v-if="!loadingTenants && tenants.length" class="w-full">
-        <t-cell-group bordered>
-          <t-cell
-            v-for="tenant in tenants"
-            :key="tenant.tenantCode"
-            :title="tenant.tenantName"
-            arrow
-            @click="handleUseTenant(tenant.tenantCode)"
-          />
-        </t-cell-group>
-      </view>
-
-      <view v-else-if="!loadingTenants" class="card p-5 text-center">
-        <view class="text-base font-medium">
-          暂无可用身份
+    <view v-else-if="tenants.length" class="w-full">
+      <view class="mb-6">
+        <view class="text-2xl font-semibold">
+          选择身份
         </view>
         <view class="mt-2 text-sm text-muted-foreground">
-          必须通过上级代理人的邀请链接加入团队
+          请选择要进入的团队
         </view>
+      </view>
+
+      <t-cell-group bordered>
+        <t-cell
+          v-for="tenant in tenants"
+          :key="tenant.tenantCode"
+          :title="tenant.tenantName"
+          :note="tenant.tenantCode === activeTenantCode ? '当前' : ''"
+          arrow
+          @click="handleUseTenant(tenant.tenantCode)"
+        />
+      </t-cell-group>
+    </view>
+
+    <view v-else class="flex flex-1 flex-col items-center justify-center text-center">
+      <view class="text-lg font-semibold text-destructive">
+        暂无可用身份
+      </view>
+      <view class="mt-3 text-sm leading-6 text-muted-foreground">
+        请通过上级代理人分享的邀请链接加入团队
+      </view>
+      <view class="mt-8 w-full">
+        <t-button
+          theme="light"
+          size="large"
+          block
+          shape="rectangle"
+          @click="reloadTenants(true)"
+        >
+          刷新身份
+        </t-button>
       </view>
     </view>
 
