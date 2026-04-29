@@ -1,4 +1,9 @@
 export {
+  BindUserByInviteShareTokenCommand,
+  type BindUserByInviteShareTokenInput,
+  type BindUserByInviteShareTokenResult,
+} from './bind-user-by-invite-share-token'
+export {
   BindUserByTokenCommand,
   type BindUserByTokenInput,
   type BindUserByTokenResult,
@@ -8,6 +13,11 @@ export {
   type CreateBindingTokenInput,
   type CreateBindingTokenResult,
 } from './create-binding-token'
+export {
+  CreateInviteShareTokenCommand,
+  type CreateInviteShareTokenInput,
+  type CreateInviteShareTokenResult,
+} from './create-invite-share-token'
 export {
   UpdateUserAvatarCommand,
   type UpdateUserAvatarInput,

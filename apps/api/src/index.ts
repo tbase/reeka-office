@@ -24,6 +24,7 @@ import mysql from "mysql2/promise";
 
 import { config } from "./config";
 import type { APIContext } from "./context";
+import { inviteRegistry } from "./invite-registry";
 import { registry } from "./registry";
 
 async function createContext(req: Request): Promise<APIContext> {
@@ -71,7 +72,23 @@ async function createContext(req: Request): Promise<APIContext> {
   };
 }
 
+async function createPublicContext(req: Request): Promise<APIContext> {
+  const openid = req.headers.get("x-wx-openid") ?? req.headers.get("x-wx-from-openid");
+  const envid = req.headers.get("x-wx-env");
 
+  if (!envid) {
+    throw new RpcError(RpcErrorCode.INVALID_REQUEST, "缺少 envid");
+  }
+  if (!openid) {
+    throw new RpcError(RpcErrorCode.INVALID_REQUEST, "缺少 openid");
+  }
+
+  return {
+    openid,
+    envid,
+    user: null,
+  };
+}
 
 let businessPool: mysql.Pool | null = null;
 let identityPool: mysql.Pool | null = null;
@@ -181,6 +198,9 @@ const server = Bun.serve({
   routes: {
     "/rpc": {
       POST: handleRPC(registry, { createContext }),
+    },
+    "/invite-rpc": {
+      POST: handleRPC(inviteRegistry, { createContext: createPublicContext }),
     },
   },
 });

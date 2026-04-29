@@ -28,7 +28,7 @@ import {
   listTeamMembers,
   updateLastPromotionDate,
 } from "./rpc/gege";
-import { getCurrentUser, updateAvatar, updateNickname } from "./rpc/identity";
+import { createInviteShareToken, getCurrentUser, updateAvatar, updateNickname } from "./rpc/identity";
 import { getMineSummary, listPointRecords, listPointRuleScenes, listPointRules, listRedeemItems, submitRedeem } from "./rpc/points";
 
 type PrefixKeys<P extends string, T> = {
@@ -66,6 +66,7 @@ const crmRegistry = rpc.registry({
 });
 
 const identityRegistry = rpc.registry({
+  createInviteShareToken,
   getCurrentUser,
   updateAvatar,
   updateNickname,

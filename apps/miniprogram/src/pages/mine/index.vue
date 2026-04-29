@@ -42,6 +42,12 @@ function goGege() {
     url: '/packages/gege/pages/index/index',
   })
 }
+
+function goInvite() {
+  wx.navigateTo({
+    url: '/pages/mine/invite/index',
+  })
+}
 </script>
 
 <template>
@@ -92,6 +98,17 @@ function goGege() {
           left-icon="app"
           arrow
           @click="goGege"
+        />
+      </t-cell-group>
+    </view>
+
+    <view class="pb-4">
+      <t-cell-group bordered class="bg-white">
+        <t-cell
+          title="邀请成员"
+          left-icon="usergroup"
+          arrow
+          @click="goInvite"
         />
       </t-cell-group>
     </view>

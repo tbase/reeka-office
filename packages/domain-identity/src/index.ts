@@ -7,12 +7,13 @@ export {
   type IdentitySchema,
   type SetupOptions,
 } from './context'
-export { bindingTokens, tenants, userTenantBindings, users } from './db/schema'
+export { bindingTokens, inviteShareTokens, tenants, userTenantBindings, users } from './db/schema'
 export * from './commands'
 export * from './queries'
 export type {
   BindingTokenInfo,
   IdentityUser,
+  InviteShareTokenInfo,
   ResolvedTenantAgent,
   UserTenant,
 } from './types'

@@ -35,3 +35,14 @@ export interface BindingTokenInfo {
   boundAt: Date | null
   boundUserId: number | null
 }
+
+export interface InviteShareTokenInfo {
+  token: string
+  tenantCode: string
+  tenantName: string
+  apiServiceName: string
+  inviterAgentId: number
+  inviterAgentCode: string
+  expiresAt: Date
+  isExpired: boolean
+}

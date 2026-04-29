@@ -1,0 +1,1 @@
+export { bindByShareToken } from "./bindByShareToken";

@@ -1,0 +1,27 @@
+{
+  "format_on_save": "on",
+  "languages": {
+    "JavaScript": {
+      "formatter": [{ "code_action": "source.fixAll.eslint" }],
+    },
+    "JSX": {
+      "formatter": [{ "code_action": "source.fixAll.eslint" }],
+    },
+    "TypeScript": {
+      "formatter": [{ "code_action": "source.fixAll.eslint" }],
+    },
+    "TSX": {
+      "formatter": [{ "code_action": "source.fixAll.eslint" }],
+    },
+    "Vue.js": {
+      "formatter": [{ "code_action": "source.fixAll.eslint" }],
+    },
+  },
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "workingDirectory": { "mode": "auto" },
+      },
+    },
+  },
+}

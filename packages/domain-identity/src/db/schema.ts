@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   datetime,
   foreignKey,
+  index,
   int,
   mysqlEnum,
   mysqlTable,
@@ -65,4 +66,21 @@ export const bindingTokens = mysqlTable('binding_tokens', {
     columns: [table.boundUserId],
     foreignColumns: [users.id],
   }).onDelete('set null'),
+])
+
+export const inviteShareTokens = mysqlTable('invite_share_tokens', {
+  token: varchar('token', { length: 96 }).primaryKey(),
+  tenantCode: varchar('tenant_code', { length: 32 }).notNull(),
+  inviterAgentId: int('inviter_agent_id').notNull(),
+  inviterAgentCode: varchar('inviter_agent_code', { length: 8 }).notNull(),
+  expiresAt: datetime('expires_at').notNull(),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index('invite_share_tokens_inviter_idx').on(table.tenantCode, table.inviterAgentId),
+  foreignKey({
+    name: 'invite_share_tokens_tenant_code_fk',
+    columns: [table.tenantCode],
+    foreignColumns: [tenants.tenantCode],
+  }).onDelete('cascade'),
 ])

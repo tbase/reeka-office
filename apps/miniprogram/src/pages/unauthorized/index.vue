@@ -5,10 +5,9 @@ import { onShow, ref } from 'wevu'
 import { invalidateQueries } from '@/hooks/useQuery'
 import { useToast } from '@/hooks/useToast'
 import {
-  bindByToken,
   refreshTenantCatalog,
   switchTenant,
-} from '@/lib/center-api'
+} from '@/lib/rpc/center'
 import { getActiveTenantCode } from '@/lib/tenant-session'
 
 definePageJson({
@@ -18,8 +17,6 @@ definePageJson({
 })
 
 const { hideLoading, showLoading, showToast } = useToast()
-const token = ref('')
-const binding = ref(false)
 const switchingTenantCode = ref('')
 const loadingTenants = ref(true)
 const tenants = ref<TenantSummary[]>([])
@@ -52,46 +49,8 @@ async function reloadTenants(showError = false) {
   }
 }
 
-async function handleBind() {
-  const nextToken = token.value.trim().toUpperCase()
-  if (!nextToken) {
-    showToast('请输入绑定码', 'warning')
-    return
-  }
-
-  binding.value = true
-  showLoading('绑定中...')
-
-  try {
-    const result = await bindByToken(nextToken)
-    tenants.value = result.tenants
-    activeTenantCode.value = result.tenantCode
-    token.value = ''
-    invalidateQueries()
-    binding.value = false
-    hideLoading()
-    showToast('绑定成功')
-    setTimeout(() => {
-      wx.reLaunch({ url: '/pages/index/index' })
-    }, 400)
-  }
-  catch (error) {
-    binding.value = false
-    hideLoading()
-    showToast(error instanceof Error ? error.message : '绑定失败', 'error')
-  }
-  finally {
-    binding.value = false
-    hideLoading()
-  }
-}
-
-function handleTokenChange(event: { value?: string }) {
-  token.value = event.value ?? ''
-}
-
 function handleUseTenant(tenantCode: string) {
-  if (binding.value || switchingTenantCode.value) {
+  if (switchingTenantCode.value) {
     return
   }
 
@@ -142,7 +101,7 @@ onShow(() => {
               ? "正在加载身份信息"
               : tenants.length
                 ? "请选择要进入的团队"
-                : "请输入管理员提供的绑定码"
+                : "请通过上级代理人的邀请链接加入团队"
           }}
         </view>
       </view>
@@ -159,27 +118,13 @@ onShow(() => {
         </t-cell-group>
       </view>
 
-      <view v-else-if="!loadingTenants">
-        <t-cell-group theme="card" bordered>
-          <t-input
-            :value="token"
-            placeholder="请输入管理员提供的绑定码"
-            clearable
-            :disabled="binding"
-            @change="handleTokenChange"
-          />
-        </t-cell-group>
-
-        <t-button
-          class="mt-6"
-          theme="primary"
-          size="large"
-          block
-          :disabled="binding"
-          @click="handleBind"
-        >
-          完成绑定
-        </t-button>
+      <view v-else-if="!loadingTenants" class="card p-5 text-center">
+        <view class="text-base font-medium">
+          暂无可用身份
+        </view>
+        <view class="mt-2 text-sm text-muted-foreground">
+          必须通过上级代理人的邀请链接加入团队
+        </view>
       </view>
     </view>
 

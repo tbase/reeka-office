@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RpcError } from '@/lib/rpc'
 import { onLaunch, onShow } from 'wevu'
-import { hydrateTenantCatalog } from '@/lib/center-api'
+import { hydrateTenantCatalog } from '@/lib/rpc/center'
 import { RpcErrorCode, setRpcErrorHandler } from '@/lib/rpc'
 
 import '@/styles/theme-light.less'
@@ -36,7 +36,9 @@ defineAppJson({
     'pages/resource/index',
     'pages/resource/detail/index',
     'pages/customer/index',
+    'pages/invite/index',
     'pages/mine/index',
+    'pages/mine/invite/index',
     'pages/mine/settings/index',
     'pages/unauthorized/index',
   ],
@@ -123,22 +125,34 @@ defineAppJson({
   },
 })
 
+function isInviteRoute(route: string): boolean {
+  return route === '/pages/invite/index'
+}
+
+function disableSystemShare() {
+  wx.hideShareMenu({
+    menus: ['shareAppMessage', 'shareTimeline'],
+  })
+}
+
 async function syncTenantRoute() {
   const { activeTenant } = await hydrateTenantCatalog()
   const currentPages = getCurrentPages()
   const currentPage = currentPages[currentPages.length - 1]
   const currentRoute = `/${currentPage?.route ?? ''}`
 
-  if (!activeTenant && currentRoute !== '/pages/unauthorized/index') {
+  if (!activeTenant && currentRoute !== '/pages/unauthorized/index' && !isInviteRoute(currentRoute)) {
     wx.reLaunch({ url: '/pages/unauthorized/index' })
   }
 }
 
 onLaunch(() => {
+  disableSystemShare()
   void syncTenantRoute()
 })
 
 onShow(() => {
+  disableSystemShare()
   void syncTenantRoute()
 })
 </script>

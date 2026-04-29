@@ -20,3 +20,8 @@ export {
   type ResolveTenantAgentByOpenIdInput,
   type ResolveTenantAgentByOpenIdResult,
 } from './resolve-tenant-agent-by-openid'
+export {
+  ResolveInviteShareTokenQuery,
+  type ResolveInviteShareTokenInput,
+  type ResolveInviteShareTokenResult,
+} from './resolve-invite-share-token'

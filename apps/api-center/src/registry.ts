@@ -1,5 +1,5 @@
 import { rpc } from './context'
-import { bindByToken, listMyTenants, unbindTenant } from './rpc/identity'
+import { bindByToken, listMyTenants, resolveInviteShareToken, unbindTenant } from './rpc/identity'
 
 type PrefixKeys<P extends string, T> = {
   [K in keyof T as K extends string ? `${P}/${K}` : never]: T[K]
@@ -21,6 +21,7 @@ function prefixRegistry<P extends string, T extends Record<string, unknown>>(
 const identityRegistry = rpc.registry({
   bindByToken,
   listMyTenants,
+  resolveInviteShareToken,
   unbindTenant,
 })
 

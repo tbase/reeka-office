@@ -2,6 +2,7 @@ import type { MySql2Database } from 'drizzle-orm/mysql2'
 
 import {
   bindingTokens,
+  inviteShareTokens,
   tenants,
   userTenantBindings,
   users,
@@ -12,6 +13,7 @@ export type IdentitySchema = {
   users: typeof users
   userTenantBindings: typeof userTenantBindings
   bindingTokens: typeof bindingTokens
+  inviteShareTokens: typeof inviteShareTokens
 }
 
 export const identitySchema: IdentitySchema = {
@@ -19,6 +21,7 @@ export const identitySchema: IdentitySchema = {
   users,
   userTenantBindings,
   bindingTokens,
+  inviteShareTokens,
 }
 
 export type DB = MySql2Database<IdentitySchema>

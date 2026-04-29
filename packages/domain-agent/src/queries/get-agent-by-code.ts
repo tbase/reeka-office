@@ -2,8 +2,10 @@ import { getDb } from '../context'
 import { DrizzleAgentReadRepository } from '../infra'
 
 export interface AgentProfile {
+  id: number
   agentCode: string
   name: string
+  joinDate: string | null
   designation: number | null
   leaderCode: string | null
   division: string | null

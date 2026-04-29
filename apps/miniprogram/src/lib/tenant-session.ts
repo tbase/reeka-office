@@ -30,7 +30,8 @@ export function getCachedTenants(): TenantSummary[] {
     }
 
     return value.filter(isTenantSummary)
-  } catch {
+  }
+  catch {
     return []
   }
 }
@@ -43,7 +44,8 @@ export function getActiveTenantCode(): string | null {
   try {
     const value = wx.getStorageSync(ACTIVE_TENANT_CODE_KEY)
     return typeof value === 'string' && value.trim() ? value : null
-  } catch {
+  }
+  catch {
     return null
   }
 }
@@ -63,7 +65,7 @@ export function getActiveTenant(): TenantSummary | null {
   if (!tenantCode && tenants.length > 0) {
     tenantCode = tenants[0].tenantCode
   }
-  return tenants.find((tenant) => tenant.tenantCode === tenantCode) ?? null
+  return tenants.find(tenant => tenant.tenantCode === tenantCode) ?? null
 }
 
 export function syncCachedTenants(tenants: TenantSummary[]): TenantSummary | null {
@@ -74,7 +76,7 @@ export function syncCachedTenants(tenants: TenantSummary[]): TenantSummary | nul
     return null
   }
 
-  const activeTenant = tenants.find((tenant) => tenant.tenantCode === activeTenantCode) ?? null
+  const activeTenant = tenants.find(tenant => tenant.tenantCode === activeTenantCode) ?? null
   if (!activeTenant) {
     setActiveTenantCode(null)
   }
@@ -83,7 +85,7 @@ export function syncCachedTenants(tenants: TenantSummary[]): TenantSummary | nul
 }
 
 export function activateTenant(tenantCode: string): TenantSummary | null {
-  const tenant = getCachedTenants().find((item) => item.tenantCode === tenantCode) ?? null
+  const tenant = getCachedTenants().find(item => item.tenantCode === tenantCode) ?? null
   if (!tenant) {
     return null
   }
