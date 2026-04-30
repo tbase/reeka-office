@@ -125,17 +125,6 @@ onShow(() => {
       <view class="mt-3 text-sm leading-6 text-muted-foreground">
         请通过上级代理人分享的邀请链接加入团队
       </view>
-      <view class="mt-8 w-full">
-        <t-button
-          theme="light"
-          size="large"
-          block
-          shape="rectangle"
-          @click="reloadTenants(true)"
-        >
-          刷新身份
-        </t-button>
-      </view>
     </view>
 
     <t-toast id="t-toast" />

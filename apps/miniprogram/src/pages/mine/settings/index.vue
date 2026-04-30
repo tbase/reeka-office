@@ -145,12 +145,14 @@ async function handleUnbind(tenantCode: string) {
   showLoading('解绑中...')
 
   try {
-    await unbindTenant(tenantCode)
+    const result = await unbindTenant(tenantCode)
     invalidateQueries()
     hideLoading()
     showToast('解绑成功')
     setTimeout(() => {
-      wx.reLaunch({ url: '/pages/unauthorized/index' })
+      wx.reLaunch({
+        url: result.tenants.length > 0 ? '/pages/index/index' : '/pages/unauthorized/index',
+      })
     }, 300)
   }
   catch (error) {

@@ -7,7 +7,6 @@ import {
   getActiveTenant,
   getActiveTenantCode,
   getCachedTenants,
-  setActiveTenantCode,
   syncCachedTenants,
 
 } from '../tenant-session'
@@ -86,11 +85,7 @@ export async function unbindTenant(tenantCode: string): Promise<UnbindTenantResp
     tenantCode,
   })
 
-  const activeTenantCode = getActiveTenantCode()
   syncCachedTenants(response.tenants)
-  if (activeTenantCode === response.tenantCode) {
-    setActiveTenantCode(null)
-  }
 
   return response
 }

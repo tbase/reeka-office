@@ -6,9 +6,25 @@ import { RpcErrorCode, setRpcErrorHandler } from '@/lib/rpc'
 
 import '@/styles/theme-light.less'
 
+const PUBLIC_ENTRY_ROUTES = new Set([
+  '/pages/launch/index',
+  '/pages/invite/index',
+  '/pages/unauthorized/index',
+])
+
 function shouldIgnoreForbiddenRedirect(error: RpcError) {
   return error.data?.kind === 'business'
     && error.data.reason === 'INVALID_AGENT_TARGET'
+}
+
+function getCurrentRoute(): string | null {
+  const currentPages = getCurrentPages()
+  const currentPage = currentPages[currentPages.length - 1]
+  return currentPage?.route ? `/${currentPage.route}` : null
+}
+
+function isPublicEntryRoute(route: string): boolean {
+  return PUBLIC_ENTRY_ROUTES.has(route)
 }
 
 setRpcErrorHandler((error) => {
@@ -17,11 +33,8 @@ setRpcErrorHandler((error) => {
       return
     }
 
-    const currentPages = getCurrentPages()
-    const currentPage = currentPages[currentPages.length - 1]
-    const currentRoute = `/${currentPage?.route ?? ''}`
-
-    if (currentRoute === '/pages/unauthorized/index') {
+    const currentRoute = getCurrentRoute()
+    if (!currentRoute || isPublicEntryRoute(currentRoute)) {
       return
     }
 
@@ -31,6 +44,7 @@ setRpcErrorHandler((error) => {
 
 defineAppJson({
   pages: [
+    'pages/launch/index',
     'pages/index/index',
     'pages/product/index',
     'pages/resource/index',
@@ -125,10 +139,6 @@ defineAppJson({
   },
 })
 
-function isInviteRoute(route: string): boolean {
-  return route === '/pages/invite/index'
-}
-
 function disableSystemShare() {
   wx.hideShareMenu({
     menus: ['shareAppMessage', 'shareTimeline'],
@@ -136,12 +146,18 @@ function disableSystemShare() {
 }
 
 async function syncTenantRoute() {
-  const { activeTenant } = await hydrateTenantCatalog()
-  const currentPages = getCurrentPages()
-  const currentPage = currentPages[currentPages.length - 1]
-  const currentRoute = `/${currentPage?.route ?? ''}`
+  const currentRoute = getCurrentRoute()
+  if (!currentRoute || isPublicEntryRoute(currentRoute)) {
+    return
+  }
 
-  if (!activeTenant && currentRoute !== '/pages/unauthorized/index' && !isInviteRoute(currentRoute)) {
+  const { activeTenant } = await hydrateTenantCatalog()
+  const latestRoute = getCurrentRoute()
+  if (!latestRoute || isPublicEntryRoute(latestRoute)) {
+    return
+  }
+
+  if (!activeTenant) {
     wx.reLaunch({ url: '/pages/unauthorized/index' })
   }
 }

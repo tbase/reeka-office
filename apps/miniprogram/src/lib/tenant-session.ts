@@ -72,16 +72,22 @@ export function syncCachedTenants(tenants: TenantSummary[]): TenantSummary | nul
   setCachedTenants(tenants)
 
   const activeTenantCode = getActiveTenantCode()
-  if (!activeTenantCode) {
+  const activeTenant = activeTenantCode
+    ? tenants.find(tenant => tenant.tenantCode === activeTenantCode) ?? null
+    : null
+
+  if (activeTenant) {
+    return activeTenant
+  }
+
+  const fallbackTenant = tenants[0] ?? null
+  if (!fallbackTenant) {
+    setActiveTenantCode(null)
     return null
   }
 
-  const activeTenant = tenants.find(tenant => tenant.tenantCode === activeTenantCode) ?? null
-  if (!activeTenant) {
-    setActiveTenantCode(null)
-  }
-
-  return activeTenant
+  setActiveTenantCode(fallbackTenant.tenantCode)
+  return fallbackTenant
 }
 
 export function activateTenant(tenantCode: string): TenantSummary | null {
