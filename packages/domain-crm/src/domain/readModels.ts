@@ -107,6 +107,7 @@ export interface CustomerDetail {
 
 export interface PendingAnalysisCustomer {
   customerId: number
+  customerTypeId: number
   name: string
 }
 

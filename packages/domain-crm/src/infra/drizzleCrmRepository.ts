@@ -325,6 +325,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     return this.db
       .select({
         customerId: crmCustomers.id,
+        customerTypeId: crmCustomers.customerTypeId,
         name: crmCustomers.name,
       })
       .from(crmCustomers)
@@ -333,7 +334,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         isNull(crmCustomers.archivedAt),
         eq(crmFollowUpRecords.analysisStatus, 'pending'),
       ))
-      .groupBy(crmCustomers.id, crmCustomers.name)
+      .groupBy(crmCustomers.id, crmCustomers.customerTypeId, crmCustomers.name)
       .orderBy(desc(latestPendingFollowedAt), desc(crmCustomers.id))
   }
 

@@ -51,7 +51,6 @@ const markFollowUpsAnalyzedSchema = z.object({
 
 interface SanitizeCustomerDetailOptions {
   pendingFollowUpsOnly?: boolean
-  profileFields?: CustomerTypeConfig["profileFields"]
 }
 
 export async function handleCrmMcpRequest(request: Request): Promise<Response> {
@@ -82,12 +81,26 @@ function createCrmMcpServer() {
     "list_pending_customers",
     {
       title: "List pending CRM customers",
-      description: "List unarchived CRM customers that have at least one pending follow-up analysis. Returns only customerId and name; phone numbers are unavailable.",
+      description: "List unarchived CRM customers that have at least one pending follow-up analysis, plus the enabled customer type definitions referenced by the returned customers. Phone numbers are unavailable.",
       inputSchema: z.object({}).strict(),
     },
     async () => {
       const customers = await new ListPendingAnalysisCustomersQuery().query()
-      return jsonToolResult({ customers })
+      const customerTypes = await getEnabledCustomerTypeConfigs(
+        customers.map((customer) => customer.customerTypeId),
+      )
+      const enabledCustomerTypeIds = new Set(customerTypes.map((customerType) => customerType.id))
+
+      return jsonToolResult({
+        customers: customers
+          .filter((customer) => enabledCustomerTypeIds.has(customer.customerTypeId))
+          .map((customer) => ({
+            customerId: customer.customerId,
+            name: customer.name,
+            customerTypeId: customer.customerTypeId,
+          })),
+        customerTypes: customerTypes.map(sanitizeCustomerTypeDefinition),
+      })
     },
   )
 
@@ -95,7 +108,7 @@ function createCrmMcpServer() {
     "get_customer",
     {
       title: "Get CRM customer",
-      description: "Read one CRM customer, profile field dictionary, profile values, and follow-up records by customerId. Set pendingFollowUpsOnly to true to return only follow-ups whose analysisStatus is pending. Phone numbers are sensitive and are never returned.",
+      description: "Read one CRM customer, profile values, and follow-up records by customerId. Set pendingFollowUpsOnly to true to return only follow-ups whose analysisStatus is pending. Phone numbers are sensitive and are never returned.",
       inputSchema: getCustomerSchema,
     },
     async ({ customerId, pendingFollowUpsOnly }) => {
@@ -104,11 +117,9 @@ function createCrmMcpServer() {
         throw new Error("客户不存在")
       }
 
-      const customerType = await getCustomerTypeConfig(customer.customerTypeId)
       return jsonToolResult({
         customer: sanitizeCustomerDetail(customer, {
           pendingFollowUpsOnly,
-          profileFields: customerType.profileFields,
         }),
       })
     },
@@ -143,11 +154,8 @@ function createCrmMcpServer() {
         throw new Error("客户不存在")
       }
 
-      const customerType = await getCustomerTypeConfig(customer.customerTypeId)
       return jsonToolResult({
-        customer: sanitizeCustomerDetail(customer, {
-          profileFields: customerType.profileFields,
-        }),
+        customer: sanitizeCustomerDetail(customer),
       })
     },
   )
@@ -208,6 +216,15 @@ async function getCustomerTypeConfig(customerTypeId: number) {
   return customerType
 }
 
+async function getEnabledCustomerTypeConfigs(customerTypeIds: number[]) {
+  const uniqueCustomerTypeIds = [...new Set(customerTypeIds)]
+  const customerTypes = await Promise.all(
+    uniqueCustomerTypeIds.map((customerTypeId) => new GetCustomerTypeConfigQuery({ customerTypeId }).query()),
+  )
+
+  return customerTypes.filter((customerType): customerType is CustomerTypeConfig => Boolean(customerType?.enabled))
+}
+
 async function resolveProfileValues(
   customerTypeId: number,
   profileValues: z.infer<typeof profileValueSchema>[],
@@ -266,7 +283,6 @@ function sanitizeCustomerDetail(
     id: customer.id,
     agentId: customer.agentId,
     customerTypeId: customer.customerTypeId,
-    customerTypeName: customer.customerTypeName,
     name: customer.name,
     gender: customer.gender,
     birthday: customer.birthday,
@@ -278,12 +294,10 @@ function sanitizeCustomerDetail(
     lastFollowedAt: customer.lastFollowedAt,
     createdAt: customer.createdAt,
     updatedAt: customer.updatedAt,
-    profileFields: (options.profileFields ?? []).map(sanitizeProfileField),
     currentProfileValues: customer.currentProfileValues.map(sanitizeProfileValue),
     allProfileValues: customer.allProfileValues.map(sanitizeProfileValue),
     followUps: followUps.map((followUp) => ({
       id: followUp.id,
-      customerTypeId: followUp.customerTypeId,
       method: followUp.method,
       followedAt: followUp.followedAt,
       content: followUp.content,
@@ -293,14 +307,22 @@ function sanitizeCustomerDetail(
   }
 }
 
-function sanitizeProfileField(field: CustomerTypeConfig["profileFields"][number]) {
+function sanitizeCustomerTypeDefinition(customerType: CustomerTypeConfig) {
+  return {
+    id: customerType.id,
+    name: customerType.name,
+    description: customerType.description,
+    profileFields: customerType.profileFields
+      .filter((field) => field.enabled)
+      .map(sanitizeProfileFieldDefinition),
+  }
+}
+
+function sanitizeProfileFieldDefinition(field: CustomerTypeConfig["profileFields"][number]) {
   return {
     fieldId: field.id,
-    customerTypeId: field.customerTypeId,
     fieldName: field.name,
     fieldDescription: field.description,
-    fieldEnabled: field.enabled,
-    sortOrder: field.sortOrder,
   }
 }
 
@@ -308,10 +330,6 @@ function sanitizeProfileValue(value: CustomerDetail["allProfileValues"][number])
   return {
     fieldId: value.fieldId,
     customerTypeId: value.customerTypeId,
-    fieldName: value.fieldName,
-    fieldDescription: value.fieldDescription,
-    fieldEnabled: value.fieldEnabled,
-    sortOrder: value.sortOrder,
     value: value.value,
   }
 }

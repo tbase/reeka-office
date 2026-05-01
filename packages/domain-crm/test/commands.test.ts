@@ -320,6 +320,7 @@ class MemoryCrm {
         const customer = this.customers.get(customerId)!
         return {
           customerId,
+          customerTypeId: customer.customerTypeId,
           name: customer.name,
         }
       })
@@ -682,8 +683,8 @@ describe('CRM customer commands', () => {
     await expect(new ListPendingAnalysisCustomersQuery(memory.runtime.readRepository).query())
       .resolves
       .toEqual([
-        { customerId: bob.customerId!, name: 'Bob' },
-        { customerId: alice.customerId!, name: 'Alice' },
+        { customerId: bob.customerId!, customerTypeId: insurance.id, name: 'Bob' },
+        { customerId: alice.customerId!, customerTypeId: insurance.id, name: 'Alice' },
       ])
   })
 
