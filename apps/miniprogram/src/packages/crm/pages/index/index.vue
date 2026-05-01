@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CustomerGender } from '../../utils/customer'
 import type { RpcInput } from '@/lib/rpc'
-import { computed, onLoad, ref } from 'wevu'
+import { computed, onLoad, ref, watch } from 'wevu'
 import HalfScreenPopup from '@/components/half-screen-popup/index.vue'
 import { useMutation } from '@/hooks/useMutation'
 import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
@@ -28,79 +28,6 @@ definePageJson({
 })
 
 const CONTACT_INDEX_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('')
-const CHINESE_INITIAL_FALLBACKS: Record<string, string> = {
-  艾: 'A',
-  安: 'A',
-  白: 'B',
-  包: 'B',
-  曹: 'C',
-  陈: 'C',
-  邓: 'D',
-  丁: 'D',
-  冯: 'F',
-  傅: 'F',
-  高: 'G',
-  郭: 'G',
-  何: 'H',
-  黄: 'H',
-  蒋: 'J',
-  金: 'J',
-  康: 'K',
-  孔: 'K',
-  李: 'L',
-  刘: 'L',
-  马: 'M',
-  孟: 'M',
-  倪: 'N',
-  牛: 'N',
-  欧: 'O',
-  潘: 'P',
-  彭: 'P',
-  秦: 'Q',
-  钱: 'Q',
-  任: 'R',
-  沈: 'S',
-  孙: 'S',
-  唐: 'T',
-  田: 'T',
-  王: 'W',
-  吴: 'W',
-  肖: 'X',
-  徐: 'X',
-  杨: 'Y',
-  于: 'Y',
-  张: 'Z',
-  赵: 'Z',
-  周: 'Z',
-  朱: 'Z',
-}
-
-const PINYIN_BOUNDARIES = [
-  { letter: 'A', sample: '阿' },
-  { letter: 'B', sample: '八' },
-  { letter: 'C', sample: '嚓' },
-  { letter: 'D', sample: '哒' },
-  { letter: 'E', sample: '饿' },
-  { letter: 'F', sample: '发' },
-  { letter: 'G', sample: '旮' },
-  { letter: 'H', sample: '哈' },
-  { letter: 'J', sample: '击' },
-  { letter: 'K', sample: '咔' },
-  { letter: 'L', sample: '垃' },
-  { letter: 'M', sample: '妈' },
-  { letter: 'N', sample: '拿' },
-  { letter: 'O', sample: '哦' },
-  { letter: 'P', sample: '啪' },
-  { letter: 'Q', sample: '七' },
-  { letter: 'R', sample: '然' },
-  { letter: 'S', sample: '撒' },
-  { letter: 'T', sample: '他' },
-  { letter: 'W', sample: '哇' },
-  { letter: 'X', sample: '夕' },
-  { letter: 'Y', sample: '丫' },
-  { letter: 'Z', sample: '匝' },
-]
-
 const zhCollator = typeof Intl !== 'undefined' && typeof Intl.Collator === 'function'
   ? new Intl.Collator('zh-Hans-CN')
   : null
@@ -110,6 +37,7 @@ const customerTypeId = ref<number | null>(null)
 const createPopupVisible = ref(false)
 const createName = ref('')
 const createGender = ref<CustomerGender>('M')
+const activeCustomerIndex = ref('')
 
 const filters = computed<RpcInput<'crm/listCustomers'>>(() => customerTypeId.value
   ? ({
@@ -141,6 +69,18 @@ const customerIndexList = computed(() => customerSections.value.map(section => s
 const isCreatingCustomer = computed(() => createMutation.loading.value)
 const createPopupTitle = '新建客户'
 
+watch(
+  customerIndexList,
+  (nextIndexList) => {
+    if (activeCustomerIndex.value && nextIndexList.includes(activeCustomerIndex.value)) {
+      return
+    }
+
+    activeCustomerIndex.value = nextIndexList[0] ?? ''
+  },
+  { immediate: true },
+)
+
 onLoad((options) => {
   const id = Number(options?.customerTypeId)
   customerTypeId.value = Number.isInteger(id) && id > 0 ? id : null
@@ -152,6 +92,24 @@ usePullDownRefresh(async () => {
 
 function handleKeywordChange(event: { value?: string }) {
   keyword.value = event.value ?? ''
+}
+
+function handleCustomerIndexChange(event: {
+  index?: string | number
+  current?: string | number
+  detail?: { index?: string | number, current?: string | number }
+}) {
+  const nextIndex = event.index ?? event.current ?? event.detail?.index ?? event.detail?.current
+  if (typeof nextIndex !== 'string' && typeof nextIndex !== 'number') {
+    return
+  }
+
+  const normalizedIndex = String(nextIndex)
+  if (!customerIndexList.value.includes(normalizedIndex)) {
+    return
+  }
+
+  activeCustomerIndex.value = normalizedIndex
 }
 
 function goCreate() {
@@ -252,7 +210,9 @@ function buildCustomerSections(items: typeof rows.value) {
   const sectionMap = new Map<string, typeof rows.value>()
 
   for (const customer of items) {
-    const letter = getCustomerInitial(customer.name)
+    const letter = CONTACT_INDEX_LETTERS.includes(customer.nameInitial)
+      ? customer.nameInitial
+      : '#'
     const sectionRows = sectionMap.get(letter) ?? []
     sectionRows.push(customer)
     sectionMap.set(letter, sectionRows)
@@ -272,39 +232,6 @@ function compareCustomerName(left: typeof rows.value[number], right: typeof rows
   }
 
   return left.name.localeCompare(right.name)
-}
-
-function getCustomerInitial(value: string): string {
-  const firstChar = value.trim().charAt(0)
-  if (!firstChar) {
-    return '#'
-  }
-
-  const upperChar = firstChar.toUpperCase()
-  if (upperChar >= 'A' && upperChar <= 'Z') {
-    return upperChar
-  }
-
-  const fallbackInitial = CHINESE_INITIAL_FALLBACKS[firstChar]
-  if (fallbackInitial) {
-    return fallbackInitial
-  }
-
-  if (!zhCollator) {
-    return '#'
-  }
-
-  let initial = '#'
-  for (const boundary of PINYIN_BOUNDARIES) {
-    if (zhCollator.compare(firstChar, boundary.sample) >= 0) {
-      initial = boundary.letter
-      continue
-    }
-
-    break
-  }
-
-  return initial
 }
 </script>
 
@@ -338,9 +265,12 @@ function getCustomerInitial(value: string): string {
       <t-indexes
         v-else
         class="customer-indexes"
+        :current="activeCustomerIndex"
         :index-list="customerIndexList"
         show-full-index
         :sticky-offset="64"
+        @change="handleCustomerIndexChange"
+        @select="handleCustomerIndexChange"
       >
         <t-indexes-anchor
           v-for="section in customerSections"
