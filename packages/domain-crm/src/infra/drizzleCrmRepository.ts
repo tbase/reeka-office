@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, isNotNull, isNull, like, lt, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, like, lt, ne, or, sql, type SQL } from 'drizzle-orm'
 
 import type { DBExecutor } from '../context'
-import type { NormalizedCustomerInput } from '../domain/customer'
-import type { NormalizedCustomerTypeConfig, NormalizedFollowUpStatus, NormalizedProfileField } from '../domain/profile'
+import type { FollowUpMethod, NormalizedCustomerInput } from '../domain/customer'
+import type { NormalizedCustomerTypeConfig, NormalizedProfileField } from '../domain/profile'
 import type { CrmCustomerRepository, CrmMetadataRepository, CrmReadRepository } from '../domain/repositories'
 import type {
   CustomerDetail,
@@ -14,7 +14,7 @@ import type {
   CustomerTypeSummary,
   DuplicateCustomerCandidate,
   FollowUpRecordDetail,
-  FollowUpStatusConfig,
+  PendingAnalysisCustomer,
   ProfileFieldConfig,
 } from '../domain/readModels'
 import {
@@ -22,7 +22,6 @@ import {
   crmCustomers,
   crmCustomerTypes,
   crmFollowUpRecords,
-  crmFollowUpStatuses,
   crmProfileFields,
   type NewCrmCustomerProfileValueRow,
 } from '../schema'
@@ -48,7 +47,6 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     }
 
     await this.saveProfileFields(customerTypeId, config.profileFields)
-    await this.saveFollowUpStatuses(customerTypeId, config.followUpStatuses)
     return customerTypeId
   }
 
@@ -66,7 +64,6 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .where(eq(crmCustomerTypes.id, config.id))
 
     await this.saveProfileFields(config.id, config.profileFields)
-    await this.saveFollowUpStatuses(config.id, config.followUpStatuses)
   }
 
   async createCustomer(input: NormalizedCustomerInput): Promise<number> {
@@ -75,6 +72,8 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       customerTypeId: input.customerTypeId,
       name: input.name,
       gender: input.gender,
+      birthday: input.birthday,
+      city: input.city,
       phone: input.phone,
       wechat: input.wechat,
       tags: input.tags,
@@ -96,6 +95,8 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         customerTypeId: input.customerTypeId,
         name: input.name,
         gender: input.gender,
+        birthday: input.birthday,
+        city: input.city,
         phone: input.phone,
         wechat: input.wechat,
         tags: input.tags,
@@ -110,28 +111,11 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     await this.replaceProfileValues(customerId, input)
   }
 
-  async archiveCustomer(input: { agentId: number; customerId: number; archivedAt: Date }): Promise<boolean> {
-    const result = await this.db
-      .update(crmCustomers)
-      .set({
-        archivedAt: input.archivedAt,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      })
-      .where(and(
-        eq(crmCustomers.id, input.customerId),
-        eq(crmCustomers.agentId, input.agentId),
-        isNull(crmCustomers.archivedAt),
-      ))
-
-    return result[0]?.affectedRows > 0
-  }
-
   async createFollowUp(input: {
     agentId: number
     customerId: number
     customerTypeId: number
-    statusId: number
-    statusNameSnapshot: string
+    method: FollowUpMethod | null
     followedAt: Date
     content: string
   }): Promise<number> {
@@ -163,18 +147,23 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     agentId: number
     customerId: number
     followUpId: number
-    statusId: number
-    statusNameSnapshot: string
+    method?: FollowUpMethod | null
     followedAt: Date
     content: string
   }): Promise<boolean> {
+    const methodPatch = input.method !== undefined
+      ? {
+          method: input.method,
+        }
+      : {}
+
     const result = await this.db
       .update(crmFollowUpRecords)
       .set({
-        statusId: input.statusId,
-        statusNameSnapshot: input.statusNameSnapshot,
+        ...methodPatch,
         followedAt: input.followedAt,
         content: input.content,
+        analysisStatus: 'pending',
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(and(
@@ -204,6 +193,22 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       ))
 
     return true
+  }
+
+  async markFollowUpsAnalyzed(input: {
+    customerId: number
+    followUpIds: number[]
+  }): Promise<void> {
+    await this.db
+      .update(crmFollowUpRecords)
+      .set({
+        analysisStatus: 'analyzed',
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(
+        eq(crmFollowUpRecords.customerId, input.customerId),
+        inArray(crmFollowUpRecords.id, input.followUpIds),
+      ))
   }
 
   async listCustomerTypeSummaries(filters: CustomerTypeSummaryFilters = {}): Promise<CustomerTypeSummary[]> {
@@ -239,23 +244,20 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       return null
     }
 
-    const [profileFields, followUpStatuses] = await Promise.all([
-      this.listProfileFields(customerTypeId),
-      this.listFollowUpStatuses(customerTypeId),
-    ])
+    const profileFields = await this.listProfileFields(customerTypeId)
 
     return {
       ...row,
       profileFields,
-      followUpStatuses,
     }
   }
 
   async listCustomers(input: CustomerListInput): Promise<CustomerListItem[]> {
-    const conditions = [
-      eq(crmCustomers.agentId, input.agentId),
-      input.archived ? isNotNull(crmCustomers.archivedAt) : isNull(crmCustomers.archivedAt),
-    ]
+    const conditions = [eq(crmCustomers.agentId, input.agentId)]
+
+    if (input.archived !== undefined) {
+      conditions.push(input.archived ? isNotNull(crmCustomers.archivedAt) : isNull(crmCustomers.archivedAt))
+    }
 
     if (input.customerTypeId) {
       conditions.push(eq(crmCustomers.customerTypeId, input.customerTypeId))
@@ -267,6 +269,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       conditions.push(
         or(
           like(crmCustomers.name, pattern),
+          like(crmCustomers.city, pattern),
           like(crmCustomers.phone, pattern),
           like(crmCustomers.wechat, pattern),
           sql`JSON_SEARCH(${crmCustomers.tags}, 'one', ${pattern}) IS NOT NULL`,
@@ -281,6 +284,8 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         customerTypeName: crmCustomerTypes.name,
         name: crmCustomers.name,
         gender: crmCustomers.gender,
+        birthday: crmCustomers.birthday,
+        city: crmCustomers.city,
         phone: crmCustomers.phone,
         wechat: crmCustomers.wechat,
         tags: crmCustomers.tags,
@@ -301,53 +306,32 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
   }
 
   async getCustomerDetail(input: { agentId: number; customerId: number }): Promise<CustomerDetail | null> {
-    const rows = await this.db
+    return this.readCustomerDetail(input.customerId, and(
+      eq(crmCustomers.id, input.customerId),
+      eq(crmCustomers.agentId, input.agentId),
+    )!)
+  }
+
+  async getCustomerDetailById(customerId: number): Promise<CustomerDetail | null> {
+    return this.readCustomerDetail(customerId, eq(crmCustomers.id, customerId))
+  }
+
+  async listPendingAnalysisCustomers(): Promise<PendingAnalysisCustomer[]> {
+    const latestPendingFollowedAt = sql<Date>`max(${crmFollowUpRecords.followedAt})`
+
+    return this.db
       .select({
-        id: crmCustomers.id,
-        agentId: crmCustomers.agentId,
-        customerTypeId: crmCustomers.customerTypeId,
-        customerTypeName: crmCustomerTypes.name,
+        customerId: crmCustomers.id,
         name: crmCustomers.name,
-        gender: crmCustomers.gender,
-        phone: crmCustomers.phone,
-        wechat: crmCustomers.wechat,
-        tags: crmCustomers.tags,
-        note: crmCustomers.note,
-        archivedAt: crmCustomers.archivedAt,
-        lastFollowedAt: crmCustomers.lastFollowedAt,
-        createdAt: crmCustomers.createdAt,
-        updatedAt: crmCustomers.updatedAt,
       })
       .from(crmCustomers)
-      .innerJoin(crmCustomerTypes, eq(crmCustomers.customerTypeId, crmCustomerTypes.id))
+      .innerJoin(crmFollowUpRecords, eq(crmFollowUpRecords.customerId, crmCustomers.id))
       .where(and(
-        eq(crmCustomers.id, input.customerId),
-        eq(crmCustomers.agentId, input.agentId),
+        isNull(crmCustomers.archivedAt),
+        eq(crmFollowUpRecords.analysisStatus, 'pending'),
       ))
-      .limit(1)
-    const customer = rows[0]
-    if (!customer) {
-      return null
-    }
-
-    const [profileValues, followUps] = await Promise.all([
-      this.listProfileValues(input.customerId),
-      this.listFollowUps(input.customerId),
-    ])
-    const currentProfileValues = profileValues
-      .filter((value) =>
-        value.customerTypeId === customer.customerTypeId
-        && value.fieldEnabled,
-      )
-      .sort((left, right) => left.sortOrder - right.sortOrder)
-
-    return {
-      ...customer,
-      tags: normalizeStoredTags(customer.tags),
-      currentProfileValues,
-      allProfileValues: profileValues,
-      followUps,
-    }
+      .groupBy(crmCustomers.id, crmCustomers.name)
+      .orderBy(desc(latestPendingFollowedAt), desc(crmCustomers.id))
   }
 
   async findDuplicateCustomers(input: {
@@ -388,6 +372,55 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .from(crmCustomers)
       .where(and(...conditions))
       .orderBy(desc(crmCustomers.updatedAt), desc(crmCustomers.id))
+  }
+
+  private async readCustomerDetail(customerId: number, where: SQL): Promise<CustomerDetail | null> {
+    const rows = await this.db
+      .select({
+        id: crmCustomers.id,
+        agentId: crmCustomers.agentId,
+        customerTypeId: crmCustomers.customerTypeId,
+        customerTypeName: crmCustomerTypes.name,
+        name: crmCustomers.name,
+        gender: crmCustomers.gender,
+        birthday: crmCustomers.birthday,
+        city: crmCustomers.city,
+        phone: crmCustomers.phone,
+        wechat: crmCustomers.wechat,
+        tags: crmCustomers.tags,
+        note: crmCustomers.note,
+        archivedAt: crmCustomers.archivedAt,
+        lastFollowedAt: crmCustomers.lastFollowedAt,
+        createdAt: crmCustomers.createdAt,
+        updatedAt: crmCustomers.updatedAt,
+      })
+      .from(crmCustomers)
+      .innerJoin(crmCustomerTypes, eq(crmCustomers.customerTypeId, crmCustomerTypes.id))
+      .where(where)
+      .limit(1)
+    const customer = rows[0]
+    if (!customer) {
+      return null
+    }
+
+    const [profileValues, followUps] = await Promise.all([
+      this.listProfileValues(customerId),
+      this.listFollowUps(customerId),
+    ])
+    const currentProfileValues = profileValues
+      .filter((value) =>
+        value.customerTypeId === customer.customerTypeId
+        && value.fieldEnabled,
+      )
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+
+    return {
+      ...customer,
+      tags: normalizeStoredTags(customer.tags),
+      currentProfileValues,
+      allProfileValues: profileValues,
+      followUps,
+    }
   }
 
   async getOwnedCustomer(input: { agentId: number; customerId: number }) {
@@ -437,33 +470,6 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     }
   }
 
-  private async saveFollowUpStatuses(customerTypeId: number, statuses: NormalizedFollowUpStatus[]): Promise<void> {
-    for (const status of statuses) {
-      if (status.id) {
-        await this.db
-          .update(crmFollowUpStatuses)
-          .set({
-            name: status.name,
-            enabled: status.enabled,
-            sortOrder: status.sortOrder,
-            updatedAt: sql`CURRENT_TIMESTAMP`,
-          })
-          .where(and(
-            eq(crmFollowUpStatuses.id, status.id),
-            eq(crmFollowUpStatuses.customerTypeId, customerTypeId),
-          ))
-        continue
-      }
-
-      await this.db.insert(crmFollowUpStatuses).values({
-        customerTypeId,
-        name: status.name,
-        enabled: status.enabled,
-        sortOrder: status.sortOrder,
-      })
-    }
-  }
-
   private async replaceProfileValues(customerId: number, input: NormalizedCustomerInput): Promise<void> {
     await this.db
       .delete(crmCustomerProfileValues)
@@ -502,20 +508,6 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .orderBy(asc(crmProfileFields.sortOrder), asc(crmProfileFields.id))
   }
 
-  private async listFollowUpStatuses(customerTypeId: number): Promise<FollowUpStatusConfig[]> {
-    return this.db
-      .select({
-        id: crmFollowUpStatuses.id,
-        customerTypeId: crmFollowUpStatuses.customerTypeId,
-        name: crmFollowUpStatuses.name,
-        enabled: crmFollowUpStatuses.enabled,
-        sortOrder: crmFollowUpStatuses.sortOrder,
-      })
-      .from(crmFollowUpStatuses)
-      .where(eq(crmFollowUpStatuses.customerTypeId, customerTypeId))
-      .orderBy(asc(crmFollowUpStatuses.sortOrder), asc(crmFollowUpStatuses.id))
-  }
-
   private async listProfileValues(customerId: number): Promise<CustomerProfileValueDetail[]> {
     const rows = await this.db
       .select({
@@ -548,10 +540,10 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .select({
         id: crmFollowUpRecords.id,
         customerTypeId: crmFollowUpRecords.customerTypeId,
-        statusId: crmFollowUpRecords.statusId,
-        statusNameSnapshot: crmFollowUpRecords.statusNameSnapshot,
+        method: crmFollowUpRecords.method,
         followedAt: crmFollowUpRecords.followedAt,
         content: crmFollowUpRecords.content,
+        analysisStatus: crmFollowUpRecords.analysisStatus,
         createdAt: crmFollowUpRecords.createdAt,
       })
       .from(crmFollowUpRecords)

@@ -12,6 +12,8 @@ export const customerPayloadSchema = z.object({
   customerTypeId: z.number().int().positive(),
   name: z.string(),
   gender: customerGenderSchema.optional().nullable(),
+  birthday: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   wechat: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),

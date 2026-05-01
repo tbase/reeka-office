@@ -5,14 +5,12 @@ import {
   crmCustomers,
   crmCustomerTypes,
   crmFollowUpRecords,
-  crmFollowUpStatuses,
   crmProfileFields,
 } from './schema'
 
 export type CrmSchema = {
   crmCustomerTypes: typeof crmCustomerTypes
   crmProfileFields: typeof crmProfileFields
-  crmFollowUpStatuses: typeof crmFollowUpStatuses
   crmCustomers: typeof crmCustomers
   crmCustomerProfileValues: typeof crmCustomerProfileValues
   crmFollowUpRecords: typeof crmFollowUpRecords
@@ -21,7 +19,6 @@ export type CrmSchema = {
 export const crmSchema: CrmSchema = {
   crmCustomerTypes,
   crmProfileFields,
-  crmFollowUpStatuses,
   crmCustomers,
   crmCustomerProfileValues,
   crmFollowUpRecords,

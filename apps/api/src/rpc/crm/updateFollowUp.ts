@@ -7,7 +7,7 @@ export const updateFollowUp = rpc.define({
   inputSchema: z.object({
     customerId: z.number().int().positive(),
     followUpId: z.number().int().positive(),
-    statusId: z.number().int().positive(),
+    method: z.enum(["face", "phone", "wechat", "other"]).optional().nullable(),
     followedAt: z.string().optional().nullable(),
     content: z.string(),
   }),
@@ -16,7 +16,7 @@ export const updateFollowUp = rpc.define({
       agentId: context.user.agentId,
       customerId: input.customerId,
       followUpId: input.followUpId,
-      statusId: input.statusId,
+      method: input.method,
       followedAt: input.followedAt,
       content: input.content,
     }).execute();

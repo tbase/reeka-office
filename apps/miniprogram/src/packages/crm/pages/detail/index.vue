@@ -7,33 +7,37 @@ import HalfScreenPopup from '@/components/half-screen-popup/index.vue'
 import { useMutation } from '@/hooks/useMutation'
 import { invalidateQueries } from '@/hooks/useQuery'
 import { useToast } from '@/hooks/useToast'
-import { formatTime } from '@/lib/time'
+import { formatDate, formatTime } from '@/lib/time'
+import FollowUpEditor from '../../components/follow-up-editor.vue'
 import { useCustomerDetailStore } from '../../store'
 import { formatCustomerDisplayName } from '../../utils/customer'
 
 definePageJson({
   navigationBarTitleText: '客户详情',
   backgroundColor: '#f6f7fb',
+  usingComponents: {
+    't-button': 'tdesign-miniprogram/button/button',
+    't-cell': 'tdesign-miniprogram/cell/cell',
+    't-cell-group': 'tdesign-miniprogram/cell-group/cell-group',
+    't-empty': 'tdesign-miniprogram/empty/empty',
+    't-icon': 'tdesign-miniprogram/icon/icon',
+    't-input': 'tdesign-miniprogram/input/input',
+    't-toast': 'tdesign-miniprogram/toast/toast',
+  },
 })
 
-type EditableField = 'name' | 'phone' | 'tags' | 'note'
+type EditableField = 'name' | 'birthday' | 'city' | 'phone' | 'tags'
 
 const customerId = ref<number | null>(null)
 const editField = ref<EditableField | null>(null)
+const editPopupVisible = ref(false)
 const editValue = ref('')
 const editGender = ref<CustomerGender>('M')
+const followUpPopupVisible = ref(false)
+const today = formatDate(new Date())
 
 const { customer, error, refetch } = useCustomerDetailStore(customerId)
 const { showToast } = useToast()
-const archiveMutation = useMutation('crm/archiveCustomer', {
-  showLoading: '归档中...',
-  onSuccess: async () => {
-    invalidateQueries('crm/listCustomers')
-    await refetch()
-    showToast('客户已归档')
-  },
-  onError: err => showToast(err.message || '归档失败', 'error'),
-})
 const updateMutation = useMutation('crm/updateCustomer', {
   showLoading: '保存中...',
   onError: err => showToast(err.message || '保存失败', 'error'),
@@ -53,20 +57,33 @@ const pageError = computed(() => {
 })
 
 const profileRows = computed(() => customer.value?.currentProfileValues ?? [])
-const isArchived = computed(() => Boolean(customer.value?.archivedAt))
-const editPopupVisible = computed(() => Boolean(editField.value))
-const editTitle = computed(() => {
+const profileSummary = computed(() => {
+  const count = profileRows.value.length
+  if (count > 0) {
+    return `${count} 项`
+  }
+
+  return customer.value?.note ? '含备注' : '暂无画像信息'
+})
+const editFieldLabel = computed(() => {
   if (editField.value === 'name') {
-    return '编辑称呼'
+    return '称呼'
   }
   if (editField.value === 'phone') {
-    return '编辑手机号'
+    return '手机号'
+  }
+  if (editField.value === 'birthday') {
+    return '生日'
+  }
+  if (editField.value === 'city') {
+    return '城市'
   }
   if (editField.value === 'tags') {
-    return '编辑标签'
+    return '标签'
   }
-  return '编辑备注'
+  return ''
 })
+const editPopupTitle = computed(() => editFieldLabel.value ? `编辑${editFieldLabel.value}` : '')
 const editPlaceholder = computed(() => {
   if (editField.value === 'name') {
     return '必填'
@@ -93,12 +110,33 @@ function goFollowUp() {
   wx.navigateTo({ url: `/packages/crm/pages/follow-up/index?customerId=${customerId.value}` })
 }
 
+function openFollowUpPopup() {
+  if (!customer.value) {
+    return
+  }
+
+  followUpPopupVisible.value = true
+}
+
+function handleFollowUpPopupVisibleChange(payload: { visible?: boolean }) {
+  followUpPopupVisible.value = payload.visible ?? false
+}
+
+async function handleFollowUpSuccess() {
+  invalidateQueries('crm/listCustomers')
+  invalidateQueries('crm/getCustomer')
+  await refetch()
+  followUpPopupVisible.value = false
+  goFollowUp()
+}
+
 function openEditField(field: EditableField) {
-  if (!customer.value || isArchived.value) {
+  if (!customer.value) {
     return
   }
 
   editField.value = field
+  editPopupVisible.value = true
   if (field === 'name') {
     editValue.value = customer.value.name
     editGender.value = customer.value.gender ?? 'M'
@@ -115,9 +153,7 @@ function openEditField(field: EditableField) {
 
 function handleEditPopupVisibleChange(payload: { visible?: boolean }) {
   if (!payload.visible) {
-    editField.value = null
-    editValue.value = ''
-    editGender.value = 'M'
+    editPopupVisible.value = false
   }
 }
 
@@ -127,6 +163,14 @@ function handleEditValueChange(event: { value?: string }) {
 
 function selectEditGender(value: CustomerGender) {
   editGender.value = value
+}
+
+function handleEditBirthdayChange(event: { detail?: { value?: string }, target?: { value?: string } }) {
+  editValue.value = event.detail?.value ?? event.target?.value ?? ''
+}
+
+function clearEditBirthday() {
+  editValue.value = ''
 }
 
 const tagSeparator = /[\s,，]+/
@@ -163,10 +207,12 @@ function buildUpdatePayload(detail: CustomerDetail, allowDuplicate: boolean): Rp
     customerTypeId: detail.customerTypeId,
     name: nextName,
     gender: field === 'name' ? editGender.value : detail.gender,
+    birthday: field === 'birthday' ? editValue.value || null : detail.birthday,
+    city: field === 'city' ? editValue.value.trim() || null : detail.city,
     phone: field === 'phone' ? editValue.value.trim() || null : detail.phone,
     wechat: detail.wechat,
     tags: field === 'tags' ? buildTags(editValue.value) : detail.tags,
-    note: field === 'note' ? editValue.value.trim() || null : detail.note,
+    note: detail.note,
     profileValues: buildProfileValues(detail),
     allowDuplicate,
   }
@@ -205,30 +251,16 @@ async function saveEditedField(allowDuplicate = false) {
   invalidateQueries('crm/listCustomers')
   invalidateQueries('crm/getCustomer')
   await refetch()
-  editField.value = null
-  editValue.value = ''
-  editGender.value = 'M'
+  editPopupVisible.value = false
   showToast('客户已保存')
-}
-
-function archiveCustomer() {
-  if (!customerId.value || customer.value?.archivedAt) {
-    return
-  }
-
-  wx.showModal({
-    title: '归档客户',
-    content: `确认归档「${customer.value?.name ?? ''}」？`,
-    success: (result) => {
-      if (result.confirm && customerId.value) {
-        archiveMutation.mutate({ customerId: customerId.value })
-      }
-    },
-  })
 }
 
 function formatTags(tags: string[]): string {
   return tags.length ? tags.join('，') : '-'
+}
+
+function formatBirthday(value: string | null): string {
+  return value || '-'
 }
 
 function formatLastFollowedAt(value: string | Date | null): string {
@@ -250,34 +282,39 @@ function formatLastFollowedAt(value: string | Date | null): string {
         <t-cell
           title="称呼"
           :note="formatCustomerDisplayName(customer)"
-          :arrow="!isArchived"
+          arrow
           @click="openEditField('name')"
+        />
+        <t-cell
+          title="生日"
+          :note="formatBirthday(customer.birthday)"
+          arrow
+          @click="openEditField('birthday')"
+        />
+        <t-cell
+          title="城市"
+          :note="customer.city || '-'"
+          arrow
+          @click="openEditField('city')"
         />
         <t-cell
           title="手机号"
           :note="customer.phone || '-'"
-          :arrow="!isArchived"
+          arrow
           @click="openEditField('phone')"
         />
         <t-cell
           title="标签"
           :note="formatTags(customer.tags)"
-          :arrow="!isArchived"
+          arrow
           @click="openEditField('tags')"
         />
-        <t-cell
-          title="备注"
-          :note="customer.note || '-'"
-          :arrow="!isArchived"
-          @click="openEditField('note')"
-        />
-        <t-cell title="状态" :note="customer.archivedAt ? '已归档' : '正常'" />
       </t-cell-group>
 
       <t-cell-group class="mt-3" bordered>
         <t-cell
           title="画像信息"
-          :note="profileRows.length ? `${profileRows.length} 项` : '暂无画像信息'"
+          :note="profileSummary"
           arrow
           @click="goProfile"
         />
@@ -292,24 +329,23 @@ function formatLastFollowedAt(value: string | Date | null): string {
         />
       </t-cell-group>
 
-      <t-cell-group class="mt-3" bordered>
-        <t-cell
-          v-if="!customer.archivedAt"
-          arrow
-          @click="archiveCustomer"
-        >
-          <template #title>
-            <view class="text-destructive">
-              归档客户
-            </view>
-          </template>
-        </t-cell>
-      </t-cell-group>
+      <view class="fixed bottom-8 right-4 z-10">
+        <t-button theme="primary" shape="circle" size="large" @click="openFollowUpPopup">
+          <t-icon name="add" size="44rpx" />
+        </t-button>
+      </view>
     </template>
+
+    <FollowUpEditor
+      :visible="followUpPopupVisible"
+      :customer-id="customerId"
+      @visible-change="handleFollowUpPopupVisibleChange"
+      @success="handleFollowUpSuccess"
+    />
 
     <HalfScreenPopup
       :visible="editPopupVisible"
-      :title="editTitle"
+      :title="editPopupTitle"
       use-footer-slot
       :footer-border="false"
       @visible-change="handleEditPopupVisibleChange"
@@ -344,11 +380,37 @@ function formatLastFollowedAt(value: string | Date | null): string {
               </template>
             </t-input>
           </template>
+          <picker
+            v-else-if="editField === 'birthday'"
+            mode="date"
+            :value="editValue"
+            :end="today"
+            @change="handleEditBirthdayChange"
+          >
+            <view class="flex min-h-12 items-center justify-between px-4">
+              <text class="customer-detail-label text-foreground">
+                生日
+              </text>
+              <view class="flex min-w-0 flex-1 items-center justify-end gap-3">
+                <text :class="editValue ? 'text-foreground' : 'text-muted-foreground'">
+                  {{ editValue || '选择生日' }}
+                </text>
+                <text
+                  v-if="editValue"
+                  class="shrink-0 text-muted-foreground"
+                  @tap.stop="clearEditBirthday"
+                >
+                  清空
+                </text>
+              </view>
+            </view>
+          </picker>
           <t-input
             v-else
             :value="editValue"
-            :label="editTitle.replace('编辑', '')"
+            :label="editFieldLabel"
             :placeholder="editPlaceholder"
+            t-class-label="customer-detail-label"
             @change="handleEditValueChange"
           />
         </t-cell-group>

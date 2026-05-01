@@ -12,6 +12,8 @@ declare namespace NodeJS {
     CENTER_DB_NAME?: string
     TENANT_CODE: string
     COS_BUCKET: string
+    CRM_INTEGRATION_TOKEN?: string
+    CRM_MCP_ALLOWED_ORIGINS?: string
   }
 }
 

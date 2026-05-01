@@ -37,12 +37,6 @@ export interface CustomerTypeFormValue {
     enabled?: boolean
     sortOrder?: number
   }>
-  followUpStatuses?: Array<{
-    id?: number
-    name?: string
-    enabled?: boolean
-    sortOrder?: number
-  }>
 }
 
 function normalizeNumberInput(value: unknown) {
@@ -97,14 +91,6 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
                 sortOrder: field.sortOrder ?? 0,
               }))
             : [],
-          followUpStatuses: value?.followUpStatuses?.length
-            ? value.followUpStatuses.map((status) => ({
-                id: status.id,
-                name: status.name ?? "",
-                enabled: status.enabled ?? true,
-                sortOrder: status.sortOrder ?? 0,
-              }))
-            : [],
         },
       },
       actionProps: {
@@ -125,10 +111,6 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
   const profileFields = useFieldArray({
     control: form.control,
     name: "profileFields" as never,
-  })
-  const followUpStatuses = useFieldArray({
-    control: form.control,
-    name: "followUpStatuses" as never,
   })
 
   const formError =
@@ -248,57 +230,6 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-medium">跟进状态</h2>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => followUpStatuses.append({
-              name: "",
-              enabled: true,
-              sortOrder: followUpStatuses.fields.length,
-            } as never)}
-          >
-            <PlusIcon className="size-4" />
-            新增状态
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          {followUpStatuses.fields.map((field, index) => (
-            <div key={field.id} className="rounded-lg border p-3">
-              <input
-                type="hidden"
-                {...form.register(`followUpStatuses.${index}.id` as const, { setValueAs: normalizeOptionalId })}
-              />
-              <div className="grid gap-3 md:grid-cols-[1fr_96px_auto]">
-                <Input
-                  placeholder="状态名称"
-                  {...form.register(`followUpStatuses.${index}.name` as const)}
-                />
-                <Input
-                  type="number"
-                  step={1}
-                  {...form.register(`followUpStatuses.${index}.sortOrder` as const, { setValueAs: normalizeNumberInput })}
-                />
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" className="size-4" {...form.register(`followUpStatuses.${index}.enabled` as const)} />
-                    启用
-                  </label>
-                  {form.getValues(`followUpStatuses.${index}.id` as const) ? null : (
-                    <Button type="button" variant="ghost" size="icon-sm" onClick={() => followUpStatuses.remove(index)}>
-                      <Trash2Icon className="size-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </form>
   )
 }

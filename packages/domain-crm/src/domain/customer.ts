@@ -3,6 +3,8 @@ import { normalizeRequiredText } from './profile'
 
 export type CustomerSort = 'last_followed_desc' | 'created_desc'
 export type CustomerGender = 'M' | 'F'
+export type FollowUpAnalysisStatus = 'pending' | 'analyzed'
+export type FollowUpMethod = 'face' | 'phone' | 'wechat' | 'other'
 
 export interface ProfileValueInput {
   fieldId: number
@@ -14,6 +16,8 @@ export interface CustomerInput {
   customerTypeId: number
   name: string
   gender?: CustomerGender | null
+  birthday?: string | null
+  city?: string | null
   phone?: string | null
   wechat?: string | null
   tags?: string[]
@@ -31,6 +35,8 @@ export interface NormalizedCustomerInput {
   customerTypeId: number
   name: string
   gender: CustomerGender | null
+  birthday: string | null
+  city: string | null
   phone: string | null
   wechat: string | null
   tags: string[]
@@ -42,8 +48,11 @@ export function normalizeCustomerInput(input: CustomerInput): NormalizedCustomer
   const name = normalizeRequiredText(input.name, '客户称呼不能为空')
   ensureMaxLength(name, 100, '客户称呼不能超过 100 个字符')
   const gender = normalizeGender(input.gender)
+  const birthday = normalizeBirthday(input.birthday)
+  const city = normalizeOptionalText(input.city)
   const phone = normalizeOptionalText(input.phone)
   const wechat = normalizeOptionalText(input.wechat)
+  ensureMaxLength(city, 100, '城市不能超过 100 个字符')
   ensureMaxLength(phone, 50, '手机号不能超过 50 个字符')
   ensureMaxLength(wechat, 100, '微信号不能超过 100 个字符')
 
@@ -52,6 +61,8 @@ export function normalizeCustomerInput(input: CustomerInput): NormalizedCustomer
     customerTypeId: normalizePositiveId(input.customerTypeId, '客户类型 ID 无效'),
     name,
     gender,
+    birthday,
+    city,
     phone,
     wechat,
     tags: normalizeTags(input.tags ?? []),
@@ -70,6 +81,24 @@ export function normalizeGender(value?: CustomerGender | null): CustomerGender |
   }
 
   return value
+}
+
+export function normalizeBirthday(value?: string | null): string | null {
+  const birthday = normalizeOptionalText(value)
+  if (!birthday) {
+    return null
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
+    throw new Error('生日格式无效')
+  }
+
+  const date = new Date(`${birthday}T00:00:00`)
+  if (Number.isNaN(date.getTime()) || birthday !== formatDate(date)) {
+    throw new Error('生日无效')
+  }
+
+  return birthday
 }
 
 export function normalizeTags(tags: string[]): string[] {
@@ -118,6 +147,14 @@ export function normalizePositiveId(value: number, message: string): number {
   return value
 }
 
+function formatDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 export function parseFollowedAt(value?: Date | string | null): Date {
   if (!value) {
     return new Date()
@@ -129,4 +166,16 @@ export function parseFollowedAt(value?: Date | string | null): Date {
   }
 
   return date
+}
+
+export function normalizeFollowUpMethod(value?: FollowUpMethod | null): FollowUpMethod | null {
+  if (value == null) {
+    return null
+  }
+
+  if (value !== 'face' && value !== 'phone' && value !== 'wechat' && value !== 'other') {
+    throw new Error('跟进方式无效')
+  }
+
+  return value
 }

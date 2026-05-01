@@ -18,7 +18,6 @@ export const getCustomerTypeConfig = rpc.define({
     return {
       ...config,
       profileFields: config.profileFields.filter((field) => field.enabled),
-      followUpStatuses: config.followUpStatuses.filter((status) => status.enabled),
     };
   }),
 });

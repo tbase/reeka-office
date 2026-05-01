@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  ArchiveCustomerCommand,
   CreateCustomerCommand,
   CreateCustomerTypeConfigCommand,
   CreateFollowUpCommand,
+  GetCustomerDetailByIdQuery,
+  ListPendingAnalysisCustomersQuery,
+  MarkFollowUpsAnalyzedCommand,
+  PatchCustomerCommand,
   UpdateCustomerCommand,
+  UpdateFollowUpCommand,
   UpdateCustomerTypeConfigCommand,
   type CrmApplicationDependencies,
   type CrmRuntime,
@@ -16,34 +20,37 @@ import {
   type CustomerTypeConfig,
   type CustomerTypeSummary,
   type DuplicateCustomerCandidate,
-  type FollowUpStatusConfig,
+  type FollowUpMethod,
   type NormalizedCustomerInput,
   type NormalizedCustomerTypeConfig,
 } from '../src'
 
+interface MemoryCustomer {
+  id: number
+  agentId: number
+  customerTypeId: number
+  name: string
+  gender: CustomerGender | null
+  birthday: string | null
+  city: string | null
+  phone: string | null
+  wechat: string | null
+  tags: string[]
+  note: string | null
+  archivedAt: Date | null
+  lastFollowedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
 class MemoryCrm {
   private nextCustomerTypeId = 1
   private nextFieldId = 1
-  private nextStatusId = 1
   private nextCustomerId = 1
   private nextFollowUpId = 1
 
   readonly customerTypes = new Map<number, CustomerTypeConfig>()
-  readonly customers = new Map<number, {
-    id: number
-    agentId: number
-    customerTypeId: number
-    name: string
-    gender: CustomerGender | null
-    phone: string | null
-    wechat: string | null
-    tags: string[]
-    note: string | null
-    archivedAt: Date | null
-    lastFollowedAt: Date | null
-    createdAt: Date
-    updatedAt: Date
-  }>()
+  readonly customers = new Map<number, MemoryCustomer>()
   readonly profileValues: Array<{
     agentId: number
     customerId: number
@@ -56,10 +63,10 @@ class MemoryCrm {
     agentId: number
     customerId: number
     customerTypeId: number
-    statusId: number
-    statusNameSnapshot: string
+    method: FollowUpMethod | null
     followedAt: Date
     content: string
+    analysisStatus: 'pending' | 'analyzed'
     createdAt: Date
   }> = []
 
@@ -71,14 +78,17 @@ class MemoryCrm {
     customerRepository: {
       createCustomer: input => this.createCustomer(input),
       updateCustomer: (customerId, input) => this.updateCustomer(customerId, input),
-      archiveCustomer: input => this.archiveCustomer(input),
       createFollowUp: input => this.createFollowUp(input),
+      updateFollowUp: input => this.updateFollowUp(input),
+      markFollowUpsAnalyzed: input => this.markFollowUpsAnalyzed(input),
     },
     readRepository: {
       listCustomerTypeSummaries: filters => this.listCustomerTypeSummaries(filters),
       getCustomerTypeConfig: id => Promise.resolve(this.customerTypes.get(id) ?? null),
       listCustomers: input => this.listCustomers(input),
       getCustomerDetail: input => Promise.resolve(this.getCustomerDetail(input.agentId, input.customerId)),
+      getCustomerDetailById: customerId => Promise.resolve(this.getCustomerDetailById(customerId)),
+      listPendingAnalysisCustomers: () => this.listPendingAnalysisCustomers(),
       findDuplicateCustomers: input => this.findDuplicateCustomers(input),
       getOwnedCustomer: input => Promise.resolve(this.getOwnedCustomer(input.agentId, input.customerId)),
     },
@@ -103,6 +113,8 @@ class MemoryCrm {
       customerTypeId: input.customerTypeId,
       name: input.name,
       gender: input.gender,
+      birthday: input.birthday,
+      city: input.city,
       phone: input.phone,
       wechat: input.wechat,
       tags: input.tags,
@@ -126,6 +138,8 @@ class MemoryCrm {
       customerTypeId: input.customerTypeId,
       name: input.name,
       gender: input.gender,
+      birthday: input.birthday,
+      city: input.city,
       phone: input.phone,
       wechat: input.wechat,
       tags: input.tags,
@@ -134,21 +148,11 @@ class MemoryCrm {
     this.replaceProfileValues(customerId, input)
   }
 
-  private async archiveCustomer(input: { agentId: number; customerId: number; archivedAt: Date }): Promise<boolean> {
-    const customer = this.customers.get(input.customerId)
-    if (!customer || customer.agentId !== input.agentId || customer.archivedAt) {
-      return false
-    }
-    customer.archivedAt = input.archivedAt
-    return true
-  }
-
   private async createFollowUp(input: {
     agentId: number
     customerId: number
     customerTypeId: number
-    statusId: number
-    statusNameSnapshot: string
+    method: FollowUpMethod | null
     followedAt: Date
     content: string
   }): Promise<number> {
@@ -156,6 +160,7 @@ class MemoryCrm {
     this.followUps.push({
       id,
       ...input,
+      analysisStatus: 'pending',
       createdAt: new Date('2026-04-01T00:00:00.000Z'),
     })
     const customer = this.customers.get(input.customerId)
@@ -163,6 +168,53 @@ class MemoryCrm {
       customer.lastFollowedAt = input.followedAt
     }
     return id
+  }
+
+  private async updateFollowUp(input: {
+    agentId: number
+    customerId: number
+    followUpId: number
+    method?: FollowUpMethod | null
+    followedAt: Date
+    content: string
+  }): Promise<boolean> {
+    const followUp = this.followUps.find(record =>
+      record.id === input.followUpId
+      && record.customerId === input.customerId
+      && record.agentId === input.agentId,
+    )
+    if (!followUp) {
+      return false
+    }
+
+    if (input.method !== undefined) {
+      followUp.method = input.method
+    }
+    followUp.followedAt = input.followedAt
+    followUp.content = input.content
+    followUp.analysisStatus = 'pending'
+
+    const customer = this.customers.get(input.customerId)
+    if (customer) {
+      const latest = this.followUps
+        .filter(record => record.customerId === input.customerId && record.agentId === input.agentId)
+        .reduce<Date | null>((max, record) => !max || max < record.followedAt ? record.followedAt : max, null)
+      customer.lastFollowedAt = latest
+    }
+
+    return true
+  }
+
+  private async markFollowUpsAnalyzed(input: {
+    customerId: number
+    followUpIds: number[]
+  }): Promise<void> {
+    const followUpIds = new Set(input.followUpIds)
+    for (const followUp of this.followUps) {
+      if (followUp.customerId === input.customerId && followUpIds.has(followUp.id)) {
+        followUp.analysisStatus = 'analyzed'
+      }
+    }
   }
 
   private async listCustomerTypeSummaries(filters: { enabled?: boolean } = {}): Promise<CustomerTypeSummary[]> {
@@ -184,7 +236,7 @@ class MemoryCrm {
   private async listCustomers(input: CustomerListInput): Promise<CustomerListItem[]> {
     return [...this.customers.values()]
       .filter(customer => customer.agentId === input.agentId)
-      .filter(customer => input.archived ? customer.archivedAt : !customer.archivedAt)
+      .filter(customer => input.archived === undefined || (input.archived ? customer.archivedAt : !customer.archivedAt))
       .map(customer => ({
         ...customer,
         customerTypeName: this.customerTypes.get(customer.customerTypeId)?.name ?? '',
@@ -232,9 +284,48 @@ class MemoryCrm {
     if (!customer || customer.agentId !== agentId) {
       return null
     }
+    return this.toCustomerDetail(customer)
+  }
+
+  private getCustomerDetailById(customerId: number): CustomerDetail | null {
+    const customer = this.customers.get(customerId)
+    if (!customer) {
+      return null
+    }
+    return this.toCustomerDetail(customer)
+  }
+
+  private async listPendingAnalysisCustomers() {
+    const latestPendingByCustomer = new Map<number, Date>()
+    for (const record of this.followUps) {
+      const customer = this.customers.get(record.customerId)
+      if (!customer || customer.archivedAt || record.analysisStatus !== 'pending') {
+        continue
+      }
+
+      const latest = latestPendingByCustomer.get(record.customerId)
+      if (!latest || latest < record.followedAt) {
+        latestPendingByCustomer.set(record.customerId, record.followedAt)
+      }
+    }
+
+    return [...latestPendingByCustomer.entries()]
+      .sort(([leftCustomerId, leftTime], [rightCustomerId, rightTime]) =>
+        rightTime.getTime() - leftTime.getTime() || rightCustomerId - leftCustomerId,
+      )
+      .map(([customerId]) => {
+        const customer = this.customers.get(customerId)!
+        return {
+          customerId,
+          name: customer.name,
+        }
+      })
+  }
+
+  private toCustomerDetail(customer: MemoryCustomer): CustomerDetail {
     const type = this.customerTypes.get(customer.customerTypeId)
     const allProfileValues = this.profileValues
-      .filter(value => value.customerId === customerId)
+      .filter(value => value.customerId === customer.id)
       .map(value => {
         const field = this.customerTypes.get(value.customerTypeId)?.profileFields.find(item => item.id === value.fieldId)
         return {
@@ -253,14 +344,14 @@ class MemoryCrm {
       currentProfileValues: allProfileValues.filter(value => value.customerTypeId === customer.customerTypeId && value.fieldEnabled),
       allProfileValues,
       followUps: this.followUps
-        .filter(record => record.customerId === customerId)
+        .filter(record => record.customerId === customer.id)
         .map(record => ({
           id: record.id,
           customerTypeId: record.customerTypeId,
-          statusId: record.statusId,
-          statusNameSnapshot: record.statusNameSnapshot,
+          method: record.method,
           followedAt: record.followedAt,
           content: record.content,
+          analysisStatus: record.analysisStatus,
           createdAt: record.createdAt,
         })),
     }
@@ -305,13 +396,6 @@ class MemoryCrm {
         enabled: field.enabled,
         sortOrder: field.sortOrder,
       })),
-      followUpStatuses: config.followUpStatuses.map(status => ({
-        id: status.id ?? this.nextStatusId++,
-        customerTypeId: id,
-        name: status.name,
-        enabled: status.enabled,
-        sortOrder: status.sortOrder,
-      } satisfies FollowUpStatusConfig)),
     }
   }
 }
@@ -327,12 +411,10 @@ async function seedCustomerTypes(memory: MemoryCrm) {
   const insuranceId = await new CreateCustomerTypeConfigCommand({
     name: '保险客户',
     profileFields: [{ name: '家庭情况' }],
-    followUpStatuses: [{ name: '初聊' }],
   }, deps(memory)).execute()
   const recruitId = await new CreateCustomerTypeConfigCommand({
     name: '招募对象',
     profileFields: [{ name: '职业背景' }],
-    followUpStatuses: [{ name: '邀约' }],
   }, deps(memory)).execute()
 
   return {
@@ -347,7 +429,6 @@ describe('CRM metadata commands', () => {
     const id = await new CreateCustomerTypeConfigCommand({
       name: '保险客户',
       profileFields: [{ name: '家庭情况' }],
-      followUpStatuses: [{ name: '初聊' }],
     }, deps(memory)).execute()
     const config = memory.customerTypes.get(id)!
 
@@ -357,12 +438,10 @@ describe('CRM metadata commands', () => {
       enabled: true,
       supportsOpportunity: true,
       profileFields: [{ ...config.profileFields[0], enabled: false }],
-      followUpStatuses: [{ ...config.followUpStatuses[0], enabled: false }],
     }, deps(memory)).execute()
 
     expect(memory.customerTypes.get(id)?.profileFields).toHaveLength(1)
     expect(memory.customerTypes.get(id)?.profileFields[0]?.enabled).toBe(false)
-    expect(memory.customerTypes.get(id)?.followUpStatuses[0]?.enabled).toBe(false)
   })
 })
 
@@ -424,6 +503,39 @@ describe('CRM customer commands', () => {
     })
   })
 
+  it('stores birthday and city as basic customer fields', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      birthday: '1990-05-20',
+      city: '上海',
+    }, deps(memory)).execute()
+
+    await expect(memory.runtime.readRepository.getCustomerDetail({
+      agentId: 1,
+      customerId: created.customerId!,
+    })).resolves.toMatchObject({
+      birthday: '1990-05-20',
+      city: '上海',
+    })
+  })
+
+  it('rejects invalid birthday values', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+
+    await expect(new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      birthday: '1990-02-31',
+    }, deps(memory)).execute()).rejects.toThrow('生日无效')
+  })
+
   it('preserves old profile values when customer type changes and restores them when switching back', async () => {
     const memory = new MemoryCrm()
     const { insurance, recruit } = await seedCustomerTypes(memory)
@@ -463,7 +575,7 @@ describe('CRM customer commands', () => {
     expect(detail?.allProfileValues.map(value => value.value).sort()).toEqual(['三口之家', '销售背景'])
   })
 
-  it('archives only owned customers and keeps archived rows out of normal lists', async () => {
+  it('keeps archived rows queryable without hiding them by default', async () => {
     const memory = new MemoryCrm()
     const { insurance } = await seedCustomerTypes(memory)
     const created = await new CreateCustomerCommand({
@@ -472,14 +584,94 @@ describe('CRM customer commands', () => {
       name: 'Alice',
     }, deps(memory)).execute()
     const customerId = created.customerId!
+    memory.customers.get(customerId)!.archivedAt = new Date('2026-04-05T00:00:00.000Z')
 
-    await expect(new ArchiveCustomerCommand({ agentId: 2, customerId }, deps(memory)).execute()).resolves.toBe(false)
-    await expect(new ArchiveCustomerCommand({ agentId: 1, customerId }, deps(memory)).execute()).resolves.toBe(true)
+    await expect(memory.runtime.readRepository.listCustomers({ agentId: 1 })).resolves.toHaveLength(1)
     await expect(memory.runtime.readRepository.listCustomers({ agentId: 1, archived: false })).resolves.toHaveLength(0)
     await expect(memory.runtime.readRepository.listCustomers({ agentId: 1, archived: true })).resolves.toHaveLength(1)
   })
 
-  it('stores follow-up status snapshot and updates latest follow-up time', async () => {
+  it('lists customers with pending follow-up analysis only', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const alice = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+    }, deps(memory)).execute()
+    const bob = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Bob',
+    }, deps(memory)).execute()
+    const analyzed = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Analyzed',
+    }, deps(memory)).execute()
+    const archived = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Archived',
+    }, deps(memory)).execute()
+
+    await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId: alice.customerId!,
+      followedAt: '2026-04-03 10:00',
+      content: 'Alice pending',
+    }, deps(memory)).execute()
+    await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId: bob.customerId!,
+      followedAt: '2026-04-04 10:00',
+      content: 'Bob pending',
+    }, deps(memory)).execute()
+    await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId: analyzed.customerId!,
+      followedAt: '2026-04-05 10:00',
+      content: 'Analyzed',
+    }, deps(memory)).execute()
+    await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId: archived.customerId!,
+      followedAt: '2026-04-06 10:00',
+      content: 'Archived',
+    }, deps(memory)).execute()
+
+    memory.followUps.find(record => record.customerId === analyzed.customerId)!.analysisStatus = 'analyzed'
+    memory.customers.get(archived.customerId!)!.archivedAt = new Date('2026-04-06T00:00:00.000Z')
+
+    await expect(new ListPendingAnalysisCustomersQuery(memory.runtime.readRepository).query())
+      .resolves
+      .toEqual([
+        { customerId: bob.customerId!, name: 'Bob' },
+        { customerId: alice.customerId!, name: 'Alice' },
+      ])
+  })
+
+  it('gets customer detail by customer id without agent scope', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const created = await new CreateCustomerCommand({
+      agentId: 2,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+    }, deps(memory)).execute()
+
+    await expect(new GetCustomerDetailByIdQuery({
+      customerId: created.customerId!,
+    }, memory.runtime.readRepository).query())
+      .resolves
+      .toMatchObject({
+        id: created.customerId,
+        agentId: 2,
+        name: 'Alice',
+      })
+  })
+
+  it('marks customer follow-up records as analyzed', async () => {
     const memory = new MemoryCrm()
     const { insurance } = await seedCustomerTypes(memory)
     const created = await new CreateCustomerCommand({
@@ -488,12 +680,110 @@ describe('CRM customer commands', () => {
       name: 'Alice',
     }, deps(memory)).execute()
     const customerId = created.customerId!
-    const status = insurance.followUpStatuses[0]!
+    const firstFollowUpId = await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId,
+      followedAt: '2026-04-03 10:00',
+      content: '第一次跟进',
+    }, deps(memory)).execute()
+    const secondFollowUpId = await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId,
+      followedAt: '2026-04-04 10:00',
+      content: '第二次跟进',
+    }, deps(memory)).execute()
+
+    await new MarkFollowUpsAnalyzedCommand({
+      customerId,
+      followUpIds: [firstFollowUpId, firstFollowUpId],
+    }, deps(memory)).execute()
+
+    const detail = await memory.runtime.readRepository.getCustomerDetail({ agentId: 1, customerId })
+    expect(detail?.followUps.find(record => record.id === firstFollowUpId)?.analysisStatus).toBe('analyzed')
+    expect(detail?.followUps.find(record => record.id === secondFollowUpId)?.analysisStatus).toBe('pending')
+  })
+
+  it('rejects analyzed markers for follow-up records outside the customer', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const alice = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+    }, deps(memory)).execute()
+    const bob = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Bob',
+    }, deps(memory)).execute()
+    const bobFollowUpId = await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId: bob.customerId!,
+      followedAt: '2026-04-04 10:00',
+      content: 'Bob 跟进',
+    }, deps(memory)).execute()
+
+    await expect(new MarkFollowUpsAnalyzedCommand({
+      customerId: alice.customerId!,
+      followUpIds: [bobFollowUpId],
+    }, deps(memory)).execute()).rejects.toThrow('跟进记录不存在或不属于该客户')
+  })
+
+  it('patches customer fields while preserving phone and omitted profile values', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const field = insurance.profileFields[0]!
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      city: '上海',
+      phone: '13800000000',
+      note: '原备注',
+      profileValues: [{ fieldId: field.id, value: '三口之家' }],
+    }, deps(memory)).execute()
+    const customerId = created.customerId!
+
+    await new PatchCustomerCommand({
+      customerId,
+      note: 'AI 分析结果',
+      tags: ['重点'],
+    }, deps(memory)).execute()
+
+    let detail = await memory.runtime.readRepository.getCustomerDetail({ agentId: 1, customerId })
+    expect(detail).toMatchObject({
+      name: 'Alice',
+      city: '上海',
+      phone: '13800000000',
+      note: 'AI 分析结果',
+      tags: ['重点'],
+      currentProfileValues: [{ value: '三口之家' }],
+    })
+
+    await new PatchCustomerCommand({
+      customerId,
+      profileValues: [],
+    }, deps(memory)).execute()
+
+    detail = await memory.runtime.readRepository.getCustomerDetail({ agentId: 1, customerId })
+    expect(detail?.phone).toBe('13800000000')
+    expect(detail?.currentProfileValues).toEqual([])
+  })
+
+  it('stores follow-up method and updates latest follow-up time', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+    }, deps(memory)).execute()
+    const customerId = created.customerId!
 
     await new CreateFollowUpCommand({
       agentId: 1,
       customerId,
-      statusId: status.id,
+      method: 'face',
       followedAt: '2026-04-03 10:00',
       content: '完成初聊',
     }, deps(memory)).execute()
@@ -501,21 +791,77 @@ describe('CRM customer commands', () => {
     const detail = await memory.runtime.readRepository.getCustomerDetail({ agentId: 1, customerId })
     expect(detail?.lastFollowedAt?.toISOString()).toBe('2026-04-03T02:00:00.000Z')
     expect(detail?.followUps[0]).toMatchObject({
-      statusNameSnapshot: '初聊',
+      method: 'face',
       content: '完成初聊',
+      analysisStatus: 'pending',
     })
   })
 
-  it('rejects disabled follow-up statuses', async () => {
+  it('allows follow-up records without method', async () => {
     const memory = new MemoryCrm()
-    const id = await new CreateCustomerTypeConfigCommand({
-      name: '保险客户',
-      followUpStatuses: [{ name: '初聊', enabled: false }],
-    }, deps(memory)).execute()
-    const type = memory.customerTypes.get(id)!
+    const { insurance } = await seedCustomerTypes(memory)
     const created = await new CreateCustomerCommand({
       agentId: 1,
-      customerTypeId: type.id,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+    }, deps(memory)).execute()
+    const customerId = created.customerId!
+
+    await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId,
+      followedAt: '2026-04-03 10:00',
+      content: '直接记录跟进内容',
+    }, deps(memory)).execute()
+
+    const detail = await memory.runtime.readRepository.getCustomerDetail({ agentId: 1, customerId })
+    expect(detail?.followUps[0]).toMatchObject({
+      method: null,
+      analysisStatus: 'pending',
+      content: '直接记录跟进内容',
+    })
+  })
+
+  it('preserves follow-up method when update omits method', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+    }, deps(memory)).execute()
+    const customerId = created.customerId!
+    const followUpId = await new CreateFollowUpCommand({
+      agentId: 1,
+      customerId,
+      method: 'phone',
+      followedAt: '2026-04-03 10:00',
+      content: '完成初聊',
+    }, deps(memory)).execute()
+    memory.followUps[0]!.analysisStatus = 'analyzed'
+
+    await new UpdateFollowUpCommand({
+      agentId: 1,
+      customerId,
+      followUpId,
+      followedAt: '2026-04-04 11:00',
+      content: '补充记录',
+    }, deps(memory)).execute()
+
+    const detail = await memory.runtime.readRepository.getCustomerDetail({ agentId: 1, customerId })
+    expect(detail?.followUps[0]).toMatchObject({
+      method: 'phone',
+      analysisStatus: 'pending',
+      content: '补充记录',
+    })
+  })
+
+  it('rejects invalid follow-up methods', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
       name: 'Alice',
       allowDuplicate: true,
     }, deps(memory)).execute()
@@ -523,8 +869,8 @@ describe('CRM customer commands', () => {
     await expect(new CreateFollowUpCommand({
       agentId: 1,
       customerId: created.customerId!,
-      statusId: type.followUpStatuses[0]!.id,
+      method: 'invalid' as never,
       content: '不会保存',
-    }, deps(memory)).execute()).rejects.toThrow('跟进状态不可用')
+    }, deps(memory)).execute()).rejects.toThrow('跟进方式无效')
   })
 })

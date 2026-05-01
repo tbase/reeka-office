@@ -1,4 +1,4 @@
-import type { CustomerGender, CustomerSort } from './customer'
+import type { CustomerGender, CustomerSort, FollowUpAnalysisStatus, FollowUpMethod } from './customer'
 
 export interface CustomerTypeSummary {
   id: number
@@ -24,14 +24,6 @@ export interface ProfileFieldConfig {
   sortOrder: number
 }
 
-export interface FollowUpStatusConfig {
-  id: number
-  customerTypeId: number
-  name: string
-  enabled: boolean
-  sortOrder: number
-}
-
 export interface CustomerTypeConfig {
   id: number
   name: string
@@ -40,7 +32,6 @@ export interface CustomerTypeConfig {
   supportsOpportunity: boolean
   sortOrder: number
   profileFields: ProfileFieldConfig[]
-  followUpStatuses: FollowUpStatusConfig[]
   createdAt: Date
   updatedAt: Date
 }
@@ -59,6 +50,8 @@ export interface CustomerListItem {
   customerTypeName: string
   name: string
   gender: CustomerGender | null
+  birthday: string | null
+  city: string | null
   phone: string | null
   wechat: string | null
   tags: string[]
@@ -81,10 +74,10 @@ export interface CustomerProfileValueDetail {
 export interface FollowUpRecordDetail {
   id: number
   customerTypeId: number
-  statusId: number
-  statusNameSnapshot: string
+  method: FollowUpMethod | null
   followedAt: Date
   content: string
+  analysisStatus: FollowUpAnalysisStatus
   createdAt: Date
 }
 
@@ -95,6 +88,8 @@ export interface CustomerDetail {
   customerTypeName: string
   name: string
   gender: CustomerGender | null
+  birthday: string | null
+  city: string | null
   phone: string | null
   wechat: string | null
   tags: string[]
@@ -106,6 +101,11 @@ export interface CustomerDetail {
   currentProfileValues: CustomerProfileValueDetail[]
   allProfileValues: CustomerProfileValueDetail[]
   followUps: FollowUpRecordDetail[]
+}
+
+export interface PendingAnalysisCustomer {
+  customerId: number
+  name: string
 }
 
 export interface DuplicateCustomerCandidate {

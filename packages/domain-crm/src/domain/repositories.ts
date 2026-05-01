@@ -1,4 +1,4 @@
-import type { NormalizedCustomerInput } from './customer'
+import type { FollowUpMethod, NormalizedCustomerInput } from './customer'
 import type { NormalizedCustomerTypeConfig } from './profile'
 import type {
   CustomerDetail,
@@ -8,6 +8,7 @@ import type {
   CustomerTypeSummaryFilters,
   CustomerTypeSummary,
   DuplicateCustomerCandidate,
+  PendingAnalysisCustomer,
 } from './readModels'
 
 export interface CrmMetadataRepository {
@@ -18,13 +19,11 @@ export interface CrmMetadataRepository {
 export interface CrmCustomerRepository {
   createCustomer(input: NormalizedCustomerInput): Promise<number>
   updateCustomer(customerId: number, input: NormalizedCustomerInput): Promise<void>
-  archiveCustomer(input: { agentId: number; customerId: number; archivedAt: Date }): Promise<boolean>
   createFollowUp(input: {
     agentId: number
     customerId: number
     customerTypeId: number
-    statusId: number
-    statusNameSnapshot: string
+    method: FollowUpMethod | null
     followedAt: Date
     content: string
   }): Promise<number>
@@ -32,11 +31,14 @@ export interface CrmCustomerRepository {
     agentId: number
     customerId: number
     followUpId: number
-    statusId: number
-    statusNameSnapshot: string
+    method?: FollowUpMethod | null
     followedAt: Date
     content: string
   }): Promise<boolean>
+  markFollowUpsAnalyzed(input: {
+    customerId: number
+    followUpIds: number[]
+  }): Promise<void>
 }
 
 export interface CrmReadRepository {
@@ -44,6 +46,8 @@ export interface CrmReadRepository {
   getCustomerTypeConfig(customerTypeId: number): Promise<CustomerTypeConfig | null>
   listCustomers(input: CustomerListInput): Promise<CustomerListItem[]>
   getCustomerDetail(input: { agentId: number; customerId: number }): Promise<CustomerDetail | null>
+  getCustomerDetailById(customerId: number): Promise<CustomerDetail | null>
+  listPendingAnalysisCustomers(): Promise<PendingAnalysisCustomer[]>
   findDuplicateCustomers(input: {
     agentId: number
     customerTypeId: number

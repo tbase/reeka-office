@@ -24,13 +24,6 @@ const profileFieldSchema = z.object({
   sortOrder: sortOrderSchema,
 })
 
-const followUpStatusSchema = z.object({
-  id: optionalNumberSchema,
-  name: z.string().trim().min(1, "请输入状态名称").max(100, "状态名称不能超过 100 个字符"),
-  enabled: z.boolean(),
-  sortOrder: sortOrderSchema,
-})
-
 export const createCustomerTypeActionSchema = z.object({
   name: z.string().trim().min(1, "请输入客户类型名称").max(100, "客户类型名称不能超过 100 个字符"),
   description: z.string().trim().optional().nullable(),
@@ -38,7 +31,6 @@ export const createCustomerTypeActionSchema = z.object({
   supportsOpportunity: z.boolean(),
   sortOrder: sortOrderSchema,
   profileFields: z.array(profileFieldSchema),
-  followUpStatuses: z.array(followUpStatusSchema),
 })
 
 export const updateCustomerTypeActionSchema = createCustomerTypeActionSchema.extend({

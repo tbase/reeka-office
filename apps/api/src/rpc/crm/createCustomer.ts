@@ -11,6 +11,8 @@ export const createCustomer = rpc.define({
       customerTypeId: input.customerTypeId,
       name: input.name,
       gender: input.gender,
+      birthday: input.birthday,
+      city: input.city,
       phone: input.phone,
       wechat: input.wechat,
       tags: input.tags,

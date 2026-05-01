@@ -105,17 +105,14 @@ const zhCollator = typeof Intl !== 'undefined' && typeof Intl.Collator === 'func
   ? new Intl.Collator('zh-Hans-CN')
   : null
 
-const archived = ref(false)
 const keyword = ref('')
 const customerTypeId = ref<number | null>(null)
 const createPopupVisible = ref(false)
 const createName = ref('')
 const createGender = ref<CustomerGender>('M')
-const createPhone = ref('')
 
 const filters = computed<RpcInput<'crm/listCustomers'>>(() => customerTypeId.value
   ? ({
-      archived: archived.value,
       keyword: keyword.value || undefined,
       customerTypeId: customerTypeId.value,
     })
@@ -157,14 +154,6 @@ function handleKeywordChange(event: { value?: string }) {
   keyword.value = event.value ?? ''
 }
 
-function showActiveCustomers() {
-  archived.value = false
-}
-
-function showArchivedCustomers() {
-  archived.value = true
-}
-
 function goCreate() {
   if (!customerTypeId.value) {
     showToast('客户类型无效', 'warning')
@@ -173,7 +162,6 @@ function goCreate() {
 
   createName.value = ''
   createGender.value = 'M'
-  createPhone.value = ''
   createPopupVisible.value = true
 }
 
@@ -193,10 +181,6 @@ function selectCreateGender(value: CustomerGender) {
   createGender.value = value
 }
 
-function handleCreatePhoneChange(event: { value?: string }) {
-  createPhone.value = event.value ?? ''
-}
-
 function buildCreatePayload(allowDuplicate: boolean): RpcInput<'crm/createCustomer'> | null {
   if (!customerTypeId.value) {
     showToast('客户类型无效', 'warning')
@@ -213,7 +197,9 @@ function buildCreatePayload(allowDuplicate: boolean): RpcInput<'crm/createCustom
     customerTypeId: customerTypeId.value,
     name: customerName,
     gender: createGender.value,
-    phone: createPhone.value.trim() || null,
+    birthday: null,
+    city: null,
+    phone: null,
     wechat: null,
     tags: [],
     note: null,
@@ -328,28 +314,12 @@ function getCustomerInitial(value: string): string {
       <t-search
         class="customer-search"
         :value="keyword"
-        placeholder="搜索姓名、手机、微信、标签"
+        placeholder="搜索姓名、手机、城市、微信、标签"
         confirm-type="search"
         clearable
         @change="handleKeywordChange"
       />
 
-      <view class="mt-3 flex flex-wrap gap-2 px-4">
-        <view
-          class="pill"
-          :class="archived ? 'pill-muted' : 'pill-selected'"
-          @tap="showActiveCustomers"
-        >
-          正常
-        </view>
-        <view
-          class="pill"
-          :class="archived ? 'pill-selected' : 'pill-muted'"
-          @tap="showArchivedCustomers"
-        >
-          已归档
-        </view>
-      </view>
     </view>
 
     <view class="pb-16">
@@ -370,7 +340,7 @@ function getCustomerInitial(value: string): string {
         class="customer-indexes"
         :index-list="customerIndexList"
         show-full-index
-        :sticky-offset="96"
+        :sticky-offset="64"
       >
         <t-indexes-anchor
           v-for="section in customerSections"
@@ -445,13 +415,6 @@ function getCustomerInitial(value: string): string {
               </view>
             </template>
           </t-input>
-          <t-input
-            :value="createPhone"
-            label="手机号"
-            placeholder="选填"
-            t-class-label="customer-create-label"
-            @change="handleCreatePhoneChange"
-          />
         </t-cell-group>
       </view>
 

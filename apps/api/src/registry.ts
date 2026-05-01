@@ -4,7 +4,6 @@ import {
   listResourceContents,
 } from "./rpc/cms";
 import {
-  archiveCustomer,
   createCustomer,
   createFollowUp,
   getCustomer,
@@ -54,7 +53,6 @@ const cmsRegistry = rpc.registry({
 });
 
 const crmRegistry = rpc.registry({
-  archiveCustomer,
   createCustomer,
   createFollowUp,
   getCustomer,

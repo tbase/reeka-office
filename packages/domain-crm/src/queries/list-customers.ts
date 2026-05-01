@@ -23,7 +23,7 @@ export class ListCustomersQuery {
   async query(): Promise<CustomerListItem[]> {
     return this.readRepository.listCustomers({
       agentId: normalizePositiveId(this.input.agentId, '代理人 ID 无效'),
-      archived: this.input.archived ?? false,
+      archived: this.input.archived,
       keyword: this.input.keyword,
       customerTypeId: this.input.customerTypeId,
       sort: this.input.sort ?? 'last_followed_desc',

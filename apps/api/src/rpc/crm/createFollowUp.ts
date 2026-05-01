@@ -6,7 +6,7 @@ import { mustAgent, rpc } from "../../context";
 export const createFollowUp = rpc.define({
   inputSchema: z.object({
     customerId: z.number().int().positive(),
-    statusId: z.number().int().positive(),
+    method: z.enum(["face", "phone", "wechat", "other"]).optional().nullable(),
     followedAt: z.string().optional().nullable(),
     content: z.string(),
   }),
@@ -14,7 +14,7 @@ export const createFollowUp = rpc.define({
     const followUpId = await new CreateFollowUpCommand({
       agentId: context.user.agentId,
       customerId: input.customerId,
-      statusId: input.statusId,
+      method: input.method,
       followedAt: input.followedAt,
       content: input.content,
     }).execute();

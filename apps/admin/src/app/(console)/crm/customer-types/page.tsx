@@ -19,7 +19,7 @@ export default async function CrmCustomerTypesPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">客户类型</h1>
           <p className="text-muted-foreground text-sm">
-            维护小程序端可用的客户类型、画像字段和跟进状态。
+            维护小程序端可用的客户类型和画像字段。
           </p>
         </div>
         <div className="flex items-center gap-2">

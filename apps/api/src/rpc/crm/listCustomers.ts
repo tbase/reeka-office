@@ -6,7 +6,6 @@ import { customerSortSchema } from "./shared";
 
 export const listCustomers = rpc.define({
   inputSchema: z.object({
-    archived: z.boolean().optional(),
     keyword: z.string().optional().nullable(),
     customerTypeId: z.number().int().positive().optional().nullable(),
     sort: customerSortSchema.optional(),
@@ -14,7 +13,6 @@ export const listCustomers = rpc.define({
   execute: mustAgent(async ({ context, input }) => {
     return new ListCustomersQuery({
       agentId: context.user.agentId,
-      archived: input?.archived,
       keyword: input?.keyword,
       customerTypeId: input?.customerTypeId,
       sort: input?.sort,

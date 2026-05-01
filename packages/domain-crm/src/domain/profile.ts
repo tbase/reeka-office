@@ -8,13 +8,6 @@ export interface ProfileFieldInput {
   sortOrder?: number
 }
 
-export interface FollowUpStatusInput {
-  id?: number | null
-  name: string
-  enabled?: boolean
-  sortOrder?: number
-}
-
 export interface CustomerTypeConfigInput {
   id?: number | null
   name: string
@@ -23,20 +16,12 @@ export interface CustomerTypeConfigInput {
   supportsOpportunity?: boolean
   sortOrder?: number
   profileFields?: ProfileFieldInput[]
-  followUpStatuses?: FollowUpStatusInput[]
 }
 
 export interface NormalizedProfileField {
   id: number | null
   name: string
   description: string | null
-  enabled: boolean
-  sortOrder: number
-}
-
-export interface NormalizedFollowUpStatus {
-  id: number | null
-  name: string
   enabled: boolean
   sortOrder: number
 }
@@ -49,7 +34,6 @@ export interface NormalizedCustomerTypeConfig {
   supportsOpportunity: boolean
   sortOrder: number
   profileFields: NormalizedProfileField[]
-  followUpStatuses: NormalizedFollowUpStatus[]
 }
 
 export function normalizeCustomerTypeConfig(input: CustomerTypeConfigInput): NormalizedCustomerTypeConfig {
@@ -64,7 +48,6 @@ export function normalizeCustomerTypeConfig(input: CustomerTypeConfigInput): Nor
     supportsOpportunity: input.supportsOpportunity ?? false,
     sortOrder: normalizeSortOrder(input.sortOrder),
     profileFields: (input.profileFields ?? []).map((field, index) => normalizeProfileField(field, index)),
-    followUpStatuses: (input.followUpStatuses ?? []).map((status, index) => normalizeFollowUpStatus(status, index)),
   }
 }
 
@@ -76,18 +59,6 @@ export function normalizeProfileField(input: ProfileFieldInput, index = 0): Norm
     id: normalizeId(input.id),
     name,
     description: normalizeOptionalText(input.description),
-    enabled: input.enabled ?? true,
-    sortOrder: normalizeSortOrder(input.sortOrder ?? index),
-  }
-}
-
-export function normalizeFollowUpStatus(input: FollowUpStatusInput, index = 0): NormalizedFollowUpStatus {
-  const name = normalizeRequiredText(input.name, '跟进状态名称不能为空')
-  ensureMaxLength(name, 100, '跟进状态名称不能超过 100 个字符')
-
-  return {
-    id: normalizeId(input.id),
-    name,
     enabled: input.enabled ?? true,
     sortOrder: normalizeSortOrder(input.sortOrder ?? index),
   }
