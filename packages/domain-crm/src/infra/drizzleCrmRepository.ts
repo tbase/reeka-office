@@ -447,6 +447,30 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
   }
 
   private async saveProfileFields(customerTypeId: number, fields: NormalizedProfileField[]): Promise<void> {
+    const keptFieldIds = fields.flatMap(field => field.id ? [field.id] : [])
+    const existingFields = await this.db
+      .select({ id: crmProfileFields.id })
+      .from(crmProfileFields)
+      .where(eq(crmProfileFields.customerTypeId, customerTypeId))
+    const deletedFieldIds = existingFields
+      .map(field => field.id)
+      .filter(fieldId => !keptFieldIds.includes(fieldId))
+
+    if (deletedFieldIds.length > 0) {
+      await this.db
+        .delete(crmCustomerProfileValues)
+        .where(and(
+          eq(crmCustomerProfileValues.customerTypeId, customerTypeId),
+          inArray(crmCustomerProfileValues.fieldId, deletedFieldIds),
+        ))
+      await this.db
+        .delete(crmProfileFields)
+        .where(and(
+          eq(crmProfileFields.customerTypeId, customerTypeId),
+          inArray(crmProfileFields.id, deletedFieldIds),
+        ))
+    }
+
     for (const field of fields) {
       if (field.id) {
         await this.db

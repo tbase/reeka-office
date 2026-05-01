@@ -102,6 +102,23 @@ class MemoryCrm {
   }
 
   private async updateCustomerType(config: NormalizedCustomerTypeConfig & { id: number }): Promise<void> {
+    const existing = this.customerTypes.get(config.id)
+    if (existing) {
+      const keptFieldIds = config.profileFields.flatMap(field => field.id ? [field.id] : [])
+      const deletedFieldIds = existing.profileFields
+        .map(field => field.id)
+        .filter(fieldId => !keptFieldIds.includes(fieldId))
+
+      if (deletedFieldIds.length > 0) {
+        for (let index = this.profileValues.length - 1; index >= 0; index -= 1) {
+          const value = this.profileValues[index]
+          if (value.customerTypeId === config.id && deletedFieldIds.includes(value.fieldId)) {
+            this.profileValues.splice(index, 1)
+          }
+        }
+      }
+    }
+
     this.customerTypes.set(config.id, this.toConfig(config.id, config))
   }
 
@@ -428,6 +445,18 @@ async function seedCustomerTypes(memory: MemoryCrm) {
 }
 
 describe('CRM metadata commands', () => {
+  it('rejects duplicate profile field names', async () => {
+    const memory = new MemoryCrm()
+
+    await expect(new CreateCustomerTypeConfigCommand({
+      name: '保险客户',
+      profileFields: [
+        { name: '家庭情况' },
+        { name: ' 家庭情况 ' },
+      ],
+    }, deps(memory)).execute()).rejects.toThrow('画像字段名称不能重复')
+  })
+
   it('creates and updates customer type config without deleting disabled rows', async () => {
     const memory = new MemoryCrm()
     const id = await new CreateCustomerTypeConfigCommand({
@@ -446,6 +475,51 @@ describe('CRM metadata commands', () => {
 
     expect(memory.customerTypes.get(id)?.profileFields).toHaveLength(1)
     expect(memory.customerTypes.get(id)?.profileFields[0]?.enabled).toBe(false)
+  })
+
+  it('deletes omitted profile fields and their profile values when updating config', async () => {
+    const memory = new MemoryCrm()
+    const id = await new CreateCustomerTypeConfigCommand({
+      name: '保险客户',
+      profileFields: [
+        { name: '家庭情况' },
+        { name: '客户来源' },
+      ],
+    }, deps(memory)).execute()
+    const config = memory.customerTypes.get(id)!
+    const keptField = config.profileFields[0]!
+    const deletedField = config.profileFields[1]!
+
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: id,
+      name: 'Alice',
+      profileValues: [
+        { fieldId: keptField.id, value: '三口之家' },
+        { fieldId: deletedField.id, value: '朋友介绍' },
+      ],
+    }, deps(memory)).execute()
+
+    await new UpdateCustomerTypeConfigCommand({
+      id,
+      name: '保险客户',
+      profileFields: [keptField],
+    }, deps(memory)).execute()
+
+    expect(memory.customerTypes.get(id)?.profileFields.map(field => field.name)).toEqual(['家庭情况'])
+    expect(memory.profileValues.map(value => value.fieldId)).toEqual([keptField.id])
+    await expect(new GetCustomerDetailByIdQuery({
+      customerId: created.customerId!,
+    }, memory.runtime.readRepository).query())
+      .resolves
+      .toMatchObject({
+        allProfileValues: [
+          {
+            fieldId: keptField.id,
+            value: '三口之家',
+          },
+        ],
+      })
   })
 })
 

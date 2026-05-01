@@ -39,6 +39,8 @@ export interface NormalizedCustomerTypeConfig {
 export function normalizeCustomerTypeConfig(input: CustomerTypeConfigInput): NormalizedCustomerTypeConfig {
   const name = normalizeRequiredText(input.name, '客户类型名称不能为空')
   ensureMaxLength(name, 100, '客户类型名称不能超过 100 个字符')
+  const profileFields = (input.profileFields ?? []).map((field, index) => normalizeProfileField(field, index))
+  ensureUniqueProfileFieldNames(profileFields)
 
   return {
     id: normalizeId(input.id),
@@ -47,7 +49,7 @@ export function normalizeCustomerTypeConfig(input: CustomerTypeConfigInput): Nor
     enabled: input.enabled ?? true,
     supportsOpportunity: input.supportsOpportunity ?? false,
     sortOrder: normalizeSortOrder(input.sortOrder),
-    profileFields: (input.profileFields ?? []).map((field, index) => normalizeProfileField(field, index)),
+    profileFields,
   }
 }
 
@@ -95,4 +97,16 @@ export function normalizeId(value: number | null | undefined): number | null {
   }
 
   return value
+}
+
+function ensureUniqueProfileFieldNames(fields: NormalizedProfileField[]): void {
+  const seen = new Set<string>()
+
+  for (const field of fields) {
+    if (seen.has(field.name)) {
+      throw new Error('画像字段名称不能重复')
+    }
+
+    seen.add(field.name)
+  }
 }
