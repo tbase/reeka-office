@@ -46,6 +46,7 @@ export const crmCustomers = mysqlTable('crm_customers', {
   agentId: int('agent_id').notNull(),
   customerTypeId: int('customer_type_id').notNull(),
   name: varchar('name', { length: 100 }).notNull(),
+  nameInitial: varchar('name_initial', { length: 1 }).notNull().default('#'),
   gender: varchar('gender', { length: 1 }).$type<'M' | 'F' | null>(),
   birthday: varchar('birthday', { length: 10 }),
   city: varchar('city', { length: 100 }),
@@ -64,6 +65,7 @@ export const crmCustomers = mysqlTable('crm_customers', {
     foreignColumns: [crmCustomerTypes.id],
   }).onDelete('no action'),
   index('crm_customers_agent_archive_follow_idx').on(table.agentId, table.archivedAt, table.lastFollowedAt),
+  index('crm_customers_agent_archive_type_initial_idx').on(table.agentId, table.archivedAt, table.customerTypeId, table.nameInitial),
   index('crm_customers_agent_type_phone_idx').on(table.agentId, table.customerTypeId, table.phone),
   index('crm_customers_agent_type_wechat_idx').on(table.agentId, table.customerTypeId, table.wechat),
 ])

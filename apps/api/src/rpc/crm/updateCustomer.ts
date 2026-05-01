@@ -1,6 +1,7 @@
 import { UpdateCustomerCommand } from "@reeka-office/domain-crm";
 
 import { mustAgent, rpc } from "../../context";
+import { getNameInitial } from "./nameInitial";
 import { customerIdInputSchema, customerPayloadSchema } from "./shared";
 
 export const updateCustomer = rpc.define({
@@ -11,6 +12,7 @@ export const updateCustomer = rpc.define({
       customerId: input.customerId,
       customerTypeId: input.customerTypeId,
       name: input.name,
+      nameInitial: getNameInitial(input.name),
       gender: input.gender,
       birthday: input.birthday,
       city: input.city,

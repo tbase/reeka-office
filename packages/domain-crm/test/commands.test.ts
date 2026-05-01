@@ -30,6 +30,7 @@ interface MemoryCustomer {
   agentId: number
   customerTypeId: number
   name: string
+  nameInitial: string
   gender: CustomerGender | null
   birthday: string | null
   city: string | null
@@ -112,6 +113,7 @@ class MemoryCrm {
       agentId: input.agentId,
       customerTypeId: input.customerTypeId,
       name: input.name,
+      nameInitial: input.nameInitial,
       gender: input.gender,
       birthday: input.birthday,
       city: input.city,
@@ -137,6 +139,7 @@ class MemoryCrm {
       ...customer,
       customerTypeId: input.customerTypeId,
       name: input.name,
+      nameInitial: input.nameInitial,
       gender: input.gender,
       birthday: input.birthday,
       city: input.city,
@@ -501,6 +504,39 @@ describe('CRM customer commands', () => {
       name: 'Alice',
       gender: 'F',
     })
+  })
+
+  it('stores customer name initial for list indexing', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: '张三',
+      nameInitial: 'Z',
+    }, deps(memory)).execute()
+    const customerId = created.customerId!
+
+    await expect(memory.runtime.readRepository.getCustomerDetail({
+      agentId: 1,
+      customerId,
+    })).resolves.toMatchObject({
+      name: '张三',
+      nameInitial: 'Z',
+    })
+
+    await new UpdateCustomerCommand({
+      agentId: 1,
+      customerId,
+      customerTypeId: insurance.id,
+      name: '李四',
+      nameInitial: 'L',
+    }, deps(memory)).execute()
+
+    await expect(memory.runtime.readRepository.listCustomers({ agentId: 1 }))
+      .resolves
+      .toMatchObject([{ name: '李四', nameInitial: 'L' }])
   })
 
   it('stores birthday and city as basic customer fields', async () => {

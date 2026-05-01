@@ -15,6 +15,7 @@ export interface CustomerInput {
   agentId: number
   customerTypeId: number
   name: string
+  nameInitial?: string | null
   gender?: CustomerGender | null
   birthday?: string | null
   city?: string | null
@@ -34,6 +35,7 @@ export interface NormalizedCustomerInput {
   agentId: number
   customerTypeId: number
   name: string
+  nameInitial: string
   gender: CustomerGender | null
   birthday: string | null
   city: string | null
@@ -60,6 +62,7 @@ export function normalizeCustomerInput(input: CustomerInput): NormalizedCustomer
     agentId: normalizePositiveId(input.agentId, '代理人 ID 无效'),
     customerTypeId: normalizePositiveId(input.customerTypeId, '客户类型 ID 无效'),
     name,
+    nameInitial: normalizeNameInitial(input.nameInitial),
     gender,
     birthday,
     city,
@@ -69,6 +72,19 @@ export function normalizeCustomerInput(input: CustomerInput): NormalizedCustomer
     note: normalizeOptionalText(input.note),
     profileValues: normalizeProfileValues(input.profileValues ?? []),
   }
+}
+
+export function normalizeNameInitial(value?: string | null): string {
+  const initial = normalizeOptionalText(value)?.toUpperCase() ?? '#'
+  if (initial === '#') {
+    return initial
+  }
+
+  if (initial.length !== 1 || initial < 'A' || initial > 'Z') {
+    throw new Error('客户姓名索引无效')
+  }
+
+  return initial
 }
 
 export function normalizeGender(value?: CustomerGender | null): CustomerGender | null {

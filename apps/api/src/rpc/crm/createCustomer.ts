@@ -1,6 +1,7 @@
 import { CreateCustomerCommand } from "@reeka-office/domain-crm";
 
 import { mustAgent, rpc } from "../../context";
+import { getNameInitial } from "./nameInitial";
 import { customerPayloadSchema } from "./shared";
 
 export const createCustomer = rpc.define({
@@ -10,6 +11,7 @@ export const createCustomer = rpc.define({
       agentId: context.user.agentId,
       customerTypeId: input.customerTypeId,
       name: input.name,
+      nameInitial: getNameInitial(input.name),
       gender: input.gender,
       birthday: input.birthday,
       city: input.city,

@@ -49,6 +49,7 @@ export interface CustomerListItem {
   customerTypeId: number
   customerTypeName: string
   name: string
+  nameInitial: string
   gender: CustomerGender | null
   birthday: string | null
   city: string | null
@@ -87,6 +88,7 @@ export interface CustomerDetail {
   customerTypeId: number
   customerTypeName: string
   name: string
+  nameInitial: string
   gender: CustomerGender | null
   birthday: string | null
   city: string | null

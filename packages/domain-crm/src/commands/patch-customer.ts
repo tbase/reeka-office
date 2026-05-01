@@ -11,6 +11,7 @@ export interface PatchCustomerInput {
   customerId: number
   customerTypeId?: number
   name?: string
+  nameInitial?: string | null
   gender?: CustomerGender | null
   birthday?: string | null
   city?: string | null
@@ -55,6 +56,7 @@ export class PatchCustomerCommand {
         agentId: existing.agentId,
         customerTypeId,
         name: this.input.name ?? existing.name,
+        nameInitial: this.input.nameInitial === undefined ? existing.nameInitial : this.input.nameInitial,
         gender: this.input.gender === undefined ? existing.gender : this.input.gender,
         birthday: this.input.birthday === undefined ? existing.birthday : this.input.birthday,
         city: this.input.city === undefined ? existing.city : this.input.city,

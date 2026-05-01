@@ -1,8 +1,8 @@
 import { ListCustomersQuery } from "@reeka-office/domain-crm";
-import { pinyin } from "pinyin-pro";
 import { z } from "zod";
 
 import { mustAgent, rpc } from "../../context";
+import { getNameInitial } from "./nameInitial";
 import { customerSortSchema } from "./shared";
 
 export const listCustomers = rpc.define({
@@ -21,35 +21,9 @@ export const listCustomers = rpc.define({
 
     return customers.map((customer) => ({
       ...customer,
-      nameInitial: getNameInitial(customer.name),
+      nameInitial: customer.nameInitial === "#"
+        ? getNameInitial(customer.name)
+        : customer.nameInitial,
     }));
   }),
 });
-
-function getNameInitial(name: string): string {
-  const normalizedName = name.trim();
-  const firstChar = normalizedName.charAt(0);
-  if (!firstChar) {
-    return "#";
-  }
-
-  const upperChar = firstChar.toUpperCase();
-  if (upperChar >= "A" && upperChar <= "Z") {
-    return upperChar;
-  }
-
-  const [initial] = pinyin(normalizedName, {
-    pattern: "first",
-    toneType: "none",
-    type: "array",
-    mode: "surname",
-    surname: "head",
-    traditional: true,
-    nonZh: "consecutive",
-  });
-  const normalizedInitial = initial?.charAt(0).toUpperCase();
-
-  return normalizedInitial && normalizedInitial >= "A" && normalizedInitial <= "Z"
-    ? normalizedInitial
-    : "#";
-}
