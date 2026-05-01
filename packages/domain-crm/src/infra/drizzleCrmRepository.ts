@@ -340,6 +340,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         customerId: crmCustomers.id,
         customerTypeId: crmCustomers.customerTypeId,
         name: crmCustomers.name,
+        tags: crmCustomers.tags,
       })
       .from(crmCustomers)
       .innerJoin(crmFollowUpRecords, eq(crmFollowUpRecords.customerId, crmCustomers.id))
@@ -347,8 +348,12 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         isNull(crmCustomers.archivedAt),
         eq(crmFollowUpRecords.analysisStatus, 'pending'),
       ))
-      .groupBy(crmCustomers.id, crmCustomers.customerTypeId, crmCustomers.name)
+      .groupBy(crmCustomers.id, crmCustomers.customerTypeId, crmCustomers.name, crmCustomers.tags)
       .orderBy(desc(latestPendingFollowedAt), desc(crmCustomers.id))
+      .then((rows) => rows.map((row) => ({
+        ...row,
+        tags: normalizeStoredTags(row.tags),
+      })))
   }
 
   async findDuplicateCustomers(input: {

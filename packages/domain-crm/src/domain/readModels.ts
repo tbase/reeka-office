@@ -119,6 +119,7 @@ export interface PendingAnalysisCustomer {
   customerId: number
   customerTypeId: number
   name: string
+  tags: string[]
 }
 
 export interface DuplicateCustomerCandidate {

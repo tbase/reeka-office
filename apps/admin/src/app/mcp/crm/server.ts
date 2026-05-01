@@ -81,7 +81,7 @@ function createCrmMcpServer() {
     "list_pending_customers",
     {
       title: "List pending CRM customers",
-      description: "List unarchived CRM customers that have at least one pending follow-up analysis, plus the enabled customer type definitions referenced by the returned customers. Phone numbers are unavailable.",
+      description: "List unarchived CRM customers that have at least one pending follow-up analysis, including customer tags and the enabled customer type definitions referenced by the returned customers. Phone numbers are unavailable.",
       inputSchema: z.object({}).strict(),
     },
     async () => {
@@ -314,6 +314,16 @@ function sanitizeCustomerTypeDefinition(customerType: CustomerTypeConfig) {
     profileFields: customerType.profileFields
       .filter((field) => field.enabled)
       .map(sanitizeProfileFieldDefinition),
+    tags: customerType.tags
+      .filter((tag) => tag.enabled)
+      .map(sanitizeCustomerTagDefinition),
+  }
+}
+
+function sanitizeCustomerTagDefinition(tag: CustomerTypeConfig["tags"][number]) {
+  return {
+    tagId: tag.id,
+    tagName: tag.name,
   }
 }
 

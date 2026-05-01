@@ -344,6 +344,7 @@ class MemoryCrm {
           customerId,
           customerTypeId: customer.customerTypeId,
           name: customer.name,
+          tags: customer.tags,
         }
       })
   }
@@ -835,6 +836,7 @@ describe('CRM customer commands', () => {
       agentId: 1,
       customerTypeId: insurance.id,
       name: 'Alice',
+      tags: ['重点'],
     }, deps(memory)).execute()
     const customerId = created.customerId!
     memory.customers.get(customerId)!.archivedAt = new Date('2026-04-05T00:00:00.000Z')
@@ -851,11 +853,13 @@ describe('CRM customer commands', () => {
       agentId: 1,
       customerTypeId: insurance.id,
       name: 'Alice',
+      tags: ['重点'],
     }, deps(memory)).execute()
     const bob = await new CreateCustomerCommand({
       agentId: 1,
       customerTypeId: insurance.id,
       name: 'Bob',
+      tags: ['高净值'],
     }, deps(memory)).execute()
     const analyzed = await new CreateCustomerCommand({
       agentId: 1,
@@ -899,8 +903,8 @@ describe('CRM customer commands', () => {
     await expect(new ListPendingAnalysisCustomersQuery(memory.runtime.readRepository).query())
       .resolves
       .toEqual([
-        { customerId: bob.customerId!, customerTypeId: insurance.id, name: 'Bob' },
-        { customerId: alice.customerId!, customerTypeId: insurance.id, name: 'Alice' },
+        { customerId: bob.customerId!, customerTypeId: insurance.id, name: 'Bob', tags: ['高净值'] },
+        { customerId: alice.customerId!, customerTypeId: insurance.id, name: 'Alice', tags: ['重点'] },
       ])
   })
 
