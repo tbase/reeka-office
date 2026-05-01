@@ -294,8 +294,7 @@ function sanitizeCustomerDetail(
     lastFollowedAt: customer.lastFollowedAt,
     createdAt: customer.createdAt,
     updatedAt: customer.updatedAt,
-    currentProfileValues: customer.currentProfileValues.map(sanitizeProfileValue),
-    allProfileValues: customer.allProfileValues.map(sanitizeProfileValue),
+    profiles: customer.currentProfileValues.map(sanitizeProfileValue),
     followUps: followUps.map((followUp) => ({
       id: followUp.id,
       method: followUp.method,
