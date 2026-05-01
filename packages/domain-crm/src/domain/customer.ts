@@ -134,6 +134,19 @@ export function normalizeTags(tags: string[]): string[] {
   return normalized
 }
 
+export function assertCustomerTagsAllowed(
+  tags: string[],
+  allowedTags: string[],
+  preservedTags: string[] = [],
+): void {
+  const allowed = new Set(allowedTags)
+  const preserved = new Set(preservedTags)
+  const invalid = tags.filter(tag => !allowed.has(tag) && !preserved.has(tag))
+  if (invalid.length > 0) {
+    throw new Error(`客户标签不可用: ${invalid.join(', ')}`)
+  }
+}
+
 export function normalizeProfileValues(values: ProfileValueInput[]): NormalizedProfileValue[] {
   const result: NormalizedProfileValue[] = []
   const seen = new Set<number>()

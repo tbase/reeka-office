@@ -1,5 +1,5 @@
 import type { CrmApplicationDependencies } from '../application/runtime'
-import { normalizeCustomerInput, normalizePositiveId, type CustomerInput } from '../domain/customer'
+import { assertCustomerTagsAllowed, normalizeCustomerInput, normalizePositiveId, type CustomerInput } from '../domain/customer'
 import type { DuplicateCustomerCandidate } from '../domain/readModels'
 import { executeWithCrmRuntime } from '../infra'
 
@@ -54,6 +54,11 @@ export class UpdateCustomerCommand {
       if (invalidFieldIds.length > 0) {
         throw new Error(`画像字段不可用: ${invalidFieldIds.join(', ')}`)
       }
+      assertCustomerTagsAllowed(
+        customer.tags,
+        customerType.tags.filter((tag) => tag.enabled).map((tag) => tag.name),
+        existing.tags,
+      )
 
       const duplicates = await runtime.readRepository.findDuplicateCustomers({
         agentId: customer.agentId,

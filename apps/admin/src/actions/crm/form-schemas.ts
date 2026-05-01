@@ -57,6 +57,13 @@ const profileFieldSchema = z.object({
   sortOrder: sortOrderSchema,
 })
 
+const customerTagSchema = z.object({
+  id: optionalNumberSchema,
+  name: z.string().trim().min(1, "请输入标签名称").max(30, "标签名称不能超过 30 个字符"),
+  enabled: booleanSchema,
+  sortOrder: sortOrderSchema,
+})
+
 const customerTypeActionSchema = z.object({
   name: z.string().trim().min(1, "请输入客户类型名称").max(100, "客户类型名称不能超过 100 个字符"),
   description: z.string().trim().optional().nullable(),
@@ -64,14 +71,15 @@ const customerTypeActionSchema = z.object({
   supportsOpportunity: booleanSchema,
   sortOrder: sortOrderSchema,
   profileFields: z.array(profileFieldSchema),
+  tags: z.array(customerTagSchema),
 }).superRefine((value, ctx) => {
-  const seen = new Map<string, number>()
+  const seenProfileFields = new Map<string, number>()
 
   value.profileFields.forEach((field, index) => {
     const name = field.name.trim()
-    const firstIndex = seen.get(name)
+    const firstIndex = seenProfileFields.get(name)
     if (firstIndex === undefined) {
-      seen.set(name, index)
+      seenProfileFields.set(name, index)
       return
     }
 
@@ -79,6 +87,22 @@ const customerTypeActionSchema = z.object({
       code: "custom",
       path: ["profileFields", index, "name"],
       message: `字段名称不能重复，已和第 ${firstIndex + 1} 行重复`,
+    })
+  })
+
+  const seenTags = new Map<string, number>()
+  value.tags.forEach((tag, index) => {
+    const name = tag.name.trim()
+    const firstIndex = seenTags.get(name)
+    if (firstIndex === undefined) {
+      seenTags.set(name, index)
+      return
+    }
+
+    ctx.addIssue({
+      code: "custom",
+      path: ["tags", index, "name"],
+      message: `标签名称不能重复，已和第 ${firstIndex + 1} 行重复`,
     })
   })
 })

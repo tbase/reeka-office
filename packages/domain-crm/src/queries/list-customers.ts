@@ -1,4 +1,4 @@
-import { normalizePositiveId, type CustomerSort } from '../domain/customer'
+import { normalizePositiveId, normalizeTags, type CustomerSort } from '../domain/customer'
 import type { CrmReadRepository } from '../domain/repositories'
 import type { CustomerListItem } from '../domain/readModels'
 import { createDefaultCrmRuntime } from '../infra'
@@ -8,6 +8,7 @@ export interface ListCustomersInput {
   archived?: boolean
   keyword?: string | null
   customerTypeId?: number | null
+  tagNames?: string[]
   sort?: CustomerSort
 }
 
@@ -26,6 +27,7 @@ export class ListCustomersQuery {
       archived: this.input.archived,
       keyword: this.input.keyword,
       customerTypeId: this.input.customerTypeId,
+      tagNames: normalizeTags(this.input.tagNames ?? []),
       sort: this.input.sort ?? 'last_followed_desc',
     })
   }

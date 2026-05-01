@@ -18,6 +18,7 @@ export const getCustomerTypeConfig = rpc.define({
     return {
       ...config,
       profileFields: config.profileFields.filter((field) => field.enabled),
+      tags: config.tags.filter((tag) => tag.enabled),
     };
   }),
 });

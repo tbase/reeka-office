@@ -24,6 +24,14 @@ export interface ProfileFieldConfig {
   sortOrder: number
 }
 
+export interface CustomerTagConfig {
+  id: number
+  customerTypeId: number
+  name: string
+  enabled: boolean
+  sortOrder: number
+}
+
 export interface CustomerTypeConfig {
   id: number
   name: string
@@ -32,6 +40,7 @@ export interface CustomerTypeConfig {
   supportsOpportunity: boolean
   sortOrder: number
   profileFields: ProfileFieldConfig[]
+  tags: CustomerTagConfig[]
   createdAt: Date
   updatedAt: Date
 }
@@ -41,6 +50,7 @@ export interface CustomerListInput {
   archived?: boolean
   keyword?: string | null
   customerTypeId?: number | null
+  tagNames?: string[]
   sort?: CustomerSort
 }
 

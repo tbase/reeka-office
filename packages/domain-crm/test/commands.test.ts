@@ -47,6 +47,7 @@ interface MemoryCustomer {
 class MemoryCrm {
   private nextCustomerTypeId = 1
   private nextFieldId = 1
+  private nextTagId = 1
   private nextCustomerId = 1
   private nextFollowUpId = 1
 
@@ -254,9 +255,12 @@ class MemoryCrm {
   }
 
   private async listCustomers(input: CustomerListInput): Promise<CustomerListItem[]> {
+    const tagNames = input.tagNames ?? []
     return [...this.customers.values()]
       .filter(customer => customer.agentId === input.agentId)
       .filter(customer => input.archived === undefined || (input.archived ? customer.archivedAt : !customer.archivedAt))
+      .filter(customer => !input.customerTypeId || customer.customerTypeId === input.customerTypeId)
+      .filter(customer => tagNames.length === 0 || tagNames.some(tag => customer.tags.includes(tag)))
       .map(customer => ({
         ...customer,
         customerTypeName: this.customerTypes.get(customer.customerTypeId)?.name ?? '',
@@ -294,6 +298,7 @@ class MemoryCrm {
           id: customer.id,
           agentId: customer.agentId,
           customerTypeId: customer.customerTypeId,
+          tags: customer.tags,
           lastFollowedAt: customer.lastFollowedAt,
         }
       : null
@@ -417,6 +422,13 @@ class MemoryCrm {
         enabled: field.enabled,
         sortOrder: field.sortOrder,
       })),
+      tags: config.tags.map(tag => ({
+        id: tag.id ?? this.nextTagId++,
+        customerTypeId: id,
+        name: tag.name,
+        enabled: tag.enabled,
+        sortOrder: tag.sortOrder,
+      })),
     }
   }
 }
@@ -432,6 +444,7 @@ async function seedCustomerTypes(memory: MemoryCrm) {
   const insuranceId = await new CreateCustomerTypeConfigCommand({
     name: '保险客户',
     profileFields: [{ name: '家庭情况' }],
+    tags: [{ name: '重点' }, { name: '高净值' }],
   }, deps(memory)).execute()
   const recruitId = await new CreateCustomerTypeConfigCommand({
     name: '招募对象',
@@ -457,6 +470,18 @@ describe('CRM metadata commands', () => {
     }, deps(memory)).execute()).rejects.toThrow('画像字段名称不能重复')
   })
 
+  it('rejects duplicate customer tag names', async () => {
+    const memory = new MemoryCrm()
+
+    await expect(new CreateCustomerTypeConfigCommand({
+      name: '保险客户',
+      tags: [
+        { name: '重点' },
+        { name: ' 重点 ' },
+      ],
+    }, deps(memory)).execute()).rejects.toThrow('客户标签不能重复')
+  })
+
   it('creates and updates customer type config without deleting disabled rows', async () => {
     const memory = new MemoryCrm()
     const id = await new CreateCustomerTypeConfigCommand({
@@ -475,6 +500,32 @@ describe('CRM metadata commands', () => {
 
     expect(memory.customerTypes.get(id)?.profileFields).toHaveLength(1)
     expect(memory.customerTypes.get(id)?.profileFields[0]?.enabled).toBe(false)
+  })
+
+  it('creates and updates customer tags in customer type config', async () => {
+    const memory = new MemoryCrm()
+    const id = await new CreateCustomerTypeConfigCommand({
+      name: '保险客户',
+      tags: [{ name: '重点' }, { name: '高净值' }],
+    }, deps(memory)).execute()
+    const config = memory.customerTypes.get(id)!
+
+    await new UpdateCustomerTypeConfigCommand({
+      id,
+      name: '保险客户',
+      tags: [
+        { ...config.tags[0]!, enabled: false },
+        { name: '待回访' },
+      ],
+    }, deps(memory)).execute()
+
+    expect(memory.customerTypes.get(id)?.tags.map(tag => ({
+      name: tag.name,
+      enabled: tag.enabled,
+    }))).toEqual([
+      { name: '重点', enabled: false },
+      { name: '待回访', enabled: true },
+    ])
   })
 
   it('deletes omitted profile fields and their profile values when updating config', async () => {
@@ -633,6 +684,97 @@ describe('CRM customer commands', () => {
       birthday: '1990-05-20',
       city: '上海',
     })
+  })
+
+  it('allows only enabled preset tags when creating customers', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+
+    await expect(new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      tags: ['重点'],
+    }, deps(memory)).execute()).resolves.toMatchObject({
+      customerId: expect.any(Number),
+    })
+
+    await expect(new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Bob',
+      tags: ['未预设'],
+    }, deps(memory)).execute()).rejects.toThrow('客户标签不可用: 未预设')
+  })
+
+  it('preserves existing disabled tags but rejects newly added unavailable tags', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+    const created = await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      tags: ['重点'],
+    }, deps(memory)).execute()
+    const customerId = created.customerId!
+
+    await new UpdateCustomerTypeConfigCommand({
+      id: insurance.id,
+      name: insurance.name,
+      profileFields: insurance.profileFields,
+      tags: insurance.tags.map(tag => tag.name === '重点' ? { ...tag, enabled: false } : tag),
+    }, deps(memory)).execute()
+
+    await expect(new UpdateCustomerCommand({
+      agentId: 1,
+      customerId,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      tags: ['重点'],
+      allowDuplicate: true,
+    }, deps(memory)).execute()).resolves.toMatchObject({
+      customerId,
+    })
+    await expect(new UpdateCustomerCommand({
+      agentId: 1,
+      customerId,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      tags: ['重点', '未预设'],
+      allowDuplicate: true,
+    }, deps(memory)).execute()).rejects.toThrow('客户标签不可用: 未预设')
+  })
+
+  it('filters customers by any selected tag', async () => {
+    const memory = new MemoryCrm()
+    const { insurance } = await seedCustomerTypes(memory)
+
+    await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Alice',
+      tags: ['重点'],
+    }, deps(memory)).execute()
+    await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Bob',
+      tags: ['高净值'],
+    }, deps(memory)).execute()
+    await new CreateCustomerCommand({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      name: 'Charlie',
+    }, deps(memory)).execute()
+
+    await expect(memory.runtime.readRepository.listCustomers({
+      agentId: 1,
+      customerTypeId: insurance.id,
+      tagNames: ['重点', '高净值'],
+    })).resolves.toMatchObject([
+      { name: 'Alice' },
+      { name: 'Bob' },
+    ])
   })
 
   it('rejects invalid birthday values', async () => {

@@ -3,6 +3,7 @@ import type { MySql2Database } from 'drizzle-orm/mysql2'
 import {
   crmCustomerProfileValues,
   crmCustomers,
+  crmCustomerTags,
   crmCustomerTypes,
   crmFollowUpRecords,
   crmProfileFields,
@@ -11,6 +12,7 @@ import {
 export type CrmSchema = {
   crmCustomerTypes: typeof crmCustomerTypes
   crmProfileFields: typeof crmProfileFields
+  crmCustomerTags: typeof crmCustomerTags
   crmCustomers: typeof crmCustomers
   crmCustomerProfileValues: typeof crmCustomerProfileValues
   crmFollowUpRecords: typeof crmFollowUpRecords
@@ -19,6 +21,7 @@ export type CrmSchema = {
 export const crmSchema: CrmSchema = {
   crmCustomerTypes,
   crmProfileFields,
+  crmCustomerTags,
   crmCustomers,
   crmCustomerProfileValues,
   crmFollowUpRecords,

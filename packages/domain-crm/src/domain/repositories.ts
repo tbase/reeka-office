@@ -59,6 +59,7 @@ export interface CrmReadRepository {
     id: number
     agentId: number
     customerTypeId: number
+    tags: string[]
     lastFollowedAt: Date | null
   } | null>
 }

@@ -41,6 +41,23 @@ export const crmProfileFields = mysqlTable('crm_profile_fields', {
   index('crm_profile_fields_type_order_idx').on(table.customerTypeId, table.sortOrder),
 ])
 
+export const crmCustomerTags = mysqlTable('crm_customer_tags', {
+  id: int('id').autoincrement().primaryKey(),
+  customerTypeId: int('customer_type_id').notNull(),
+  name: varchar('name', { length: 30 }).notNull(),
+  enabled: int('enabled').notNull().default(1).$type<boolean>(),
+  sortOrder: int('sort_order').notNull().default(0),
+  createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: datetime('updated_at').default(sql`CURRENT_TIMESTAMP`).$onUpdateFn(() => sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+  foreignKey({
+    name: 'crm_customer_tags_customer_type_fk',
+    columns: [table.customerTypeId],
+    foreignColumns: [crmCustomerTypes.id],
+  }).onDelete('no action'),
+  index('crm_customer_tags_type_order_idx').on(table.customerTypeId, table.sortOrder),
+])
+
 export const crmCustomers = mysqlTable('crm_customers', {
   id: int('id').autoincrement().primaryKey(),
   agentId: int('agent_id').notNull(),
@@ -124,6 +141,8 @@ export type CrmCustomerTypeRow = typeof crmCustomerTypes.$inferSelect
 export type NewCrmCustomerTypeRow = typeof crmCustomerTypes.$inferInsert
 export type CrmProfileFieldRow = typeof crmProfileFields.$inferSelect
 export type NewCrmProfileFieldRow = typeof crmProfileFields.$inferInsert
+export type CrmCustomerTagRow = typeof crmCustomerTags.$inferSelect
+export type NewCrmCustomerTagRow = typeof crmCustomerTags.$inferInsert
 export type CrmCustomerRow = typeof crmCustomers.$inferSelect
 export type NewCrmCustomerRow = typeof crmCustomers.$inferInsert
 export type CrmCustomerProfileValueRow = typeof crmCustomerProfileValues.$inferSelect

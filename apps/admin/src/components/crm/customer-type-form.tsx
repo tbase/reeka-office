@@ -38,6 +38,12 @@ export interface CustomerTypeFormValue {
     enabled?: boolean
     sortOrder?: number
   }>
+  tags?: Array<{
+    id?: number
+    name?: string
+    enabled?: boolean
+    sortOrder?: number
+  }>
 }
 
 const ROOT_FIELD_LABELS: Record<string, string> = {
@@ -52,14 +58,23 @@ const PROFILE_FIELD_LABELS: Record<string, string> = {
   sortOrder: "排序",
 }
 
+const CUSTOMER_TAG_LABELS: Record<string, string> = {
+  name: "标签名称",
+  sortOrder: "排序",
+}
+
 const ERROR_META_KEYS = new Set(["ref", "type", "types"])
 
-function orderProfileFields(formValues: unknown) {
+function orderFormRows(formValues: unknown) {
   const values = formValues as CustomerTypeFormValue
   return {
     ...values,
     profileFields: (values.profileFields ?? []).map((field, index) => ({
       ...field,
+      sortOrder: index,
+    })),
+    tags: (values.tags ?? []).map((tag, index) => ({
+      ...tag,
       sortOrder: index,
     })),
   }
@@ -123,6 +138,12 @@ function buildDefaultValues(value?: CustomerTypeFormValue) {
       enabled: normalizeBoolean(field.enabled, true),
       sortOrder: field.sortOrder ?? 0,
     })) ?? [],
+    tags: value?.tags?.map((tag) => ({
+      id: tag.id,
+      name: tag.name ?? "",
+      enabled: normalizeBoolean(tag.enabled, true),
+      sortOrder: tag.sortOrder ?? 0,
+    })) ?? [],
   }
 }
 
@@ -140,6 +161,21 @@ function formatClientValidationError(path: Array<string | number>, message: stri
     }
 
     return fieldLabel ? `画像字段 - ${fieldLabel}：${message}` : `画像字段：${message}`
+  }
+
+  const tagsIndex = path.indexOf("tags")
+  if (tagsIndex >= 0) {
+    const row = path[tagsIndex + 1]
+    const fieldName = path[tagsIndex + 2]
+    const fieldLabel = typeof fieldName === "string" ? CUSTOMER_TAG_LABELS[fieldName] : null
+
+    if (typeof row === "number") {
+      return fieldLabel
+        ? `客户标签第 ${row + 1} 行 - ${fieldLabel}：${message}`
+        : `客户标签第 ${row + 1} 行：${message}`
+    }
+
+    return fieldLabel ? `客户标签 - ${fieldLabel}：${message}` : `客户标签：${message}`
   }
 
   const fieldName = path[0]
@@ -243,8 +279,15 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
     name: "profileFields" as never,
     keyName: "formKey",
   })
+  const customerTags = useFieldArray({
+    control: form.control,
+    name: "tags" as never,
+    keyName: "formKey",
+  })
   const [draggingFieldKey, setDraggingFieldKey] = useState<string | null>(null)
   const [dragOverFieldKey, setDragOverFieldKey] = useState<string | null>(null)
+  const [draggingTagKey, setDraggingTagKey] = useState<string | null>(null)
+  const [dragOverTagKey, setDragOverTagKey] = useState<string | null>(null)
 
   const formError =
     getErrorMessage(actionState.result.serverError) ??
@@ -252,7 +295,7 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
     getFieldError(actionState.result.validationErrors, "id")
   const handleSubmit = form.handleSubmit(
     async (formValues) => {
-      const orderedFormValues = orderProfileFields(formValues)
+      const orderedFormValues = orderFormRows(formValues)
       const result = await actionState.executeAsync(orderedFormValues as never)
       const actionResult = result as {
         serverError?: unknown
@@ -327,6 +370,58 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
   const handleFieldDragEnd = () => {
     setDraggingFieldKey(null)
     setDragOverFieldKey(null)
+  }
+
+  const moveCustomerTag = (activeTagKey: string, overTagKey: string) => {
+    if (activeTagKey === overTagKey) {
+      return
+    }
+
+    const activeIndex = customerTags.fields.findIndex((tag) => (
+      (tag as { formKey: string }).formKey === activeTagKey
+    ))
+    const overIndex = customerTags.fields.findIndex((tag) => (
+      (tag as { formKey: string }).formKey === overTagKey
+    ))
+
+    if (activeIndex === -1 || overIndex === -1) {
+      return
+    }
+
+    customerTags.move(activeIndex, overIndex)
+  }
+
+  const handleTagDragStart = (event: DragEvent<HTMLElement>, tagKey: string) => {
+    setDraggingTagKey(tagKey)
+    setDragOverTagKey(tagKey)
+    event.dataTransfer.effectAllowed = "move"
+    event.dataTransfer.setData("text/plain", tagKey)
+  }
+
+  const handleTagDragOver = (event: DragEvent<HTMLElement>, tagKey: string) => {
+    if (!draggingTagKey) {
+      return
+    }
+
+    event.preventDefault()
+    if (dragOverTagKey !== tagKey) {
+      setDragOverTagKey(tagKey)
+    }
+  }
+
+  const handleTagDrop = (event: DragEvent<HTMLElement>, tagKey: string) => {
+    event.preventDefault()
+    const activeTagKey = draggingTagKey ?? event.dataTransfer.getData("text/plain")
+    if (activeTagKey) {
+      moveCustomerTag(activeTagKey, tagKey)
+    }
+    setDraggingTagKey(null)
+    setDragOverTagKey(null)
+  }
+
+  const handleTagDragEnd = () => {
+    setDraggingTagKey(null)
+    setDragOverTagKey(null)
   }
 
   return (
@@ -466,6 +561,88 @@ export function CustomerTypeForm<TAction extends CustomerTypeFormAction, TSchema
                       启用
                     </label>
                     <Button type="button" variant="ghost" size="icon-sm" onClick={() => profileFields.remove(index)}>
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-medium">客户标签</h2>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => customerTags.append({
+              name: "",
+              enabled: true,
+              sortOrder: customerTags.fields.length,
+            } as never)}
+          >
+            <PlusIcon className="size-4" />
+            新增标签
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {customerTags.fields.map((tag, index) => {
+            const tagIdPath = `tags.${index}.id` as const
+            const tagId = form.getValues(tagIdPath)
+            const formKey = (tag as { formKey: string }).formKey
+            const tagErrors = form.formState.errors.tags
+            const nameError = getErrorAtPath(tagErrors, [index, "name"])
+            const sortOrderError = getErrorAtPath(tagErrors, [index, "sortOrder"])
+
+            return (
+              <div
+                key={formKey}
+                className={`rounded-lg border p-3 ${
+                  draggingTagKey === formKey ? "opacity-50" : ""
+                } ${dragOverTagKey === formKey ? "border-primary" : ""}`}
+                data-invalid={Boolean(nameError || sortOrderError) || undefined}
+                onDragOver={(event) => handleTagDragOver(event, formKey)}
+                onDrop={(event) => handleTagDrop(event, formKey)}
+              >
+                {tagId ? (
+                  <input
+                    type="hidden"
+                    {...form.register(tagIdPath, { setValueAs: normalizePositiveInt })}
+                  />
+                ) : null}
+                <input
+                  type="hidden"
+                  {...form.register(`tags.${index}.sortOrder` as const, { setValueAs: normalizeNumberInput })}
+                />
+                <div className="grid gap-3 md:grid-cols-[auto_1fr_auto]">
+                  <button
+                    type="button"
+                    aria-label="拖拽排序客户标签"
+                    draggable
+                    onDragStart={(event) => handleTagDragStart(event, formKey)}
+                    onDragEnd={handleTagDragEnd}
+                    className="text-muted-foreground mt-2 shrink-0 cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVerticalIcon className="size-4" />
+                  </button>
+                  <div className="space-y-1">
+                    <Input
+                      placeholder="标签名称"
+                      aria-invalid={Boolean(nameError) || undefined}
+                      {...form.register(`tags.${index}.name` as const)}
+                    />
+                    {nameError ? <p className="text-destructive text-xs">{nameError}</p> : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" className="size-4" {...form.register(`tags.${index}.enabled` as const)} />
+                      启用
+                    </label>
+                    <Button type="button" variant="ghost" size="icon-sm" onClick={() => customerTags.remove(index)}>
                       <Trash2Icon className="size-4" />
                     </Button>
                   </div>

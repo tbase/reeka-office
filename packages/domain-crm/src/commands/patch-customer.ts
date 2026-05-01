@@ -1,5 +1,6 @@
 import type { CrmApplicationDependencies } from '../application/runtime'
 import {
+  assertCustomerTagsAllowed,
   normalizeCustomerInput,
   normalizePositiveId,
   type CustomerGender,
@@ -76,6 +77,13 @@ export class PatchCustomerCommand {
         assertProfileFieldsAllowed(
           customer.profileValues.map((item) => item.fieldId),
           customerType.profileFields.filter((field) => field.enabled).map((field) => field.id),
+        )
+      }
+      if (this.input.tags !== undefined) {
+        assertCustomerTagsAllowed(
+          customer.tags,
+          customerType.tags.filter((tag) => tag.enabled).map((tag) => tag.name),
+          existing.tags,
         )
       }
 

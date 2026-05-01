@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, like, lt, ne, or, sql, 
 
 import type { DBExecutor } from '../context'
 import type { FollowUpMethod, NormalizedCustomerInput } from '../domain/customer'
-import type { NormalizedCustomerTypeConfig, NormalizedProfileField } from '../domain/profile'
+import type { NormalizedCustomerTag, NormalizedCustomerTypeConfig, NormalizedProfileField } from '../domain/profile'
 import type { CrmCustomerRepository, CrmMetadataRepository, CrmReadRepository } from '../domain/repositories'
 import type {
   CustomerDetail,
@@ -12,6 +12,7 @@ import type {
   CustomerTypeConfig,
   CustomerTypeSummaryFilters,
   CustomerTypeSummary,
+  CustomerTagConfig,
   DuplicateCustomerCandidate,
   FollowUpRecordDetail,
   PendingAnalysisCustomer,
@@ -20,6 +21,7 @@ import type {
 import {
   crmCustomerProfileValues,
   crmCustomers,
+  crmCustomerTags,
   crmCustomerTypes,
   crmFollowUpRecords,
   crmProfileFields,
@@ -47,6 +49,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     }
 
     await this.saveProfileFields(customerTypeId, config.profileFields)
+    await this.saveCustomerTags(customerTypeId, config.tags)
     return customerTypeId
   }
 
@@ -64,6 +67,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .where(eq(crmCustomerTypes.id, config.id))
 
     await this.saveProfileFields(config.id, config.profileFields)
+    await this.saveCustomerTags(config.id, config.tags)
   }
 
   async createCustomer(input: NormalizedCustomerInput): Promise<number> {
@@ -247,10 +251,12 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     }
 
     const profileFields = await this.listProfileFields(customerTypeId)
+    const tags = await this.listCustomerTags(customerTypeId)
 
     return {
       ...row,
       profileFields,
+      tags,
     }
   }
 
@@ -263,6 +269,13 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
 
     if (input.customerTypeId) {
       conditions.push(eq(crmCustomers.customerTypeId, input.customerTypeId))
+    }
+
+    const tagNames = input.tagNames?.map(tag => tag.trim()).filter(Boolean) ?? []
+    if (tagNames.length > 0) {
+      conditions.push(or(
+        ...tagNames.map(tag => sql`JSON_CONTAINS(${crmCustomers.tags}, JSON_QUOTE(${tag}))`),
+      )!)
     }
 
     const keyword = input.keyword?.trim()
@@ -434,6 +447,7 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
         id: crmCustomers.id,
         agentId: crmCustomers.agentId,
         customerTypeId: crmCustomers.customerTypeId,
+        tags: crmCustomers.tags,
         lastFollowedAt: crmCustomers.lastFollowedAt,
       })
       .from(crmCustomers)
@@ -443,7 +457,8 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       ))
       .limit(1)
 
-    return rows[0] ?? null
+    const row = rows[0]
+    return row ? { ...row, tags: normalizeStoredTags(row.tags) } : null
   }
 
   private async saveProfileFields(customerTypeId: number, fields: NormalizedProfileField[]): Promise<void> {
@@ -499,6 +514,51 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
     }
   }
 
+  private async saveCustomerTags(customerTypeId: number, tags: NormalizedCustomerTag[]): Promise<void> {
+    const keptTagIds = tags.flatMap(tag => tag.id ? [tag.id] : [])
+    const existingTags = await this.db
+      .select({ id: crmCustomerTags.id })
+      .from(crmCustomerTags)
+      .where(eq(crmCustomerTags.customerTypeId, customerTypeId))
+    const deletedTagIds = existingTags
+      .map(tag => tag.id)
+      .filter(tagId => !keptTagIds.includes(tagId))
+
+    if (deletedTagIds.length > 0) {
+      await this.db
+        .delete(crmCustomerTags)
+        .where(and(
+          eq(crmCustomerTags.customerTypeId, customerTypeId),
+          inArray(crmCustomerTags.id, deletedTagIds),
+        ))
+    }
+
+    for (const tag of tags) {
+      if (tag.id) {
+        await this.db
+          .update(crmCustomerTags)
+          .set({
+            name: tag.name,
+            enabled: tag.enabled,
+            sortOrder: tag.sortOrder,
+            updatedAt: sql`CURRENT_TIMESTAMP`,
+          })
+          .where(and(
+            eq(crmCustomerTags.id, tag.id),
+            eq(crmCustomerTags.customerTypeId, customerTypeId),
+          ))
+        continue
+      }
+
+      await this.db.insert(crmCustomerTags).values({
+        customerTypeId,
+        name: tag.name,
+        enabled: tag.enabled,
+        sortOrder: tag.sortOrder,
+      })
+    }
+  }
+
   private async replaceProfileValues(customerId: number, input: NormalizedCustomerInput): Promise<void> {
     await this.db
       .delete(crmCustomerProfileValues)
@@ -535,6 +595,20 @@ export class DrizzleCrmRepository implements CrmMetadataRepository, CrmCustomerR
       .from(crmProfileFields)
       .where(eq(crmProfileFields.customerTypeId, customerTypeId))
       .orderBy(asc(crmProfileFields.sortOrder), asc(crmProfileFields.id))
+  }
+
+  private async listCustomerTags(customerTypeId: number): Promise<CustomerTagConfig[]> {
+    return this.db
+      .select({
+        id: crmCustomerTags.id,
+        customerTypeId: crmCustomerTags.customerTypeId,
+        name: crmCustomerTags.name,
+        enabled: crmCustomerTags.enabled,
+        sortOrder: crmCustomerTags.sortOrder,
+      })
+      .from(crmCustomerTags)
+      .where(eq(crmCustomerTags.customerTypeId, customerTypeId))
+      .orderBy(asc(crmCustomerTags.sortOrder), asc(crmCustomerTags.id))
   }
 
   private async listProfileValues(customerId: number): Promise<CustomerProfileValueDetail[]> {

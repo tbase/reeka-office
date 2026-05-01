@@ -9,7 +9,7 @@ import { invalidateQueries } from '@/hooks/useQuery'
 import { useToast } from '@/hooks/useToast'
 import { formatDate, formatTime } from '@/lib/time'
 import FollowUpEditor from '../../components/follow-up-editor.vue'
-import { useCustomerDetailStore } from '../../store'
+import { useCustomerDetailStore, useCustomerTypeConfigStore } from '../../store'
 import { formatCustomerDisplayName } from '../../utils/customer'
 
 definePageJson({
@@ -33,10 +33,13 @@ const editField = ref<EditableField | null>(null)
 const editPopupVisible = ref(false)
 const editValue = ref('')
 const editGender = ref<CustomerGender>('M')
+const selectedTags = ref<string[]>([])
 const followUpPopupVisible = ref(false)
 const today = formatDate(new Date())
 
 const { customer, error, refetch } = useCustomerDetailStore(customerId)
+const customerTypeId = computed(() => customer.value?.customerTypeId ?? null)
+const { customerType, error: typeError } = useCustomerTypeConfigStore(customerTypeId)
 const { showToast } = useToast()
 const updateMutation = useMutation('crm/updateCustomer', {
   showLoading: '保存中...',
@@ -53,7 +56,7 @@ const pageError = computed(() => {
     return '客户 ID 无效'
   }
 
-  return error.value?.message ?? null
+  return error.value?.message ?? typeError.value?.message ?? null
 })
 
 const profileRows = computed(() => customer.value?.currentProfileValues ?? [])
@@ -92,6 +95,15 @@ const editPlaceholder = computed(() => {
     return '用逗号或空格分隔'
   }
   return '选填'
+})
+const enabledTagNames = computed(() => customerType.value?.tags.map(tag => tag.name) ?? [])
+const legacyTags = computed(() => {
+  if (editField.value !== 'tags' || !customer.value) {
+    return []
+  }
+
+  const enabled = new Set(enabledTagNames.value)
+  return customer.value.tags.filter(tag => !enabled.has(tag))
 })
 
 function goProfile() {
@@ -144,7 +156,8 @@ function openEditField(field: EditableField) {
   }
 
   if (field === 'tags') {
-    editValue.value = customer.value.tags.join('，')
+    const enabled = new Set(enabledTagNames.value)
+    selectedTags.value = customer.value.tags.filter(tag => enabled.has(tag))
     return
   }
 
@@ -165,20 +178,18 @@ function selectEditGender(value: CustomerGender) {
   editGender.value = value
 }
 
+function toggleSelectedTag(tagName: string) {
+  selectedTags.value = selectedTags.value.includes(tagName)
+    ? selectedTags.value.filter(item => item !== tagName)
+    : [...selectedTags.value, tagName]
+}
+
 function handleEditBirthdayChange(event: { detail?: { value?: string }, target?: { value?: string } }) {
   editValue.value = event.detail?.value ?? event.target?.value ?? ''
 }
 
 function clearEditBirthday() {
   editValue.value = ''
-}
-
-const tagSeparator = /[\s,，]+/
-function buildTags(value: string): string[] {
-  return value
-    .split(tagSeparator)
-    .map(tag => tag.trim())
-    .filter(Boolean)
 }
 
 function buildProfileValues(detail: CustomerDetail) {
@@ -211,7 +222,7 @@ function buildUpdatePayload(detail: CustomerDetail, allowDuplicate: boolean): Rp
     city: field === 'city' ? editValue.value.trim() || null : detail.city,
     phone: field === 'phone' ? editValue.value.trim() || null : detail.phone,
     wechat: detail.wechat,
-    tags: field === 'tags' ? buildTags(editValue.value) : detail.tags,
+    tags: field === 'tags' ? [...legacyTags.value, ...selectedTags.value] : detail.tags,
     note: detail.note,
     profileValues: buildProfileValues(detail),
     allowDuplicate,
@@ -405,6 +416,43 @@ function formatLastFollowedAt(value: string | Date | null): string {
               </view>
             </view>
           </picker>
+          <view
+            v-else-if="editField === 'tags'"
+            class="px-4 py-4"
+          >
+            <view
+              v-if="customerType?.tags.length"
+              class="flex flex-wrap gap-2"
+            >
+              <view
+                v-for="tag in customerType.tags"
+                :key="tag.id"
+                class="pill"
+                :class="selectedTags.includes(tag.name) ? 'pill-selected' : 'pill-surface'"
+                @tap="toggleSelectedTag(tag.name)"
+              >
+                {{ tag.name }}
+              </view>
+            </view>
+            <view
+              v-else
+              class="text-sm text-muted-foreground"
+            >
+              暂无可选标签
+            </view>
+            <view
+              v-if="legacyTags.length > 0"
+              class="mt-4 flex flex-wrap gap-2"
+            >
+              <view
+                v-for="tag in legacyTags"
+                :key="tag"
+                class="pill pill-muted"
+              >
+                {{ tag }}
+              </view>
+            </view>
+          </view>
           <t-input
             v-else
             :value="editValue"

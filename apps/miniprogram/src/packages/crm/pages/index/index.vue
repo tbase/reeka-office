@@ -8,7 +8,7 @@ import { usePullDownRefresh } from '@/hooks/usePullDownRefresh'
 import { invalidateQueries } from '@/hooks/useQuery'
 import { useToast } from '@/hooks/useToast'
 import { formatDate as formatDateValue } from '@/lib/time'
-import { useCustomersStore } from '../../store'
+import { useCustomerTypeConfigStore, useCustomersStore } from '../../store'
 import { formatCustomerDisplayName } from '../../utils/customer'
 
 definePageJson({
@@ -38,31 +38,43 @@ const createPopupVisible = ref(false)
 const createName = ref('')
 const createGender = ref<CustomerGender>('M')
 const activeCustomerIndex = ref('')
+const selectedTagNames = ref<string[]>([])
 
 const filters = computed<RpcInput<'crm/listCustomers'>>(() => customerTypeId.value
   ? ({
       keyword: keyword.value || undefined,
       customerTypeId: customerTypeId.value,
+      tagNames: selectedTagNames.value.length > 0 ? selectedTagNames.value : undefined,
     })
   : undefined)
 
 const { showToast } = useToast()
 const { customers, isLoading, error, refetch } = useCustomersStore(filters)
+const { customerType, error: typeError } = useCustomerTypeConfigStore(customerTypeId)
 const createMutation = useMutation('crm/createCustomer', {
   showLoading: '保存客户中...',
   onError: err => showToast(err.message || '保存失败', 'error'),
 })
 
 const rows = computed(() => customers.value ?? [])
+const tagOptions = computed(() => customerType.value?.tags ?? [])
 const pageError = computed(() => {
   if (!customerTypeId.value) {
     return '客户类型 ID 无效'
   }
 
-  return error.value?.message ?? null
+  return error.value?.message ?? typeError.value?.message ?? null
 })
 const hasBlockingPageError = computed(() =>
   Boolean(pageError.value && (!customers.value || !customerTypeId.value)),
+)
+
+watch(
+  tagOptions,
+  (options) => {
+    const availableNames = new Set(options.map(tag => tag.name))
+    selectedTagNames.value = selectedTagNames.value.filter(tag => availableNames.has(tag))
+  },
 )
 const customerSections = computed(() => buildCustomerSections(rows.value))
 const customerIndexList = computed(() => customerSections.value.map(section => section.letter))
@@ -92,6 +104,12 @@ usePullDownRefresh(async () => {
 
 function handleKeywordChange(event: { value?: string }) {
   keyword.value = event.value ?? ''
+}
+
+function toggleTagFilter(tagName: string) {
+  selectedTagNames.value = selectedTagNames.value.includes(tagName)
+    ? selectedTagNames.value.filter(item => item !== tagName)
+    : [...selectedTagNames.value, tagName]
 }
 
 function handleCustomerIndexChange(event: {
@@ -246,6 +264,26 @@ function compareCustomerName(left: typeof rows.value[number], right: typeof rows
         clearable
         @change="handleKeywordChange"
       />
+
+      <scroll-view
+        v-if="tagOptions.length > 0"
+        class="mt-3 whitespace-nowrap px-4"
+        scroll-x
+        enhanced
+        show-scrollbar="false"
+      >
+        <view class="inline-flex gap-2">
+          <view
+            v-for="tag in tagOptions"
+            :key="tag.id"
+            class="pill"
+            :class="selectedTagNames.includes(tag.name) ? 'pill-selected' : 'pill-surface'"
+            @tap="toggleTagFilter(tag.name)"
+          >
+            {{ tag.name }}
+          </view>
+        </view>
+      </scroll-view>
 
     </view>
 

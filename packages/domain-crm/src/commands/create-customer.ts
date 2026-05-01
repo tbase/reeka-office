@@ -1,5 +1,5 @@
 import type { CrmApplicationDependencies } from '../application/runtime'
-import { normalizeCustomerInput, type CustomerInput } from '../domain/customer'
+import { assertCustomerTagsAllowed, normalizeCustomerInput, type CustomerInput } from '../domain/customer'
 import type { DuplicateCustomerCandidate } from '../domain/readModels'
 import { executeWithCrmRuntime } from '../infra'
 
@@ -38,6 +38,10 @@ export class CreateCustomerCommand {
       assertProfileFieldsAllowed(
         customer.profileValues.map((item) => item.fieldId),
         customerType.profileFields.filter((field) => field.enabled).map((field) => field.id),
+      )
+      assertCustomerTagsAllowed(
+        customer.tags,
+        customerType.tags.filter((tag) => tag.enabled).map((tag) => tag.name),
       )
 
       const duplicates = await runtime.readRepository.findDuplicateCustomers({
